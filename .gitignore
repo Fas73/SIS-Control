@@ -1,14 +1,34 @@
-/hs_err_pid5976.log
-/hs_err_pid5976.log
-/hs_err_pid16052.log
-/hs_err_pid17984.log
-/hs_err_pid20308.log
-/hs_err_pid21588.log
-/replay_pid5976.log
-/replay_pid17984.log
-/replay_pid20308.log
-/replay_pid21588.log
+# --- Android Studio / IntelliJ ---
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+
+# --- Compilación y Temporales (¡Muy importante!) ---
+/build
+/app/build
+/captures
+.externalNativeBuild
+.cxx
+
+# --- Archivos de registro (Logs) ---
+*.log
+hs_err_pid*
+replay_pid*
+
+# --- Mockups / Diseño ---
+# Bloquea toda la carpeta de assets si solo son mockups
 /app/assets/
 /app/assets/Screens/
-/app/assets/Screens/
-/app/assets/
+
+# --- Otros ---
+*.apk
+*.ap_
+*.dex
+*.class
