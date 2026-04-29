@@ -18,10 +18,16 @@ import com.siscontrol.mobile.presentation.theme.SuccessColor
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.draw.shadow
 
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.siscontrol.mobile.R
+
 @Composable
 fun SISTopBar(
     title: String,
-    subtitle: String? = null
+    subtitle: String? = null,
+    showAdminLogo: Boolean = false,
+    actions: @Composable RowScope.() -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -35,34 +41,54 @@ fun SISTopBar(
             .statusBarsPadding()
     ) {
         Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(Color.White, shape = RoundedCornerShape(10.dp))
-                    .shadow(4.dp, RoundedCornerShape(10.dp)),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("SIS", color = PrimaryColor, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
-            }
-            Column {
-                Text(
-                    text = title,
-                    color = Color.White,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp
-                )
-                if (subtitle != null) {
-                    Text(
-                        text = subtitle,
-                        color = Color.White.copy(alpha = 0.85f),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
+                if (showAdminLogo) {
+                    Image(
+                        painter = painterResource(id = R.drawable.icono_degrade_sis_control),
+                        contentDescription = "Logo",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color.White, shape = RoundedCornerShape(10.dp))
+                            .padding(4.dp)
                     )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color.White, shape = RoundedCornerShape(10.dp))
+                            .shadow(4.dp, RoundedCornerShape(10.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("SIS", color = PrimaryColor, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
+                    }
                 }
+                Column {
+                    Text(
+                        text = title,
+                        color = Color.White,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    )
+                    if (subtitle != null) {
+                        Text(
+                            text = subtitle,
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                actions()
             }
         }
     }

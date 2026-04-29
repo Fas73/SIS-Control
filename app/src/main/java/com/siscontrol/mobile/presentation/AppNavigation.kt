@@ -38,6 +38,8 @@ object Destinos {
     // Nuevas Rutas Figma
     const val ADMIN_HOME = "admin_home/{token}/{role}"
     const val ADMIN_USERS = "admin_users/{token}/{role}"
+    const val ADMIN_CREATE_SUPERVISOR = "admin_create_supervisor/{token}/{role}"
+    const val ADMIN_CREATE_GUARD = "admin_create_guard/{token}/{role}"
     const val ADMIN_MAP = "admin_map/{token}/{role}"
     const val ADMIN_ALERTS = "admin_alerts/{token}/{role}"
     const val SUPERVISOR_HOME = "supervisor_home/{token}/{role}"
@@ -57,6 +59,8 @@ object Destinos {
 
     fun adminHomeRoute(token: String, role: String) = "admin_home/${encode(token)}/${encode(role)}"
     fun adminUsersRoute(token: String, role: String) = "admin_users/${encode(token)}/${encode(role)}"
+    fun adminCreateSupervisorRoute(token: String, role: String) = "admin_create_supervisor/${encode(token)}/${encode(role)}"
+    fun adminCreateGuardRoute(token: String, role: String) = "admin_create_guard/${encode(token)}/${encode(role)}"
     fun adminMapRoute(token: String, role: String) = "admin_map/${encode(token)}/${encode(role)}"
     fun adminAlertsRoute(token: String, role: String) = "admin_alerts/${encode(token)}/${encode(role)}"
     fun supervisorHomeRoute(token: String, role: String) = "supervisor_home/${encode(token)}/${encode(role)}"
@@ -217,8 +221,32 @@ fun AppNavigation() {
             val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
             val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
             com.siscontrol.mobile.presentation.main.MainScaffold(navController, role, token) { padding ->
-                com.siscontrol.mobile.presentation.admin.AdminUsersScreen(padding)
+                com.siscontrol.mobile.presentation.admin.AdminUsersScreen(
+                    paddingValues = padding,
+                    onCreateSupervisor = { navController.navigate(Destinos.adminCreateSupervisorRoute(token, role)) },
+                    onCreateGuard = { navController.navigate(Destinos.adminCreateGuardRoute(token, role)) }
+                )
             }
+        }
+
+        composable(Destinos.ADMIN_CREATE_SUPERVISOR, arguments = listOf(
+            navArgument("token") { type = NavType.StringType },
+            navArgument("role")  { type = NavType.StringType }
+        )) { backStack ->
+            com.siscontrol.mobile.presentation.admin.CreateSupervisorScreen(
+                onBack = { navController.popBackStack() },
+                onCreate = { navController.popBackStack() }
+            )
+        }
+
+        composable(Destinos.ADMIN_CREATE_GUARD, arguments = listOf(
+            navArgument("token") { type = NavType.StringType },
+            navArgument("role")  { type = NavType.StringType }
+        )) { backStack ->
+            com.siscontrol.mobile.presentation.supervisor.CreateGuardScreen(
+                onBack = { navController.popBackStack() },
+                onCreate = { navController.popBackStack() }
+            )
         }
 
         // ------------------------------------------------------------------
@@ -253,7 +281,10 @@ fun AppNavigation() {
             val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
             val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
             com.siscontrol.mobile.presentation.main.MainScaffold(navController, role, token) { padding ->
-                com.siscontrol.mobile.presentation.supervisor.SupervisorGuardsScreen(padding)
+                com.siscontrol.mobile.presentation.supervisor.SupervisorGuardsScreen(
+                    paddingValues = padding,
+                    onCreateGuard = { navController.navigate(Destinos.adminCreateGuardRoute(token, role)) }
+                )
             }
         }
 
@@ -313,7 +344,7 @@ fun AppNavigation() {
             val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
             val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
             com.siscontrol.mobile.presentation.main.MainScaffold(navController, role, token) { padding ->
-                PlaceholderScreen("Mapa en Vivo (ADMIN)", padding)
+                com.siscontrol.mobile.presentation.admin.AdminMapScreen(paddingValues = padding)
             }
         }
 
@@ -324,7 +355,7 @@ fun AppNavigation() {
             val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
             val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
             com.siscontrol.mobile.presentation.main.MainScaffold(navController, role, token) { padding ->
-                PlaceholderScreen("Centro de Alertas (ADMIN)", padding)
+                com.siscontrol.mobile.presentation.admin.AdminAlertsScreen(paddingValues = padding)
             }
         }
 

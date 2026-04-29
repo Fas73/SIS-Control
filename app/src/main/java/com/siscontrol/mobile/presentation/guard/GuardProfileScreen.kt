@@ -37,7 +37,14 @@ fun GuardProfileScreen(
             .background(BackgroundColor)
             .padding(paddingValues)
     ) {
-        SISTopBar(title = "Mi Perfil")
+        SISTopBar(
+            title = "Mi Perfil",
+            actions = {
+                IconButton(onClick = onLogout) {
+                    Icon(Icons.Default.ExitToApp, contentDescription = "Cerrar Sesión", tint = Color.White)
+                }
+            }
+        )
 
         Column(
             modifier = Modifier
@@ -72,7 +79,7 @@ fun GuardProfileScreen(
             
             Text("Juan Pérez", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
             Spacer(modifier = Modifier.height(8.dp))
-            SISBadge("GUARDIA", containerColor = Color(0xFFD1FAE5), contentColor = SuccessColor)
+            SISBadge("ADMINISTRADOR", containerColor = Color(0xFFD1FAE5), contentColor = SuccessColor)
             
             Spacer(modifier = Modifier.height(24.dp))
             

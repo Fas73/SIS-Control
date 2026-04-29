@@ -15,7 +15,10 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.painterResource
+import com.siscontrol.mobile.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -65,8 +68,8 @@ fun LoginScreenContent(
     onLoginClick: (String, String) -> Unit,
     onDemoClick: (String) -> Unit
 ) {
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    var username by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
 
     Box(
         modifier = Modifier
@@ -80,26 +83,13 @@ fun LoginScreenContent(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Animación sutil de entrada para el Logo
-            Box(
+            Image(
+                painter = painterResource(id = R.drawable.logo_branding_sis_control),
+                contentDescription = "Logo SIS-Control",
                 modifier = Modifier
-                    .size(110.dp)
-                    .shadow(16.dp, shape = CircleShape, spotColor = PrimaryColor.copy(alpha = 0.5f))
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(PrimaryColor, PrimaryVariant)
-                        ),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "SIS",
-                    color = Color.White,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 32.sp,
-                    letterSpacing = 2.sp
-                )
-            }
+                    .size(220.dp)
+                    .clip(CircleShape)
+            )
             
             Spacer(modifier = Modifier.height(32.dp))
             

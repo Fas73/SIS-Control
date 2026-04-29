@@ -20,7 +20,10 @@ import com.siscontrol.mobile.presentation.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SupervisorGuardsScreen(paddingValues: PaddingValues) {
+fun SupervisorGuardsScreen(
+    paddingValues: PaddingValues,
+    onCreateGuard: () -> Unit = {}
+) {
     var searchQuery by remember { mutableStateOf("") }
 
     Column(
@@ -79,7 +82,7 @@ fun SupervisorGuardsScreen(paddingValues: PaddingValues) {
                 ) {
                     Text("Mis Guardias (5)", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                     Button(
-                        onClick = { /* TODO */ },
+                        onClick = onCreateGuard,
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),

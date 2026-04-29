@@ -14,6 +14,10 @@ import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.siscontrol.mobile.R
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,8 +30,12 @@ import com.siscontrol.mobile.presentation.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminUsersScreen(paddingValues: PaddingValues) {
-    var searchQuery by remember { mutableStateOf("") }
+fun AdminUsersScreen(
+    paddingValues: PaddingValues,
+    onCreateSupervisor: () -> Unit = {},
+    onCreateGuard: () -> Unit = {}
+) {
+    var searchQuery by rememberSaveable { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -44,9 +52,14 @@ fun AdminUsersScreen(paddingValues: PaddingValues) {
         ) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(32.dp).background(PrimaryColor, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                        Text("SIS", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
+                    Image(
+                        painter = painterResource(id = R.drawable.icono_degrade_sis_control),
+                        contentDescription = "Logo",
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(Color.White, shape = RoundedCornerShape(8.dp))
+                            .padding(2.dp)
+                    )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text("Gestión de Usuarios", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 }
@@ -86,7 +99,7 @@ fun AdminUsersScreen(paddingValues: PaddingValues) {
                 ) {
                     Text("Supervisores (2)", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                     Button(
-                        onClick = { /* TODO */ },
+                        onClick = onCreateSupervisor,
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
@@ -124,7 +137,7 @@ fun AdminUsersScreen(paddingValues: PaddingValues) {
                 ) {
                     Text("Guardias (3)", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                     Button(
-                        onClick = { /* TODO */ },
+                        onClick = onCreateGuard,
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
