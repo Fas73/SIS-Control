@@ -48,6 +48,7 @@ object Destinos {
     const val SUPERVISOR_ALERTS = "supervisor_alerts/{token}/{role}"
     const val GUARD_HOME = "guard_home/{token}/{role}"
     const val GUARD_PROFILE = "guard_profile/{token}/{role}"
+    const val GUARD_START_ROUND = "guard_start_round/{token}/{role}"
     const val GUARD_RONDA = "guard_ronda/{token}/{role}"
     const val GUARD_HISTORY = "guard_history/{token}/{role}"
     const val GUARD_INCIDENT = "guard_incident/{token}/{role}"
@@ -69,6 +70,7 @@ object Destinos {
     fun supervisorAlertsRoute(token: String, role: String) = "supervisor_alerts/${encode(token)}/${encode(role)}"
     fun guardHomeRoute(token: String, role: String) = "guard_home/${encode(token)}/${encode(role)}"
     fun guardProfileRoute(token: String, role: String) = "guard_profile/${encode(token)}/${encode(role)}"
+    fun guardStartRoundRoute(token: String, role: String) = "guard_start_round/${encode(token)}/${encode(role)}"
     fun guardRondaRoute(token: String, role: String) = "guard_ronda/${encode(token)}/${encode(role)}"
     fun guardHistoryRoute(token: String, role: String) = "guard_history/${encode(token)}/${encode(role)}"
     fun guardIncidentRoute(token: String, role: String) = "guard_incident/${encode(token)}/${encode(role)}"
@@ -302,6 +304,7 @@ fun AppNavigation() {
                     paddingValues = padding,
                     onNavigate = { target ->
                         val route = when(target) {
+                            "START_ROUND" -> Destinos.guardStartRoundRoute(token, role)
                             "RONDA" -> Destinos.guardRondaRoute(token, role)
                             "HISTORY" -> Destinos.guardHistoryRoute(token, role)
                             else -> Destinos.guardHomeRoute(token, role)
@@ -329,6 +332,48 @@ fun AppNavigation() {
                             }
                         }
                     }
+                )
+            }
+        }
+
+        composable(Destinos.GUARD_START_ROUND, arguments = listOf(
+            navArgument("token") { type = NavType.StringType },
+            navArgument("role")  { type = NavType.StringType }
+        )) { backStack ->
+            val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
+            val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
+            com.siscontrol.mobile.presentation.main.MainScaffold(navController, role, token) { padding ->
+                com.siscontrol.mobile.presentation.guard.GuardStartRoundScreen(
+                    paddingValues = padding,
+                    onStartRound = { navController.navigate(Destinos.guardRondaRoute(token, role)) }
+                )
+            }
+        }
+
+        composable(Destinos.GUARD_RONDA, arguments = listOf(
+            navArgument("token") { type = NavType.StringType },
+            navArgument("role")  { type = NavType.StringType }
+        )) { backStack ->
+            val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
+            val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
+            com.siscontrol.mobile.presentation.main.MainScaffold(navController, role, token) { padding ->
+                com.siscontrol.mobile.presentation.guard.GuardiaRondaActivaScreen(
+                    onFinishRound = { navController.popBackStack(Destinos.guardHomeRoute(token, role), false) },
+                    onReportIncident = { navController.navigate(Destinos.guardIncidentRoute(token, role)) },
+                    onPanic = { /* Handle Panic */ }
+                )
+            }
+        }
+
+        composable(Destinos.GUARD_HISTORY, arguments = listOf(
+            navArgument("token") { type = NavType.StringType },
+            navArgument("role")  { type = NavType.StringType }
+        )) { backStack ->
+            val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
+            val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
+            com.siscontrol.mobile.presentation.main.MainScaffold(navController, role, token) { padding ->
+                com.siscontrol.mobile.presentation.guard.GuardHistoryScreen(
+                    paddingValues = padding
                 )
             }
         }
@@ -366,7 +411,8 @@ fun AppNavigation() {
             val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
             val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
             com.siscontrol.mobile.presentation.main.MainScaffold(navController, role, token) { padding ->
-                PlaceholderScreen("Mapa de Guardias (SUPERVISOR)", padding)
+                // Reuse the AdminMapScreen since Supervisor can also view maps
+                com.siscontrol.mobile.presentation.admin.AdminMapScreen(paddingValues = padding)
             }
         }
 
@@ -377,33 +423,8 @@ fun AppNavigation() {
             val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
             val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
             com.siscontrol.mobile.presentation.main.MainScaffold(navController, role, token) { padding ->
-                PlaceholderScreen("Centro de Alertas (SUPERVISOR)", padding)
-            }
-        }
-
-        composable(Destinos.GUARD_RONDA, arguments = listOf(
-            navArgument("token") { type = NavType.StringType },
-            navArgument("role")  { type = NavType.StringType }
-        )) { backStack ->
-            val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
-            val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
-            com.siscontrol.mobile.presentation.main.MainScaffold(navController, role, token) { padding ->
-                com.siscontrol.mobile.presentation.guard.GuardiaRondaActivaScreen(
-                    onFinishRound = { navController.popBackStack() },
-                    onReportIncident = { navController.navigate(Destinos.guardIncidentRoute(token, role)) },
-                    onPanic = { /* Handle Panic */ }
-                )
-            }
-        }
-
-        composable(Destinos.GUARD_HISTORY, arguments = listOf(
-            navArgument("token") { type = NavType.StringType },
-            navArgument("role")  { type = NavType.StringType }
-        )) { backStack ->
-            val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
-            val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
-            com.siscontrol.mobile.presentation.main.MainScaffold(navController, role, token) { padding ->
-                PlaceholderScreen("Historial de Rondas (GUARDIA)", padding)
+                // Reuse the AdminAlertsScreen since Supervisor can also view alerts
+                com.siscontrol.mobile.presentation.admin.AdminAlertsScreen(paddingValues = padding)
             }
         }
 

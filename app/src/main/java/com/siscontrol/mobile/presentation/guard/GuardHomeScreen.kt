@@ -1,6 +1,9 @@
 package com.siscontrol.mobile.presentation.guard
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -9,16 +12,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -31,155 +31,155 @@ fun GuardHomeScreen(
     paddingValues: PaddingValues,
     onNavigate: (String) -> Unit
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundColor)
+            .padding(paddingValues)
+    ) {
+        // Header profile
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(BackgroundColor)
-                .padding(paddingValues)
+                .fillMaxWidth()
+                .background(PrimaryColor)
+                .padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 16.dp)
+                .statusBarsPadding()
         ) {
-            // Header con Gradiente y Perfil
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(PrimaryColor, PrimaryVariant)
-                        ),
-                        shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
-                    )
-                    .padding(top = 48.dp, bottom = 32.dp, start = 24.dp, end = 24.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(50.dp)
+                            .background(Color.DarkGray, CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .background(Color.White.copy(alpha = 0.2f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
-                            }
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column {
-                                Text("Juan Pérez", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = SuccessColor, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Plaza Centro", color = Color.White.copy(alpha = 0.9f), fontSize = 14.sp)
-                                }
-                            }
-                        }
-                        SISBadge("Activo", containerColor = SuccessColor.copy(alpha = 0.2f), contentColor = SuccessColor)
+                        // Simulating a profile image with an icon
+                        Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
                     }
-                    
-                    Spacer(modifier = Modifier.height(32.dp))
-                    
-                    // Card Principal "Comenzar Ronda" dentro del header
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(20.dp)) {
-                            Text("Siguiente Ronda", color = TextSecondary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text("Ronda Perimetral", color = TextPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                            
-                            Spacer(modifier = Modifier.height(20.dp))
-                            
-                            Button(
-                                onClick = { onNavigate("RONDA") },
-                                modifier = Modifier.fillMaxWidth().height(56.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                                shape = RoundedCornerShape(14.dp)
-                            ) {
-                                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.White)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Comenzar Ronda", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text("Juan Pérez", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        SISBadge("Activo", containerColor = Color.White, contentColor = SuccessColor)
                     }
                 }
-            }
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(24.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                item {
-                    Text("Resumen Operativo", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp), 
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            SummaryItem(icon = Icons.Default.Refresh, title = "3", subtitle = "Rondas", color = PrimaryVariant, bgColor = PrimaryColor.copy(alpha = 0.1f))
-                            SummaryItem(icon = Icons.Default.CheckCircle, title = "24", subtitle = "Puntos", color = SuccessColor, bgColor = SuccessColor.copy(alpha = 0.1f))
-                            SummaryItem(icon = Icons.Default.LocationOn, title = "2.3", subtitle = "Km", color = Color(0xFF8B5CF6), bgColor = Color(0xFF8B5CF6).copy(alpha = 0.1f))
-                        }
-                    }
+                // Placeholder for shield icon
+                Box(
+                    modifier = Modifier.size(40.dp).background(Color.White.copy(alpha=0.1f), RoundedCornerShape(8.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.White) // Shield-like placeholder
                 }
-
-                item {
-                    Text("Última Actividad", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text("Ronda Interior", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                SISBadge("14:30", containerColor = Color(0xFFF3F4F6), contentColor = TextSecondary)
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SuccessColor, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("8/8 Puntos", color = TextSecondary, fontSize = 14.sp)
-                                }
-                                Text("28 minutos", color = TextSecondary, fontSize = 14.sp)
-                            }
-                        }
-                    }
-                }
-                
-                // Espacio extra para el Floating Button
-                item { Spacer(modifier = Modifier.height(80.dp)) }
             }
         }
         
-        // Botón de Pánico Flotante y Destacado
-        Button(
-            onClick = { /* TODO: Trigger Panic Alert */ },
+        // Location indicator
+        Box(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 24.dp, bottom = paddingValues.calculateBottomPadding() + 24.dp)
-                .size(64.dp)
-                .shadow(12.dp, CircleShape),
-            shape = CircleShape,
-            colors = ButtonDefaults.buttonColors(containerColor = DangerColor),
-            contentPadding = PaddingValues(0.dp)
+                .fillMaxWidth()
+                .background(PrimaryColor)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            Icon(Icons.Default.Warning, contentDescription = "Pánico", tint = Color.White, modifier = Modifier.size(32.dp))
+             Row(verticalAlignment = Alignment.CenterVertically) {
+                 Icon(Icons.Default.LocationOn, contentDescription = null, tint = DangerColor, modifier = Modifier.size(14.dp))
+                 Spacer(modifier = Modifier.width(4.dp))
+                 Text("Plaza Centro", color = Color.White, fontSize = 14.sp)
+             }
+        }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // "Iniciar Nueva Ronda" Card
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = PrimaryColor), // Blue
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Icon(
+                            Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .border(2.dp, Color.White, CircleShape)
+                                .padding(8.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Iniciar Nueva Ronda", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Comienza tu ronda de seguridad", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
+                        
+                        Spacer(modifier = Modifier.height(24.dp))
+                        
+                        Button(
+                            onClick = { onNavigate("START_ROUND") },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = SuccessColor),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Comenzar Ronda", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+                }
+            }
+
+            // Resumen de Hoy
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Resumen de Hoy", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(), 
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            SummaryItem(icon = Icons.Default.Schedule, title = "3", subtitle = "Rondas", color = PrimaryColor, bgColor = PrimaryColor.copy(alpha = 0.1f))
+                            SummaryItem(icon = Icons.Default.CheckCircle, title = "24", subtitle = "Checkpoints", color = SuccessColor, bgColor = SuccessColor.copy(alpha = 0.1f))
+                            SummaryItem(icon = Icons.Default.LocationOn, title = "2.3", subtitle = "km", color = Color(0xFF8B5CF6), bgColor = Color(0xFF8B5CF6).copy(alpha = 0.1f))
+                        }
+                    }
+                }
+            }
+
+            // Última Ronda Completada
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Última Ronda Completada", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        DetailRow("Instalación:", "Plaza Centro")
+                        Spacer(modifier = Modifier.height(12.dp))
+                        DetailRow("Checkpoints:", "8/8")
+                        Spacer(modifier = Modifier.height(12.dp))
+                        DetailRow("Duración:", "28 minutos")
+                        Spacer(modifier = Modifier.height(12.dp))
+                        DetailRow("Hora:", "14:30 - 14:58")
+                    }
+                }
+            }
         }
     }
 }
@@ -188,13 +188,21 @@ fun GuardHomeScreen(
 fun SummaryItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String, color: Color, bgColor: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
-            modifier = Modifier.size(52.dp).background(bgColor, CircleShape),
+            modifier = Modifier.size(48.dp).background(bgColor, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(26.dp))
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
         }
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(title, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
-        Text(subtitle, fontSize = 13.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(title, fontSize = 20.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+        Text(subtitle, fontSize = 12.sp, color = TextSecondary)
+    }
+}
+
+@Composable
+fun DetailRow(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, color = TextSecondary, fontSize = 14.sp)
+        Text(value, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
     }
 }
