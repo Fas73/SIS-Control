@@ -40,13 +40,7 @@ fun SupervisorGuardsScreen(
                 .padding(16.dp)
         ) {
             Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(32.dp).background(PrimaryColor, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                        Text("SIS", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text("Gestión de Guardias", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                }
+                Text("Gestión de Guardias", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = searchQuery,

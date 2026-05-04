@@ -15,9 +15,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
-import com.siscontrol.mobile.R
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,10 +25,16 @@ import com.siscontrol.mobile.presentation.components.SISBadge
 import com.siscontrol.mobile.presentation.components.SISCard
 import com.siscontrol.mobile.presentation.theme.*
 
+import androidx.navigation.NavController
+import com.siscontrol.mobile.presentation.Destinos
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminUsersScreen(
+fun AdminManagementScreen(
     paddingValues: PaddingValues,
+    navController: NavController,
+    token: String,
+    role: String,
     onCreateSupervisor: () -> Unit = {},
     onCreateGuard: () -> Unit = {}
 ) {
@@ -51,18 +54,7 @@ fun AdminUsersScreen(
                 .padding(16.dp)
         ) {
             Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(id = R.drawable.icono_degrade_sis_control),
-                        contentDescription = "Logo",
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(Color.White, shape = RoundedCornerShape(8.dp))
-                            .padding(2.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text("Gestión de Usuarios", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                }
+                Text("Gestión Operativa", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = searchQuery,
@@ -82,6 +74,43 @@ fun AdminUsersScreen(
                     shape = RoundedCornerShape(8.dp),
                     singleLine = true
                 )
+            }
+        }
+
+        // Tabs / Buttons Row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Button(
+                onClick = { /* Already here */ },
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier.weight(1f).padding(horizontal = 4.dp).height(40.dp),
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Text("Usuarios", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            }
+            Button(
+                onClick = { navController.navigate(Destinos.adminInstallationsRoute(token, role)) },
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier.weight(1f).padding(horizontal = 4.dp).height(40.dp),
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Text("Instalaciones", color = PrimaryColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            }
+            Button(
+                onClick = { navController.navigate(Destinos.adminCheckpointsRoute(token, role)) },
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier.weight(1f).padding(horizontal = 4.dp).height(40.dp),
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Text("Checkpoints", color = PrimaryColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
         }
 

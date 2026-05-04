@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.navigation.navArgument
 import com.siscontrol.mobile.di.AppModule
+import com.siscontrol.mobile.presentation.login.ForgotPasswordScreen
 import com.siscontrol.mobile.presentation.login.LoginScreen
 import com.siscontrol.mobile.presentation.login.LoginViewModel
 import com.siscontrol.mobile.presentation.main.HomeContent
@@ -20,6 +21,7 @@ import com.siscontrol.mobile.presentation.main.MainScreen
 import com.siscontrol.mobile.presentation.management.CreatePersonnelScreen
 import com.siscontrol.mobile.presentation.management.CreatePersonnelViewModel
 import com.siscontrol.mobile.presentation.management.PersonnelListScreen
+import com.siscontrol.mobile.presentation.splash.SplashScreen
 
 // ---------------------------------------------------------------------------
 // Destinos de Navegación
@@ -30,14 +32,22 @@ import com.siscontrol.mobile.presentation.management.PersonnelListScreen
  * Usar constantes evita errores de typo y facilita el refactor.
  */
 object Destinos {
-    const val LOGIN = "login"
+    // ── Autenticación / Flujo inicial ────────────────────────────────────
+    const val SPLASH          = "splash"
+    const val LOGIN           = "login"
+    const val FORGOT_PASSWORD = "forgot_password"
+    // ── Flujo autenticado ───────────────────────────────────────────────
     const val MAIN  = "main/{token}/{role}"
     const val PERSONNEL_LIST    = "personnel_list/{token}/{role}"
     const val CREATE_PERSONNEL  = "create_personnel/{token}/{role}"
 
     // Nuevas Rutas Figma
     const val ADMIN_HOME = "admin_home/{token}/{role}"
-    const val ADMIN_USERS = "admin_users/{token}/{role}"
+    const val ADMIN_MANAGEMENT = "admin_management/{token}/{role}"
+    const val ADMIN_INSTALLATIONS = "admin_installations/{token}/{role}"
+    const val ADMIN_CHECKPOINTS = "admin_checkpoints/{token}/{role}"
+    const val ADMIN_CREATE_INSTALLATION = "admin_create_installation/{token}/{role}"
+    const val ADMIN_CREATE_CHECKPOINT = "admin_create_checkpoint/{token}/{role}"
     const val ADMIN_CREATE_SUPERVISOR = "admin_create_supervisor/{token}/{role}"
     const val ADMIN_CREATE_GUARD = "admin_create_guard/{token}/{role}"
     const val ADMIN_MAP = "admin_map/{token}/{role}"
@@ -53,13 +63,19 @@ object Destinos {
     const val GUARD_HISTORY = "guard_history/{token}/{role}"
     const val GUARD_INCIDENT = "guard_incident/{token}/{role}"
     const val GUARD_NFC = "guard_nfc/{token}/{role}"
+    const val GUARD_CHECKPOINT = "guard_checkpoint/{token}/{role}"
+    const val GUARD_CHECKPOINT_CONFIRM = "guard_checkpoint_confirm/{token}/{role}"
 
     fun mainRoute(token: String, role: String) = "main/${encode(token)}/${encode(role)}"
     fun personnelListRoute(token: String, role: String) = "personnel_list/${encode(token)}/${encode(role)}"
     fun createPersonnelRoute(token: String, role: String) = "create_personnel/${encode(token)}/${encode(role)}"
 
     fun adminHomeRoute(token: String, role: String) = "admin_home/${encode(token)}/${encode(role)}"
-    fun adminUsersRoute(token: String, role: String) = "admin_users/${encode(token)}/${encode(role)}"
+    fun adminManagementRoute(token: String, role: String) = "admin_management/${encode(token)}/${encode(role)}"
+    fun adminInstallationsRoute(token: String, role: String) = "admin_installations/${encode(token)}/${encode(role)}"
+    fun adminCheckpointsRoute(token: String, role: String) = "admin_checkpoints/${encode(token)}/${encode(role)}"
+    fun adminCreateInstallationRoute(token: String, role: String) = "admin_create_installation/${encode(token)}/${encode(role)}"
+    fun adminCreateCheckpointRoute(token: String, role: String) = "admin_create_checkpoint/${encode(token)}/${encode(role)}"
     fun adminCreateSupervisorRoute(token: String, role: String) = "admin_create_supervisor/${encode(token)}/${encode(role)}"
     fun adminCreateGuardRoute(token: String, role: String) = "admin_create_guard/${encode(token)}/${encode(role)}"
     fun adminMapRoute(token: String, role: String) = "admin_map/${encode(token)}/${encode(role)}"
@@ -75,6 +91,8 @@ object Destinos {
     fun guardHistoryRoute(token: String, role: String) = "guard_history/${encode(token)}/${encode(role)}"
     fun guardIncidentRoute(token: String, role: String) = "guard_incident/${encode(token)}/${encode(role)}"
     fun guardNfcRoute(token: String, role: String) = "guard_nfc/${encode(token)}/${encode(role)}"
+    fun guardCheckpointRoute(token: String, role: String) = "guard_checkpoint/${encode(token)}/${encode(role)}"
+    fun guardCheckpointConfirmRoute(token: String, role: String) = "guard_checkpoint_confirm/${encode(token)}/${encode(role)}"
 
     private fun encode(s: String) = java.net.URLEncoder.encode(s, "UTF-8")
 }
@@ -132,7 +150,22 @@ fun AppNavigation() {
         }
     }
 
-    NavHost(navController = navController, startDestination = Destinos.LOGIN) {
+    NavHost(navController = navController, startDestination = Destinos.SPLASH) {
+
+        // ------------------------------------------------------------------
+        // 0. Splash Screen — Pantalla inicial
+        // ------------------------------------------------------------------
+        composable(Destinos.SPLASH) {
+            SplashScreen(
+                onNavigateToLogin = {
+                    navController.navigate(Destinos.LOGIN) {
+                        popUpTo(Destinos.SPLASH) { inclusive = true }
+                    }
+                    // TODO (producción): Aquí se puede verificar sesión guardada y
+                    //   navegar directamente al Dashboard si el token es válido.
+                }
+            )
+        }
 
         // ------------------------------------------------------------------
         // 1. Pantalla de Login
@@ -142,22 +175,35 @@ fun AppNavigation() {
 
             LoginScreen(
                 viewModel = loginViewModel,
+                onForgotPassword = {
+                    navController.navigate(Destinos.FORGOT_PASSWORD)
+                },
                 onLoginSuccess = { token, role ->
                     // Guardar sesión en DataStore de forma persistente
                     scope.launch {
                         sessionManager.saveSession(token, role)
                         // Navegar al Home específico según el rol
                         val nextRoute = when (role) {
-                            "ADMIN" -> Destinos.adminHomeRoute(token, role)
+                            "ADMIN"      -> Destinos.adminHomeRoute(token, role)
                             "SUPERVISOR" -> Destinos.supervisorHomeRoute(token, role)
-                            "GUARDIA" -> Destinos.guardHomeRoute(token, role)
-                            else -> Destinos.mainRoute(token, role)
+                            "GUARDIA"    -> Destinos.guardHomeRoute(token, role)
+                            else         -> Destinos.mainRoute(token, role)
                         }
                         navController.navigate(nextRoute) {
                             popUpTo(Destinos.LOGIN) { inclusive = true }
                         }
                     }
                 }
+            )
+        }
+
+        // ------------------------------------------------------------------
+        // 1b. Pantalla de Recuperación de Contraseña
+        // ------------------------------------------------------------------
+        composable(Destinos.FORGOT_PASSWORD) {
+            ForgotPasswordScreen(
+                onBack = { navController.popBackStack() },
+                onSendInstructions = { /* email -> TODO: ViewModel.sendResetEmail(email) */ }
             )
         }
 
@@ -207,7 +253,7 @@ fun AppNavigation() {
                         val route = when(target) {
                             "MAP" -> Destinos.adminMapRoute(token, role)
                             "ALERTS" -> Destinos.adminAlertsRoute(token, role)
-                            "USERS" -> Destinos.adminUsersRoute(token, role)
+                            "MANAGEMENT" -> Destinos.adminManagementRoute(token, role)
                             else -> Destinos.adminHomeRoute(token, role)
                         }
                         navController.navigate(route)
@@ -216,19 +262,76 @@ fun AppNavigation() {
             }
         }
 
-        composable(Destinos.ADMIN_USERS, arguments = listOf(
+        composable(Destinos.ADMIN_MANAGEMENT, arguments = listOf(
             navArgument("token") { type = NavType.StringType },
             navArgument("role")  { type = NavType.StringType }
         )) { backStack ->
             val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
             val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
             com.siscontrol.mobile.presentation.main.MainScaffold(navController, role, token) { padding ->
-                com.siscontrol.mobile.presentation.admin.AdminUsersScreen(
+                com.siscontrol.mobile.presentation.admin.AdminManagementScreen(
                     paddingValues = padding,
+                    navController = navController,
+                    token = token,
+                    role = role,
                     onCreateSupervisor = { navController.navigate(Destinos.adminCreateSupervisorRoute(token, role)) },
                     onCreateGuard = { navController.navigate(Destinos.adminCreateGuardRoute(token, role)) }
                 )
             }
+        }
+
+        composable(Destinos.ADMIN_INSTALLATIONS, arguments = listOf(
+            navArgument("token") { type = NavType.StringType },
+            navArgument("role")  { type = NavType.StringType }
+        )) { backStack ->
+            val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
+            val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
+            com.siscontrol.mobile.presentation.main.MainScaffold(navController, role, token) { padding ->
+                com.siscontrol.mobile.presentation.admin.AdminInstallationsScreen(
+                    paddingValues = padding,
+                    navController = navController,
+                    token = token,
+                    role = role,
+                    onCreateInstallation = { navController.navigate(Destinos.adminCreateInstallationRoute(token, role)) }
+                )
+            }
+        }
+
+        composable(Destinos.ADMIN_CHECKPOINTS, arguments = listOf(
+            navArgument("token") { type = NavType.StringType },
+            navArgument("role")  { type = NavType.StringType }
+        )) { backStack ->
+            val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
+            val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
+            com.siscontrol.mobile.presentation.main.MainScaffold(navController, role, token) { padding ->
+                com.siscontrol.mobile.presentation.admin.AdminCheckpointsScreen(
+                    paddingValues = padding,
+                    navController = navController,
+                    token = token,
+                    role = role,
+                    onCreateCheckpoint = { navController.navigate(Destinos.adminCreateCheckpointRoute(token, role)) }
+                )
+            }
+        }
+
+        composable(Destinos.ADMIN_CREATE_INSTALLATION, arguments = listOf(
+            navArgument("token") { type = NavType.StringType },
+            navArgument("role")  { type = NavType.StringType }
+        )) { backStack ->
+            com.siscontrol.mobile.presentation.admin.CreateInstallationScreen(
+                onBack = { navController.popBackStack() },
+                onCreate = { navController.popBackStack() }
+            )
+        }
+
+        composable(Destinos.ADMIN_CREATE_CHECKPOINT, arguments = listOf(
+            navArgument("token") { type = NavType.StringType },
+            navArgument("role")  { type = NavType.StringType }
+        )) { backStack ->
+            com.siscontrol.mobile.presentation.admin.CreateCheckpointScreen(
+                onBack = { navController.popBackStack() },
+                onCreate = { navController.popBackStack() }
+            )
         }
 
         composable(Destinos.ADMIN_CREATE_SUPERVISOR, arguments = listOf(
@@ -360,7 +463,8 @@ fun AppNavigation() {
                 com.siscontrol.mobile.presentation.guard.GuardiaRondaActivaScreen(
                     onFinishRound = { navController.popBackStack(Destinos.guardHomeRoute(token, role), false) },
                     onReportIncident = { navController.navigate(Destinos.guardIncidentRoute(token, role)) },
-                    onPanic = { /* Handle Panic */ }
+                    onPanic = { /* Dialog handled internally in GuardiaRondaActivaScreen */ },
+                    onScanCheckpoint = { navController.navigate(Destinos.guardCheckpointRoute(token, role)) }
                 )
             }
         }
@@ -435,7 +539,40 @@ fun AppNavigation() {
             val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
             val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
             com.siscontrol.mobile.presentation.main.MainScaffold(navController, role, token) { padding ->
-                PlaceholderScreen("Reportar Incidente (GUARDIA)", padding)
+                com.siscontrol.mobile.presentation.guard.GuardReportIncidentScreen(
+                    paddingValues = padding,
+                    onSave    = { navController.popBackStack() },
+                    onCancel  = { navController.popBackStack() }
+                )
+            }
+        }
+
+        composable(Destinos.GUARD_CHECKPOINT, arguments = listOf(
+            navArgument("token") { type = NavType.StringType },
+            navArgument("role")  { type = NavType.StringType }
+        )) { backStack ->
+            val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
+            val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
+            com.siscontrol.mobile.presentation.main.MainScaffold(navController, role, token) { _ ->
+                com.siscontrol.mobile.presentation.guard.GuardCheckpointScreen(
+                    onSimulateScan = { navController.navigate(Destinos.guardCheckpointConfirmRoute(token, role)) }
+                )
+            }
+        }
+
+        composable(Destinos.GUARD_CHECKPOINT_CONFIRM, arguments = listOf(
+            navArgument("token") { type = NavType.StringType },
+            navArgument("role")  { type = NavType.StringType }
+        )) { backStack ->
+            val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
+            val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
+            com.siscontrol.mobile.presentation.main.MainScaffold(navController, role, token) { _ ->
+                com.siscontrol.mobile.presentation.guard.GuardCheckpointConfirmScreen(
+                    onContinue = {
+                        // Pop both checkpoint screens, back to active round
+                        navController.popBackStack(Destinos.guardCheckpointRoute(token, role), inclusive = true)
+                    }
+                )
             }
         }
 

@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -15,18 +16,18 @@ import com.siscontrol.mobile.presentation.theme.PrimaryColor
 import com.siscontrol.mobile.presentation.theme.PrimaryVariant
 import com.siscontrol.mobile.presentation.theme.SuccessColor
 
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.draw.shadow
-
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
-import com.siscontrol.mobile.R
-
+/**
+ * Barra superior reutilizable.
+ *
+ * [showAdminLogo] se mantiene por compatibilidad con call-sites existentes
+ * pero ya no renderiza ningún logo — el alcance de esta iteración es
+ * eliminar todos los logos de las TopBars.
+ */
 @Composable
 fun SISTopBar(
     title: String,
     subtitle: String? = null,
-    showAdminLogo: Boolean = false,
+    @Suppress("UNUSED_PARAMETER") showAdminLogo: Boolean = false,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     Box(
@@ -37,54 +38,29 @@ fun SISTopBar(
                     colors = listOf(PrimaryColor, PrimaryVariant)
                 )
             )
-            .padding(horizontal = 20.dp, vertical = 24.dp)
             .statusBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                if (showAdminLogo) {
-                    Image(
-                        painter = painterResource(id = R.drawable.icono_degrade_sis_control),
-                        contentDescription = "Logo",
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(Color.White, shape = RoundedCornerShape(10.dp))
-                            .padding(4.dp)
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(Color.White, shape = RoundedCornerShape(10.dp))
-                            .shadow(4.dp, RoundedCornerShape(10.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("SIS", color = PrimaryColor, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
-                    }
-                }
-                Column {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.3.sp
+                )
+                if (!subtitle.isNullOrBlank()) {
                     Text(
-                        text = title,
-                        color = Color.White,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp
+                        text = subtitle,
+                        color = Color.White.copy(alpha = 0.85f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
                     )
-                    if (subtitle != null) {
-                        Text(
-                            text = subtitle,
-                            color = Color.White.copy(alpha = 0.85f),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -93,6 +69,7 @@ fun SISTopBar(
         }
     }
 }
+
 
 @Composable
 fun SISCard(

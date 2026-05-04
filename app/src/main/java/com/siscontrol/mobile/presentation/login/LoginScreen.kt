@@ -38,7 +38,8 @@ import com.siscontrol.mobile.presentation.theme.*
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
-    onLoginSuccess: (token: String, role: String) -> Unit
+    onLoginSuccess: (token: String, role: String) -> Unit,
+    onForgotPassword: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
     
@@ -52,12 +53,7 @@ fun LoginScreen(
     LoginScreenContent(
         state = state,
         onLoginClick = { user, pass -> viewModel.performLogin(user, pass) },
-        onDemoClick = { role -> 
-            // Para la demo, podemos simular un login exitoso directo o intentar con credenciales predefinidas
-            // Asumiendo que el ViewModel tiene soporte o simulamos aquí
-            val fakeToken = "demo-token-$role"
-            onLoginSuccess(fakeToken, role)
-        }
+        onForgotPassword = onForgotPassword
     )
 }
 
@@ -66,7 +62,7 @@ fun LoginScreen(
 fun LoginScreenContent(
     state: LoginUiState,
     onLoginClick: (String, String) -> Unit,
-    onDemoClick: (String) -> Unit
+    onForgotPassword: () -> Unit = {}
 ) {
     var username by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -155,14 +151,27 @@ fun LoginScreenContent(
                 onClick = { onLoginClick(username, password) },
                 enabled = state !is LoginUiState.Loading && username.isNotBlank() && password.isNotBlank()
             )
-            
+
+            // ── Enlace: ¿Olvidaste tu contraseña? ──────────────────────────
+            TextButton(
+                onClick = onForgotPassword,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "¿Olvidaste tu contraseña?",
+                    color = PrimaryColor,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
             AnimatedVisibility(
                 visible = state is LoginUiState.Error,
                 enter = fadeIn() + slideInVertically(),
                 exit = fadeOut()
             ) {
                 Column {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = (state as? LoginUiState.Error)?.message ?: "", 
                         color = DangerColor,
@@ -175,41 +184,6 @@ fun LoginScreenContent(
                             .padding(12.dp)
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Text("Demo: Probar como", fontSize = 13.sp, color = TextSecondary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(), fontWeight = FontWeight.Medium)
-            
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Button(
-                    onClick = { onDemoClick("ADMIN") }, 
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor.copy(alpha = 0.1f), contentColor = PrimaryColor),
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = null
-                ) { Text("ADMIN", fontWeight = FontWeight.Bold) }
-
-                Button(
-                    onClick = { onDemoClick("SUPERVISOR") }, 
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor.copy(alpha = 0.1f), contentColor = PrimaryColor),
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = null
-                ) { Text("SUP", fontWeight = FontWeight.Bold) }
-
-                Button(
-                    onClick = { onDemoClick("GUARDIA") }, 
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor.copy(alpha = 0.1f), contentColor = PrimaryColor),
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = null
-                ) { Text("GUARD", fontWeight = FontWeight.Bold) }
             }
         }
     }

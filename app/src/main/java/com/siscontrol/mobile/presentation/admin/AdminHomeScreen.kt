@@ -122,12 +122,12 @@ fun AdminHomeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     QuickAccessButton(
-                        title = "Usuarios",
-                        icon = Icons.Default.People,
+                        title = "Gestión",
+                        icon = Icons.Default.Settings,
                         containerColor = SuccessColor.copy(alpha = 0.05f),
                         contentColor = SuccessColor,
                         modifier = Modifier.weight(1f),
-                        onClick = { onNavigate("USERS") }
+                        onClick = { onNavigate("MANAGEMENT") }
                     )
                     QuickAccessButton(
                         title = "Rondas Prueba",
