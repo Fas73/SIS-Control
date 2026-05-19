@@ -1,27 +1,21 @@
 package com.siscontrol.mobile.presentation.management
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.siscontrol.mobile.data.remote.dto.InstallationDto
@@ -29,111 +23,90 @@ import com.siscontrol.mobile.data.remote.dto.UserRequestDto
 import com.siscontrol.mobile.data.remote.dto.UserResponseDto
 import com.siscontrol.mobile.domain.usecase.CreatePersonnelUseCase
 import com.siscontrol.mobile.domain.usecase.GetInstallationsUseCase
+import com.siscontrol.mobile.di.SessionManager
+import com.siscontrol.mobile.presentation.theme.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 // ---------------------------------------------------------------------------
+// UI State
+// ---------------------------------------------------------------------------
+
+sealed class CreatePersonnelUiState {
+    object Idle : CreatePersonnelUiState()
+    object Loading : CreatePersonnelUiState()
+    data class Success(val user: UserResponseDto) : CreatePersonnelUiState()
+    data class Error(val message: String) : CreatePersonnelUiState()
+}
+
+// ---------------------------------------------------------------------------
 // ViewModel
 // ---------------------------------------------------------------------------
 
-/**
- * ViewModel para la pantalla de creación de personal.
- *
- * Responsabilidades:
- *  1. Cargar la lista de instalaciones disponibles desde el backend,
- *     para que el usuario pueda elegir a cuáles asignar al nuevo empleado.
- *  2. Orquestar el caso de uso [CreatePersonnelUseCase] enviando el
- *     [UserRequestDto] con la lista de IDs seleccionados (ManyToMany).
- *
- * Vinculación con las instalaciones:
- *  - El campo [UserRequestDto.installationIds] viaja como List<Long> hacia
- *    el backend, donde UserService.createUser() lo resuelve en objetos
- *    Installation y los persiste en la tabla intermedia `user_installations`.
- */
 class CreatePersonnelViewModel(
     private val createPersonnelUseCase: CreatePersonnelUseCase,
-    private val getInstallationsUseCase: GetInstallationsUseCase
+    private val getInstallationsUseCase: GetInstallationsUseCase,
+    private val getPersonnelUseCase: com.siscontrol.mobile.domain.usecase.GetPersonnelUseCase,
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
-    /** Estado de la operación de creación */
     private val _createState = MutableStateFlow<CreatePersonnelUiState>(CreatePersonnelUiState.Idle)
     val createState: StateFlow<CreatePersonnelUiState> = _createState
 
-    /** Lista de instalaciones disponibles para seleccionar */
     private val _installations = MutableStateFlow<List<InstallationDto>>(emptyList())
     val installations: StateFlow<List<InstallationDto>> = _installations
 
-    /** Conjunto de IDs de instalaciones seleccionadas por el usuario */
-    private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
-    val selectedIds: StateFlow<Set<Long>> = _selectedIds
+    private val _existingUsers = MutableStateFlow<List<UserResponseDto>>(emptyList())
 
     init {
-        // Al crear el ViewModel, cargamos la lista de recintos disponibles
-        cargarInstalaciones()
+        cargarDatosPrevios()
     }
 
-    /**
-     * Recupera todas las instalaciones del sistema para llenar el selector múltiple.
-     * En caso de error la lista permanece vacía (el formulario igual será válido,
-     * aunque no se asignen instalaciones al usuario).
-     */
-    private fun cargarInstalaciones() {
+    private fun cargarDatosPrevios() {
         viewModelScope.launch {
-            getInstallationsUseCase().onSuccess { lista ->
-                _installations.value = lista
-            }
+            getInstallationsUseCase().onSuccess { _installations.value = it }
+            getPersonnelUseCase().onSuccess { _existingUsers.value = it }
         }
     }
 
-    /**
-     * Alterna la selección de una instalación:
-     * - Si ya estaba seleccionada, la deselecciona.
-     * - Si no estaba, la añade al conjunto de seleccionados.
-     * Esto permite la asignación Multiple (ManyToMany) en el modelo de datos.
-     */
-    fun toggleInstalacion(id: Long) {
-        _selectedIds.value = if (_selectedIds.value.contains(id)) {
-            _selectedIds.value - id
-        } else {
-            _selectedIds.value + id
-        }
-    }
+    fun isRutTaken(rut: String): Boolean = _existingUsers.value.any { it.rut?.equals(rut, ignoreCase = true) == true }
+    fun isEmailTaken(email: String): Boolean = _existingUsers.value.any { it.email.equals(email, ignoreCase = true) }
+    fun isUsernameTaken(username: String): Boolean = _existingUsers.value.any { it.username.equals(username, ignoreCase = true) }
 
-    /**
-     * Construye el [UserRequestDto] con la lista de IDs seleccionados y lo
-     * envía al backend a través de [CreatePersonnelUseCase].
-     *
-     * La tabla intermedia `user_installations` del backend vinculará al nuevo
-     * usuario con cada una de las instalaciones indicadas en [installationIds].
-     *
-     * @param username  Nombre de usuario único.
-     * @param email     Email válido.
-     * @param fullName  Nombre completo visible en la app.
-     * @param password  Contraseña en texto plano (el backend la cifrará con BCrypt).
-     * @param role      Rol deseado: "SUPERVISOR" si el creador es ADMIN, "GUARD" si el creador es SUPERVISOR.
-     */
     fun crearPersonal(
-        username: String,
+        rut: String,
         email: String,
         fullName: String,
-        password: String,
+        phoneNumber: String,
         role: String
     ) {
         viewModelScope.launch {
             _createState.value = CreatePersonnelUiState.Loading
 
+            val creatorId = getEditorId()
+            if (creatorId <= 0L) {
+                _createState.value = CreatePersonnelUiState.Error("No se pudo identificar al administrador actual.")
+                return@launch
+            }
+
+            // Auto-generar username: nombre + _ + primeros 4 digitos del rut
+            val firstName = fullName.trim().split(" ").firstOrNull()?.lowercase() ?: "user"
+            val rutDigits = rut.filter { it.isDigit() }
+            val first4Rut = if (rutDigits.length >= 4) rutDigits.take(4) else rutDigits
+            val generatedUsername = "${firstName}_$first4Rut"
+
             val request = UserRequestDto(
-                username = username,
+                rut = rut,
+                username = generatedUsername,
                 email = email,
                 fullName = fullName,
-                password = password,
-                role = role,
-                // Convertimos el Set de IDs seleccionados a List<Long> para el DTO
-                installationIds = _selectedIds.value.toList()
+                password = "pass123", // Password estática solicitada
+                phoneNumber = phoneNumber,
+                role = role
             )
 
-            createPersonnelUseCase(request).fold(
+            createPersonnelUseCase(creatorId, request).fold(
                 onSuccess = { nuevoUsuario ->
                     _createState.value = CreatePersonnelUiState.Success(nuevoUsuario)
                 },
@@ -145,42 +118,23 @@ class CreatePersonnelViewModel(
             )
         }
     }
+
+    private suspend fun getEditorId(): Long {
+        val sessionRoom = com.siscontrol.mobile.di.AppModule.getDatabase().userSessionDao().getSessionSync()
+        val roomUserId = sessionRoom?.id ?: 0L
+        val dsUserId = sessionManager.getUserIdSync() ?: 0L
+        return if (roomUserId > 0) roomUserId else dsUserId
+    }
+
+    fun resetState() {
+        _createState.value = CreatePersonnelUiState.Idle
+    }
 }
 
 // ---------------------------------------------------------------------------
-// UI State
+// Composable Screen Principal
 // ---------------------------------------------------------------------------
 
-sealed class CreatePersonnelUiState {
-    /** Estado inicial, sin acción en curso */
-    object Idle : CreatePersonnelUiState()
-    /** Petición en vuelo — mostrar spinner */
-    object Loading : CreatePersonnelUiState()
-    /** Creación exitosa */
-    data class Success(val user: UserResponseDto) : CreatePersonnelUiState()
-    /** Error de red/negocio */
-    data class Error(val message: String) : CreatePersonnelUiState()
-}
-
-// ---------------------------------------------------------------------------
-// Composable Screen
-// ---------------------------------------------------------------------------
-
-/**
- * Pantalla de creación de nuevo personal.
- *
- * Casos de uso cubiertos:
- *  - Un ADMIN puede crear SUPERVISORES y asignarles MÚLTIPLES instalaciones.
- *  - Un SUPERVISOR puede crear GUARDIAS y asignarles las instalaciones donde trabajarán.
- *
- * El campo de instalaciones usa un selector de tipo "chips" que refleja la
- * relación ManyToMany: se puede marcar/desmarcar cada instalación libremente.
- *
- * @param viewModel       ViewModel inyectado con sus casos de uso.
- * @param currentUserRole Rol del usuario logueado, determina el rol que se puede crear.
- * @param onSuccess       Callback invocado al crear el usuario con éxito.
- * @param onBack          Callback para navegar atrás.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreatePersonnelScreen(
@@ -189,280 +143,278 @@ fun CreatePersonnelScreen(
     onSuccess: () -> Unit,
     onBack: () -> Unit
 ) {
-    // ---- Campos del formulario ----
-    var username  by remember { mutableStateOf("") }
-    var email     by remember { mutableStateOf("") }
-    var fullName  by remember { mutableStateOf("") }
-    var password  by remember { mutableStateOf("") }
+    var rut          by remember { mutableStateOf("") }
+    var email        by remember { mutableStateOf("") }
+    var fullName     by remember { mutableStateOf("") }
+    var phoneDigits  by remember { mutableStateOf("") }
+    
+    val rolesMapping = mapOf(
+        "Administrador" to "ADMIN",
+        "Supervisor" to "SUPERVISOR",
+        "Guardia" to "GUARD"
+    )
+    
+    val roleLabels = remember(currentUserRole) {
+        if (currentUserRole == "ADMIN") {
+            listOf("Administrador", "Supervisor", "Guardia")
+        } else {
+            listOf("Guardia")
+        }
+    }
+    
+    var selectedRoleLabel by remember(roleLabels) { mutableStateOf(roleLabels.first()) }
+    var expandedRoleMenu by remember { mutableStateOf(false) }
 
-    // El rol a crear se deduce del rol actual:
-    // ADMIN crea SUPERVISOR | SUPERVISOR crea GUARD
-    val rolACrear = if (currentUserRole == "ADMIN") "SUPERVISOR" else "GUARD"
+    val uiState by viewModel.createState.collectAsState()
 
-    // Estado del selector de instalaciones
-    var expandidoSelector by remember { mutableStateOf(false) }
-
-    val uiState       by viewModel.createState.collectAsState()
-    val installations by viewModel.installations.collectAsState()
-    val selectedIds   by viewModel.selectedIds.collectAsState()
-
-    // Cuando la operación es exitosa, notificamos y salimos
     LaunchedEffect(uiState) {
         if (uiState is CreatePersonnelUiState.Success) {
             onSuccess()
+            viewModel.resetState()
         }
     }
 
-    // ---- Validación básica del formulario ----
-    val formularioValido = username.isNotBlank()
-        && email.isNotBlank()
-        && fullName.isNotBlank()
-        && password.length >= 6
+    val formularioValido = rut.isNotBlank()
+            && email.isNotBlank()
+            && fullName.isNotBlank()
+            && phoneDigits.length == 9
 
     Scaffold(
         topBar = {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
-                            colors = listOf(com.siscontrol.mobile.presentation.theme.PrimaryColor, com.siscontrol.mobile.presentation.theme.PrimaryVariant)
-                        )
-                    )
-                    .padding(horizontal = 4.dp, vertical = 8.dp)
+                    .background(Brush.horizontalGradient(listOf(PrimaryColor, PrimaryVariant)))
                     .statusBarsPadding()
+                    .padding(vertical = 12.dp)
             ) {
                 Row(
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = androidx.compose.ui.graphics.Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
                     }
                     Text(
-                        text = "Registrar ${if (rolACrear == "SUPERVISOR") "Supervisor" else "Guardia"}",
-                        color = androidx.compose.ui.graphics.Color.White,
-                        style = MaterialTheme.typography.titleLarge
+                        text = "Registrar Personal",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
-        }
+        },
+        containerColor = BackgroundColor
     ) { innerPadding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .padding(innerPadding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .fillMaxSize(),
+            contentPadding = PaddingValues(20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-
-            // --- Cabecera informativa ---
-            SectionHeader(titulo = "Datos del Nuevo ${ if (rolACrear == "SUPERVISOR") "Supervisor" else "Guardia" }")
-
-            // --- Campos de texto ---
-            OutlinedTextField(
-                value = fullName,
-                onValueChange = { fullName = it },
-                label = { Text("Nombre Completo") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("Username") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Correo Electrónico") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Contraseña (mín. 6 caracteres)") },
-                visualTransformation = PasswordVisualTransformation(),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Divider()
-
-            // --- Selector múltiple de instalaciones (ManyToMany) ---
-            SectionHeader(titulo = "Asignación de Instalaciones")
-
-            Text(
-                text = "Selecciona una o más instalaciones donde trabajará este empleado. " +
-                       "El modelo permite asignación múltiple para supervisores y guardias.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            InstallationMultiSelector(
-                installations = installations,
-                selectedIds = selectedIds,
-                expandido = expandidoSelector,
-                onToggleExpanded = { expandidoSelector = !expandidoSelector },
-                onToggleInstallation = { viewModel.toggleInstalacion(it) }
-            )
-
-            // --- Chips de instalaciones seleccionadas ---
-            if (selectedIds.isNotEmpty()) {
-                ChipsInstalaciones(
-                    instalaciones = installations.filter { it.id in selectedIds }
-                )
-            }
-
-            Divider()
-
-            // --- Error ---
-            if (uiState is CreatePersonnelUiState.Error) {
+            item {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Text(
-                        text = (uiState as CreatePersonnelUiState.Error).message,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-
-            // --- Botón de acción principal ---
-            if (uiState is CreatePersonnelUiState.Loading) {
-                Box(modifier = Modifier.fillMaxWidth().height(52.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        strokeWidth = 2.dp
-                    )
-                }
-            } else {
-                com.siscontrol.mobile.presentation.components.PrimaryButton(
-                    text = "Guardar ${ if (rolACrear == "SUPERVISOR") "Supervisor" else "Guardia" }",
-                    onClick = {
-                        viewModel.crearPersonal(username, email, fullName, password, rolACrear)
-                    },
-                    enabled = formularioValido
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Componentes auxiliares
-// ---------------------------------------------------------------------------
-
-/**
- * Encabezado de sección con separador visual.
- */
-@Composable
-private fun SectionHeader(titulo: String) {
-    Text(
-        text = titulo,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary
-    )
-}
-
-/**
- * Selector expandible con checkboxes para selección múltiple de instalaciones.
- *
- * La relación ManyToMany se modela aquí: el usuario puede marcar N instalaciones
- * y los IDs se acumulan en [selectedIds] dentro del ViewModel.
- *
- * @param installations      Lista completa de instalaciones disponibles.
- * @param selectedIds        Conjunto de IDs actualmente seleccionados.
- * @param expandido          Si el panel desplegable está visible.
- * @param onToggleExpanded   Callback para abrir/cerrar el panel.
- * @param onToggleInstallation Callback que recibe el ID a activar/desactivar.
- */
-@Composable
-private fun InstallationMultiSelector(
-    installations: List<InstallationDto>,
-    selectedIds: Set<Long>,
-    expandido: Boolean,
-    onToggleExpanded: () -> Unit,
-    onToggleInstallation: (Long) -> Unit
-) {
-    val resumen = when {
-        installations.isEmpty() -> "Cargando instalaciones…"
-        selectedIds.isEmpty()   -> "Ninguna instalación seleccionada"
-        else                    -> "${selectedIds.size} instalación(es) seleccionada(s)"
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-    ) {
-        // Fila de cabecera (clic para expandir/colapsar)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(enabled = installations.isNotEmpty(), onClick = onToggleExpanded)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(resumen, style = MaterialTheme.typography.bodyMedium)
-            Icon(
-                imageVector = if (expandido) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                contentDescription = if (expandido) "Colapsar" else "Expandir"
-            )
-        }
-
-        // Lista desplegable con checkboxes
-        if (expandido && installations.isNotEmpty()) {
-            Divider()
-            LazyColumn(modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 240.dp)
-            ) {
-                items(installations) { inst ->
-                    val seleccionada = inst.id in selectedIds
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onToggleInstallation(inst.id) }
-                            .background(
-                                if (seleccionada) MaterialTheme.colorScheme.secondaryContainer
-                                else MaterialTheme.colorScheme.surface
-                            )
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        Text("Configuración de Cuenta", fontWeight = FontWeight.Bold, color = PrimaryColor, fontSize = 16.sp)
+                        
                         Column {
-                            Text(
-                                text = inst.name,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            if (inst.address.isNotBlank()) {
-                                Text(
-                                    text = inst.address,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                            Text("Perfil de Usuario", style = MaterialTheme.typography.labelMedium, color = TextSecondary, modifier = Modifier.padding(bottom = 6.dp, start = 4.dp))
+                            ExposedDropdownMenuBox(
+                                expanded = if (roleLabels.size > 1) expandedRoleMenu else false,
+                                onExpandedChange = { if (roleLabels.size > 1) expandedRoleMenu = !expandedRoleMenu },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                OutlinedTextField(
+                                    value = selectedRoleLabel,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    leadingIcon = { Icon(Icons.Default.AdminPanelSettings, null, tint = PrimaryColor, modifier = Modifier.size(22.dp)) },
+                                    trailingIcon = { 
+                                        if (roleLabels.size > 1) {
+                                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedRoleMenu)
+                                        }
+                                    },
+                                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = PrimaryColor,
+                                        unfocusedBorderColor = Color(0xFFE5E7EB),
+                                        focusedContainerColor = Color.White,
+                                        unfocusedContainerColor = Color.White
+                                    ),
+                                    enabled = roleLabels.size > 1
                                 )
+                                if (roleLabels.size > 1) {
+                                    ExposedDropdownMenu(
+                                        expanded = expandedRoleMenu,
+                                        onDismissRequest = { expandedRoleMenu = false }
+                                    ) {
+                                        roleLabels.forEach { label ->
+                                            DropdownMenuItem(
+                                                text = { Text(label) },
+                                                onClick = {
+                                                    selectedRoleLabel = label
+                                                    expandedRoleMenu = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
-                        if (seleccionada) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = "Seleccionada",
-                                tint = MaterialTheme.colorScheme.secondary
+
+                        HorizontalDivider(color = Color(0xFFF3F4F6), modifier = Modifier.padding(vertical = 4.dp))
+                        
+                        Text("Información Personal", fontWeight = FontWeight.Bold, color = PrimaryColor, fontSize = 16.sp)
+
+                        val rutDuplicado = viewModel.isRutTaken(rut)
+                        FormField(
+                            label = "RUT (Identificación)",
+                            value = rut,
+                            onValueChange = { input -> 
+                                rut = input.replace(".", "").replace(" ", "")
+                            },
+                            placeholder = "12345678-K (sin puntos)",
+                            supportingText = if (rutDuplicado) "Este RUT ya está registrado" else "Formato: 12345678-K",
+                            isError = rutDuplicado,
+                            icon = Icons.Default.Badge
+                        )
+
+                        FormField(
+                            label = "Nombre Completo",
+                            value = fullName,
+                            onValueChange = { fullName = it },
+                            placeholder = "Ej: Juan Perez",
+                            icon = Icons.Default.Person
+                        )
+
+                        val emailDuplicado = viewModel.isEmailTaken(email)
+                        FormField(
+                            label = "Correo Electrónico",
+                            value = email,
+                            onValueChange = { email = it },
+                            placeholder = "correo@ejemplo.com",
+                            supportingText = if (emailDuplicado) "Este correo ya está en uso" else null,
+                            isError = emailDuplicado,
+                            icon = Icons.Default.Email
+                        )
+
+                        FormField(
+                            label = "Número de Teléfono",
+                            value = phoneDigits,
+                            onValueChange = { if (it.length <= 9) phoneDigits = it.filter { char -> char.isDigit() } },
+                            placeholder = "987654321",
+                            prefix = "+56 ",
+                            supportingText = "Se requieren 9 dígitos (${phoneDigits.length}/9)",
+                            icon = Icons.Default.Phone
+                        )
+
+                        // --- NUEVO: Visualización y validación de username sugerido ---
+                        val suggestedUsername = remember(fullName, rut) {
+                            if (fullName.isNotBlank() && rut.isNotBlank()) {
+                                val first = fullName.trim().split(" ").firstOrNull()?.lowercase() ?: "user"
+                                val rutDigits = rut.filter { it.isDigit() }
+                                val first4 = if (rutDigits.length >= 4) rutDigits.take(4) else rutDigits
+                                "${first}_$first4"
+                            } else ""
+                        }
+                        
+                        val usernameDuplicado = viewModel.isUsernameTaken(suggestedUsername)
+                        
+                        if (suggestedUsername.isNotBlank()) {
+                            Surface(
+                                color = if(usernameDuplicado) DangerColor.copy(alpha = 0.1f) else PrimaryColor.copy(alpha = 0.05f),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                            ) {
+                                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = if(usernameDuplicado) Icons.Default.NoAccounts else Icons.Default.AccountCircle, 
+                                        contentDescription = null, 
+                                        tint = if(usernameDuplicado) DangerColor else PrimaryColor,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            text = if(usernameDuplicado) "Username ya existe" else "Usuario que se asignará:",
+                                            fontSize = 10.sp,
+                                            color = if(usernameDuplicado) DangerColor else TextSecondary
+                                        )
+                                        Text(
+                                            text = suggestedUsername,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if(usernameDuplicado) DangerColor else PrimaryColor
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (uiState is CreatePersonnelUiState.Error) {
+                item {
+                    Surface(
+                        color = DangerColor.copy(alpha = 0.05f),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, DangerColor.copy(alpha = 0.2f))
+                    ) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Error, null, tint = DangerColor, modifier = Modifier.size(22.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = (uiState as CreatePersonnelUiState.Error).message,
+                                color = DangerColor,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
                             )
                         }
+                    }
+                }
+            }
+
+            item {
+                if (uiState is CreatePersonnelUiState.Loading) {
+                    Box(modifier = Modifier.fillMaxWidth().height(56.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = PrimaryColor)
+                    }
+                } else {
+                    Button(
+                        onClick = { 
+                            val roleToSend = rolesMapping[selectedRoleLabel] ?: "GUARD"
+                            viewModel.crearPersonal(
+                                rut = rut,
+                                email = email,
+                                fullName = fullName,
+                                phoneNumber = "+56$phoneDigits",
+                                role = roleToSend
+                            ) 
+                        },
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        enabled = formularioValido,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryColor,
+                            disabledContainerColor = Color(0xFFE5E7EB)
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                    ) {
+                        Icon(Icons.Default.PersonAdd, null)
+                        Spacer(Modifier.width(10.dp))
+                        Text("REGISTRAR USUARIO", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 }
             }
@@ -470,22 +422,36 @@ private fun InstallationMultiSelector(
     }
 }
 
-/**
- * Muestra los chips de las instalaciones seleccionadas.
- * Usa FlowRow manual (compatible sin librería extra).
- */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ChipsInstalaciones(instalaciones: List<InstallationDto>) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        instalaciones.forEach { inst ->
-            SuggestionChip(
-                onClick = {},
-                label = { Text(inst.name) }
+fun FormField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    prefix: String? = null,
+    supportingText: String? = null,
+    isError: Boolean = false
+) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = if(isError) DangerColor else TextSecondary, modifier = Modifier.padding(bottom = 6.dp, start = 4.dp))
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = { Text(placeholder, color = Color.Gray.copy(alpha = 0.5f)) },
+            leadingIcon = { Icon(icon, null, tint = if(isError) DangerColor else PrimaryColor, modifier = Modifier.size(20.dp)) },
+            prefix = prefix?.let { { Text(it, fontWeight = FontWeight.Bold, color = TextPrimary) } },
+            supportingText = supportingText?.let { { Text(it, fontSize = 11.sp, color = if(isError) DangerColor else TextSecondary) } },
+            isError = isError,
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = if(isError) DangerColor else PrimaryColor,
+                unfocusedBorderColor = if(isError) DangerColor else Color(0xFFE5E7EB),
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
             )
-        }
+        )
     }
 }

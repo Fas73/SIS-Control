@@ -7,18 +7,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.siscontrol.mobile.data.remote.dto.CheckpointDto
 import com.siscontrol.mobile.data.remote.dto.CheckpointRequestDto
 import com.siscontrol.mobile.data.remote.dto.InstallationDto
+import com.siscontrol.mobile.data.remote.dto.InstallationIdRequest
 import com.siscontrol.mobile.domain.usecase.CreateCheckpointUseCase
 import com.siscontrol.mobile.domain.usecase.GetInstallationsUseCase
+import com.siscontrol.mobile.di.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class CheckpointViewModel(
     private val getInstallationsUseCase: GetInstallationsUseCase,
-    private val createCheckpointUseCase: CreateCheckpointUseCase
+    private val createCheckpointUseCase: CreateCheckpointUseCase,
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<CheckpointUiState>(CheckpointUiState.Idle)
@@ -39,13 +41,29 @@ class CheckpointViewModel(
         }
     }
 
-    fun createCheckpoint(installationId: Long, name: String, type: String, tagId: String, lat: Double, lng: Double) {
+    fun createCheckpoint(installationId: Long, name: String, tagCode: String, description: String) {
         viewModelScope.launch {
             _uiState.value = CheckpointUiState.Loading
-            val request = CheckpointRequestDto(name, type, tagId, lat, lng)
-            createCheckpointUseCase(installationId, request).fold(
-                onSuccess = { checkpoint ->
-                    _uiState.value = CheckpointUiState.Success(checkpoint)
+            
+            val editorId = sessionManager.getUserIdSync() ?: 0L
+
+            if (editorId <= 0L) {
+                _uiState.value = CheckpointUiState.Error("No se pudo recuperar tu ID de usuario. Por favor, re-inicia sesión.")
+                return@launch
+            }
+            
+            val request = CheckpointRequestDto(
+                name = name,
+                executionOrder = 1,
+                nfcTagCode = tagCode,
+                locationDescription = description,
+                instruction = null,
+                installation = InstallationIdRequest(id = installationId)
+            )
+
+            createCheckpointUseCase(editorId, request).fold(
+                onSuccess = {
+                    _uiState.value = CheckpointUiState.Success
                 },
                 onFailure = { error ->
                     _uiState.value = CheckpointUiState.Error(error.message ?: "Error al crear checkpoint")
@@ -58,7 +76,7 @@ class CheckpointViewModel(
 sealed class CheckpointUiState {
     object Idle : CheckpointUiState()
     object Loading : CheckpointUiState()
-    data class Success(val checkpoint: CheckpointDto) : CheckpointUiState()
+    object Success : CheckpointUiState()
     data class Error(val message: String) : CheckpointUiState()
 }
 
@@ -75,13 +93,8 @@ fun AddCheckpointScreen(
     var expandedInst by remember { mutableStateOf(false) }
     
     var name by remember { mutableStateOf("") }
-    
-    var selectedType by remember { mutableStateOf("NFC") }
-    var expandedType by remember { mutableStateOf(false) }
-    
-    var tagIdentifier by remember { mutableStateOf("") }
-    var lat by remember { mutableStateOf("") }
-    var lng by remember { mutableStateOf("") }
+    var tagCode by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
 
     LaunchedEffect(uiState) {
         if (uiState is CheckpointUiState.Success) {
@@ -137,52 +150,17 @@ fun AddCheckpointScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Elegir Tipo
-            ExposedDropdownMenuBox(
-                expanded = expandedType,
-                onExpandedChange = { expandedType = !expandedType }
-            ) {
-                OutlinedTextField(
-                    readOnly = true,
-                    value = selectedType,
-                    onValueChange = {},
-                    label = { Text("Tipo de Marcaje") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedType) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth()
-                )
-                ExposedDropdownMenu(
-                    expanded = expandedType,
-                    onDismissRequest = { expandedType = false }
-                ) {
-                    listOf("NFC", "QR").forEach { type ->
-                        DropdownMenuItem(
-                            text = { Text(type) },
-                            onClick = {
-                                selectedType = type
-                                expandedType = false
-                            }
-                        )
-                    }
-                }
-            }
-
             OutlinedTextField(
-                value = tagIdentifier,
-                onValueChange = { tagIdentifier = it },
-                label = { Text("ID del Tag manual") },
+                value = tagCode,
+                onValueChange = { tagCode = it },
+                label = { Text("Código NFC") },
                 modifier = Modifier.fillMaxWidth()
             )
 
             OutlinedTextField(
-                value = lat,
-                onValueChange = { lat = it },
-                label = { Text("Latitud") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = lng,
-                onValueChange = { lng = it },
-                label = { Text("Longitud") },
+                value = description,
+                onValueChange = { description = it },
+                label = { Text("Descripción de Ubicación") },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -192,14 +170,12 @@ fun AddCheckpointScreen(
 
             Button(
                 onClick = {
-                    val latDouble = lat.toDoubleOrNull() ?: 0.0
-                    val lngDouble = lng.toDoubleOrNull() ?: 0.0
                     selectedInstallationId?.let { id ->
-                        viewModel.createCheckpoint(id, name, selectedType, tagIdentifier, latDouble, lngDouble)
+                        viewModel.createCheckpoint(id, name, tagCode, description)
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = uiState !is CheckpointUiState.Loading && name.isNotBlank() && tagIdentifier.isNotBlank() && selectedInstallationId != null
+                enabled = uiState !is CheckpointUiState.Loading && name.isNotBlank() && tagCode.isNotBlank() && selectedInstallationId != null
             ) {
                 if (uiState is CheckpointUiState.Loading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)

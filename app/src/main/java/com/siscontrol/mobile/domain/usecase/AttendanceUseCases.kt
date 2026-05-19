@@ -4,6 +4,10 @@ import com.siscontrol.mobile.data.remote.dto.AttendanceRequest
 import com.siscontrol.mobile.data.remote.dto.AttendanceResponse
 import com.siscontrol.mobile.domain.repository.AttendanceRepository
 
+class GetAllShiftsUseCase(private val repository: AttendanceRepository) {
+    suspend operator fun invoke(): Result<List<AttendanceResponse>> = repository.getAllShifts()
+}
+
 class CheckInUseCase(private val repository: AttendanceRepository) {
     suspend operator fun invoke(request: AttendanceRequest): Result<AttendanceResponse> {
         return repository.checkIn(request)
@@ -11,7 +15,7 @@ class CheckInUseCase(private val repository: AttendanceRepository) {
 }
 
 class CheckOutUseCase(private val repository: AttendanceRepository) {
-    suspend operator fun invoke(userId: Long): Result<AttendanceResponse> {
-        return repository.checkOut(userId)
+    suspend operator fun invoke(request: AttendanceRequest): Result<AttendanceResponse> {
+        return repository.checkOut(request)
     }
 }

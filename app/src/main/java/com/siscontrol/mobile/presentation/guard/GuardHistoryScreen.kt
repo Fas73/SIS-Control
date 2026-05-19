@@ -2,16 +2,12 @@ package com.siscontrol.mobile.presentation.guard
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Event
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.siscontrol.mobile.data.remote.dto.RoundHistoryItemDto
 import com.siscontrol.mobile.presentation.components.SISBadge
 import com.siscontrol.mobile.presentation.components.SISTopBar
 import com.siscontrol.mobile.presentation.theme.*
@@ -27,10 +24,16 @@ import com.siscontrol.mobile.presentation.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GuardHistoryScreen(
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    viewModel: GuardHistoryViewModel
 ) {
     var selectedFilter by remember { mutableStateOf("Todas") }
     val filters = listOf("Todas", "Hoy", "Esta Semana", "Este Mes")
+    val state by viewModel.state
+
+    LaunchedEffect(selectedFilter) {
+        viewModel.loadHistory(selectedFilter)
+    }
 
     Column(
         modifier = Modifier
@@ -40,7 +43,7 @@ fun GuardHistoryScreen(
     ) {
         SISTopBar(
             title = "Historial de Rondas",
-            subtitle = "",
+            subtitle = if (state.isLoading) "Cargando..." else "",
             showAdminLogo = false
         )
 
@@ -74,72 +77,83 @@ fun GuardHistoryScreen(
             }
         }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Summary row
-            item {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    HistorySummaryCard(modifier = Modifier.weight(1f), value = "24", label = "Total", valueColor = TextPrimary)
-                    HistorySummaryCard(modifier = Modifier.weight(1f), value = "23", label = "Completas", valueColor = SuccessColor)
-                    HistorySummaryCard(modifier = Modifier.weight(1f), value = "96%", label = "Éxito", valueColor = TextPrimary)
+        if (state.isLoading && state.history == null) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = PrimaryColor)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Summary row
+                item {
+                    val history = state.history
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        HistorySummaryCard(modifier = Modifier.weight(1f), value = history?.total?.toString() ?: "0", label = "Total", valueColor = TextPrimary)
+                        HistorySummaryCard(modifier = Modifier.weight(1f), value = history?.completas?.toString() ?: "0", label = "Completas", valueColor = SuccessColor)
+                        HistorySummaryCard(modifier = Modifier.weight(1f), value = history?.porcentajeExito ?: "0%", label = "Éxito", valueColor = TextPrimary)
+                    }
+                }
+
+                // History list
+                val rondas = state.history?.rondas ?: emptyList()
+                if (rondas.isEmpty() && !state.isLoading) {
+                    item {
+                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            Text("No se encontraron rondas en este periodo.", color = TextSecondary)
+                        }
+                    }
+                } else {
+                    items(rondas.size) { index ->
+                        val ronda = rondas[index]
+                        // Si el servidor envía 0 o datos sospechosos, mostramos un guión o el valor real
+                        val displayPoints = if (ronda.checkpointsTotal > 0) {
+                            "${ronda.checkpointsExecuted}/${ronda.checkpointsTotal}"
+                        } else {
+                            "Consultando..."
+                        }
+                        
+                        HistoryItemCard(
+                            location = ronda.installationName,
+                            status = ronda.statusDisplay ?: "Incompleta",
+                            date = formatHistoryDate(ronda.startTime),
+                            duration = "${ronda.durationMinutes} min",
+                            points = displayPoints,
+                            shiftTime = "${formatTimeOnly(ronda.shiftStartTime)} - ${formatTimeOnly(ronda.shiftEndTime)}",
+                            incidents = ronda.incidentCount,
+                            isSuccess = ronda.status == "FINALIZADA"
+                        )
+                    }
                 }
             }
-
-            // History list
-            item {
-                HistoryItemCard(
-                    location = "Plaza Centro",
-                    status = "Completada",
-                    date = "26 Abril 2026",
-                    duration = "28 min",
-                    timeWindow = "14:30 - 14:58",
-                    points = "8/8"
-                )
-            }
-            item {
-                HistoryItemCard(
-                    location = "Plaza Centro",
-                    status = "Completada",
-                    date = "26 Abril 2026",
-                    duration = "25 min",
-                    timeWindow = "10:00 - 10:25",
-                    points = "8/8"
-                )
-            }
-            item {
-                HistoryItemCard(
-                    location = "Bodega Norte",
-                    status = "Completada",
-                    date = "25 Abril 2026",
-                    duration = "20 min",
-                    timeWindow = "18:15 - 18:35",
-                    points = "6/6"
-                )
-            }
-            item {
-                HistoryItemCard(
-                    location = "Plaza Centro",
-                    status = "Completada",
-                    date = "25 Abril 2026",
-                    duration = "32 min",
-                    timeWindow = "14:00 - 14:32",
-                    points = "8/8"
-                )
-            }
-            item {
-                HistoryItemCard(
-                    location = "Edificio Sur",
-                    status = "Completada",
-                    date = "24 Abril 2026",
-                    duration = "45 min",
-                    timeWindow = "09:00 - 09:45",
-                    points = "10/10"
-                )
-            }
         }
+    }
+}
+
+// Helpers for formatting
+private fun formatHistoryDate(isoDate: String?): String {
+    if (isoDate == null) return "N/A"
+    return try {
+        val parser = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault())
+        val formatter = java.text.SimpleDateFormat("dd MMMM yyyy", java.util.Locale("es", "ES"))
+        val date = parser.parse(isoDate)
+        if (date != null) formatter.format(date) else isoDate
+    } catch (e: Exception) {
+        isoDate.take(10)
+    }
+}
+
+private fun formatTimeOnly(isoDate: String?): String {
+    if (isoDate == null) return "--:--"
+    return try {
+        val parser = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault())
+        val formatter = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+        val date = parser.parse(isoDate)
+        if (date != null) formatter.format(date) else "--:--"
+    } catch (e: Exception) {
+        "--:--"
     }
 }
 
@@ -164,45 +178,89 @@ fun HistorySummaryCard(modifier: Modifier = Modifier, value: String, label: Stri
 }
 
 @Composable
-fun HistoryItemCard(location: String, status: String, date: String, duration: String, timeWindow: String, points: String) {
+fun HistoryItemCard(
+    location: String, 
+    status: String, 
+    date: String, 
+    duration: String, 
+    points: String,
+    shiftTime: String,
+    incidents: Int,
+    isSuccess: Boolean
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            // Cabecera
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.LocationOn, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(location, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Text(location, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary, maxLines = 1)
                 }
-                SISBadge(status, containerColor = SuccessColor.copy(alpha = 0.1f), contentColor = SuccessColor)
+                SISBadge(status, containerColor = (if (isSuccess) SuccessColor else WarningColor).copy(alpha = 0.1f), contentColor = if (isSuccess) SuccessColor else WarningColor)
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Tiempos de Ronda
             Row(modifier = Modifier.fillMaxWidth()) {
-                Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Event, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(14.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.Event, null, tint = TextSecondary, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(date, fontSize = 13.sp, color = TextSecondary)
                 }
-                Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Schedule, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(14.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.Schedule, null, tint = TextSecondary, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(duration, fontSize = 13.sp, color = TextSecondary)
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            Divider(color = Color(0xFFE5E7EB))
-            Spacer(modifier = Modifier.height(16.dp))
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF3F4F6))
+
+            // Datos de la Jornada e Incidentes
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(timeWindow, fontSize = 13.sp, color = TextSecondary)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Check, contentDescription = null, tint = SuccessColor, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(points, fontSize = 13.sp, color = SuccessColor, fontWeight = FontWeight.Medium)
+                Column {
+                    Text("Horario Jornada", fontSize = 11.sp, color = TextSecondary)
+                    Text(shiftTime, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+                }
+                
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("Marcajes", fontSize = 11.sp, color = TextSecondary, modifier = Modifier.padding(bottom = 2.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val parts = points.split("/")
+                        val scanned = parts.getOrNull(0)?.toIntOrNull() ?: 0
+                        val total = parts.getOrNull(1)?.toIntOrNull() ?: 0
+                        val isFullyScanned = scanned >= total && total > 0
+
+                        Text(
+                            text = points, 
+                            fontSize = 14.sp, 
+                            fontWeight = FontWeight.Bold, 
+                            color = if(isFullyScanned) SuccessColor else if(scanned > 0) WarningColor else TextPrimary
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = if(isFullyScanned) Icons.Default.VerifiedUser else Icons.Default.Pending,
+                            contentDescription = null, 
+                            tint = if(isFullyScanned) SuccessColor else Color.Gray, 
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                    val incidentText = when (incidents) {
+                        0 -> "Sin incidentes"
+                        1 -> "1 incidente"
+                        else -> "$incidents incidentes"
+                    }
+                    Text(incidentText,
+                         fontSize = 11.sp, 
+                         color = if(incidents > 0) DangerColor else TextSecondary)
                 }
             }
         }

@@ -21,27 +21,47 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.siscontrol.mobile.MainActivity
 import com.siscontrol.mobile.presentation.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateCheckpointScreen(
+    installationId: Long,
+    predefinedInstallationName: String,
+    viewModel: AdminInstallationsViewModel,
     onBack: () -> Unit,
     onCreate: () -> Unit
 ) {
     var name by rememberSaveable { mutableStateOf("") }
+    var locationDescription by rememberSaveable { mutableStateOf("") }
     var nfcCode by rememberSaveable { mutableStateOf("") }
-    var installationName by rememberSaveable { mutableStateOf("") } 
     var order by rememberSaveable { mutableStateOf("") }
     var lat by rememberSaveable { mutableStateOf("-33.4372") }
     var lng by rememberSaveable { mutableStateOf("-70.6506") }
     var instructions by rememberSaveable { mutableStateOf("") }
     var showSuccessDialog by rememberSaveable { mutableStateOf(false) }
+    
+    // Estado para saber si estamos esperando un escaneo NFC
+    var isWaitingForScan by remember { mutableStateOf(false) }
 
-    var expanded by remember { mutableStateOf(false) }
-    val installations = listOf("Plaza Centro", "Edificio Norte", "Bodega Sur")
+    // Escuchar el flujo de NFC de la MainActivity
+    LaunchedEffect(isWaitingForScan) {
+        if (isWaitingForScan) {
+            MainActivity.nfcTagFlow.collect { tagId ->
+                nfcCode = tagId
+                isWaitingForScan = false
+            }
+        }
+    }
 
-    val isFormValid = name.isNotBlank() && nfcCode.isNotBlank() && installationName.isNotBlank()
+    val isFormValid = name.isNotBlank() && 
+                     locationDescription.isNotBlank() && 
+                     nfcCode.isNotBlank() && 
+                     order.toIntOrNull() != null
+
+    // Observar éxito en el ViewModel para cerrar
+    // (Asumiendo que el ViewModel tiene un estado de éxito para checkpoints o reutilizando el de instalaciones)
 
     Scaffold(
         topBar = {
@@ -150,6 +170,27 @@ fun CreateCheckpointScreen(
                 )
                 
                 Spacer(modifier = Modifier.height(12.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Place, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Descripción de la ubicación", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedTextField(
+                    value = locationDescription,
+                    onValueChange = { locationDescription = it },
+                    placeholder = { Text("Ej: Lobby junto a recepción", color = TextSecondary, fontSize = 14.sp) },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    singleLine = true,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color(0xFFE5E7EB),
+                        focusedBorderColor = PrimaryVariant
+                    )
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
                 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Business, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
@@ -158,42 +199,19 @@ fun CreateCheckpointScreen(
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded }
-                ) {
-                    OutlinedTextField(
-                        value = installationName,
-                        onValueChange = {},
-                        readOnly = true,
-                        placeholder = { Text("Seleccionar instalación", color = TextSecondary, fontSize = 14.sp) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .menuAnchor(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = Color(0xFFE5E7EB),
-                            focusedBorderColor = PrimaryVariant
-                        )
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        installations.forEach { selectionOption ->
-                            DropdownMenuItem(
-                                text = { Text(selectionOption) },
-                                onClick = {
-                                    installationName = selectionOption
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
+                OutlinedTextField(
+                    value = predefinedInstallationName,
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color(0xFFE5E7EB),
+                        focusedBorderColor = PrimaryVariant,
+                        disabledContainerColor = Color(0xFFF9FAFB)
+                    ),
+                    enabled = false
+                )
 
                 Spacer(modifier = Modifier.height(12.dp))
                 
@@ -259,23 +277,37 @@ fun CreateCheckpointScreen(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Button(
-                        onClick = { nfcCode = "NFC-${(100000..999999).random()}" },
+                        onClick = { isWaitingForScan = true },
                         modifier = Modifier.height(52.dp),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFF3E8FF),
-                            contentColor = Color(0xFFA855F7)
+                            containerColor = if (isWaitingForScan) SuccessColor.copy(alpha = 0.2f) else Color(0xFFF3E8FF),
+                            contentColor = if (isWaitingForScan) SuccessColor else Color(0xFFA855F7)
                         )
                     ) {
-                        Text("Generar", fontWeight = FontWeight.Bold)
+                        if (isWaitingForScan) {
+                            Text("Leyendo...", fontWeight = FontWeight.Bold)
+                        } else {
+                            Text("Capturar NFC", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
-                Text(
-                    "Código único que identifica el tag NFC físico", 
-                    color = TextSecondary, 
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+                if (isWaitingForScan) {
+                    Text(
+                        "Acerque el tag NFC al teléfono para capturar su ID",
+                        color = SuccessColor,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                } else {
+                    Text(
+                        "Puede ingresar el ID manualmente o usar el botón para capturarlo", 
+                        color = TextSecondary, 
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -427,7 +459,17 @@ fun CreateCheckpointScreen(
             
             // Buttons
             Button(
-                onClick = { showSuccessDialog = true },
+                onClick = { 
+                    viewModel.createCheckpoint(
+                        installationId = installationId,
+                        name = name,
+                        executionOrder = order.toIntOrNull() ?: 0,
+                        nfcCode = nfcCode,
+                        desc = locationDescription,
+                        instruction = instructions
+                    )
+                    showSuccessDialog = true 
+                },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryColor,

@@ -35,10 +35,13 @@ import com.siscontrol.mobile.presentation.components.ButtonVariant
 import com.siscontrol.mobile.presentation.components.PrimaryButton
 import com.siscontrol.mobile.presentation.theme.*
 
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
-    onLoginSuccess: (token: String, role: String) -> Unit,
+    onLoginSuccess: (token: String, role: String, userId: Long, fullName: String, username: String) -> Unit,
     onForgotPassword: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -46,7 +49,7 @@ fun LoginScreen(
     LaunchedEffect(state) {
         if (state is LoginUiState.Success) {
             val success = state as LoginUiState.Success
-            onLoginSuccess(success.token, success.role)
+            onLoginSuccess(success.token, success.role, success.userId, success.fullName, success.username)
         }
     }
 
@@ -66,6 +69,7 @@ fun LoginScreenContent(
 ) {
     var username by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -109,7 +113,7 @@ fun LoginScreenContent(
                     value = username,
                     onValueChange = { username = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Correo electrónico", color = TextSecondary) },
+                    label = { Text("Usuario o Correo", color = TextSecondary) },
                     leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = PrimaryColor) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -131,8 +135,14 @@ fun LoginScreenContent(
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text("Contraseña", color = TextSecondary) },
                     leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = PrimaryColor) },
+                    trailingIcon = {
+                        val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(image, null)
+                        }
+                    },
                     singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
+                    visualTransformation = if (passwordVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = PrimaryColor,

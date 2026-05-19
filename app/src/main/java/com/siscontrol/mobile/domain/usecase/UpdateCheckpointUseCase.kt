@@ -10,3 +10,11 @@ class UpdateCheckpointUseCase(
         return repository.updateCheckpoint(id, editorId, request)
     }
 }
+
+class ToggleCheckpointStatusUseCase(
+    private val repository: InstallationRepository
+) {
+    suspend operator fun invoke(id: Long, editorId: Long): Result<Int> {
+        return repository.toggleCheckpointStatus(id, editorId)
+    }
+}

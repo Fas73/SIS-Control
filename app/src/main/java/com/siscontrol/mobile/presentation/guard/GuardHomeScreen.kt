@@ -1,7 +1,6 @@
 package com.siscontrol.mobile.presentation.guard
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -15,7 +14,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,12 +24,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.siscontrol.mobile.presentation.components.SISBadge
 import com.siscontrol.mobile.presentation.theme.*
+import com.siscontrol.mobile.core.toTitleCase
 
 @Composable
 fun GuardHomeScreen(
     paddingValues: PaddingValues,
-    onNavigate: (String) -> Unit
+    onNavigate: (String) -> Unit,
+    userName: String = "Guardia",
+    userStatus: Int = 1 // 1: Activo, 0: Inactivo
 ) {
+    val formattedName = userName.toTitleCase()
+    val isActive = userStatus == 1
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -56,27 +61,29 @@ fun GuardHomeScreen(
                             .background(Color.DarkGray, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        // Simulating a profile image with an icon
                         Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text("Juan Pérez", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Text(formattedName, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
-                        SISBadge("Activo", containerColor = Color.White, contentColor = SuccessColor)
+                        SISBadge(
+                            if (isActive) "Activo" else "Inactivo", 
+                            containerColor = if (isActive) Color.White else Color(0xFFFEE2E2), 
+                            contentColor = if (isActive) SuccessColor else DangerColor
+                        )
                     }
                 }
-                // Placeholder for shield icon
                 Box(
                     modifier = Modifier.size(40.dp).background(Color.White.copy(alpha=0.1f), RoundedCornerShape(8.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.White) // Shield-like placeholder
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.White)
                 }
             }
         }
         
-        // Location indicator
+        // El nombre de la instalación se oculta hasta que se inicia jornada en un punto específico
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -86,7 +93,7 @@ fun GuardHomeScreen(
              Row(verticalAlignment = Alignment.CenterVertically) {
                  Icon(Icons.Default.LocationOn, contentDescription = null, tint = DangerColor, modifier = Modifier.size(14.dp))
                  Spacer(modifier = Modifier.width(4.dp))
-                 Text("Plaza Centro", color = Color.White, fontSize = 14.sp)
+                 Text("Seleccione instalación para comenzar", color = Color.White, fontSize = 14.sp)
              }
         }
 
@@ -95,12 +102,14 @@ fun GuardHomeScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // "Iniciar Nueva Ronda" Card
+            // "Marcar Entrada / Iniciar Turno" Card (Cambio solicitado por el jefe)
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = PrimaryColor), // Blue
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isActive) PrimaryColor else Color(0xFF94A3B8)
+                    ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
@@ -114,19 +123,37 @@ fun GuardHomeScreen(
                                 .padding(8.dp)
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Iniciar Nueva Ronda", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "Iniciar Jornada / Turno", 
+                            color = Color.White, 
+                            fontSize = 22.sp, 
+                            fontWeight = FontWeight.Bold
+                        )
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Comienza tu ronda de seguridad", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
+                        Text(
+                            text = if (isActive) "Marca tu asistencia e inicia tus servicios" 
+                                   else "Tu cuenta está inactiva. Contacta a soporte.", 
+                            color = Color.White.copy(alpha = 0.8f), 
+                            fontSize = 14.sp
+                        )
                         
                         Spacer(modifier = Modifier.height(24.dp))
                         
                         Button(
                             onClick = { onNavigate("START_ROUND") },
                             modifier = Modifier.fillMaxWidth().height(50.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = SuccessColor),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isActive) SuccessColor else Color.Gray
+                            ),
+                            enabled = isActive,
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("Comenzar Ronda", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text(
+                                text = "Marcar Entrada / Iniciar Turno", 
+                                fontSize = 16.sp, 
+                                fontWeight = FontWeight.Bold, 
+                                color = Color.White
+                            )
                         }
                     }
                 }
@@ -148,34 +175,10 @@ fun GuardHomeScreen(
                             modifier = Modifier.fillMaxWidth(), 
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            SummaryItem(icon = Icons.Default.Schedule, title = "3", subtitle = "Rondas", color = PrimaryColor, bgColor = PrimaryColor.copy(alpha = 0.1f))
-                            SummaryItem(icon = Icons.Default.CheckCircle, title = "24", subtitle = "Checkpoints", color = SuccessColor, bgColor = SuccessColor.copy(alpha = 0.1f))
-                            SummaryItem(icon = Icons.Default.LocationOn, title = "2.3", subtitle = "km", color = Color(0xFF8B5CF6), bgColor = Color(0xFF8B5CF6).copy(alpha = 0.1f))
+                            SummaryItem(icon = Icons.Default.Schedule, title = "0", subtitle = "Rondas", color = PrimaryColor, bgColor = PrimaryColor.copy(alpha = 0.1f))
+                            SummaryItem(icon = Icons.Default.CheckCircle, title = "0", subtitle = "Checkpoints", color = SuccessColor, bgColor = SuccessColor.copy(alpha = 0.1f))
+                            SummaryItem(icon = Icons.Default.LocationOn, title = "0.0", subtitle = "km", color = Color(0xFF8B5CF6), bgColor = Color(0xFF8B5CF6).copy(alpha = 0.1f))
                         }
-                    }
-                }
-            }
-
-            // Última Ronda Completada
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Última Ronda Completada", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        DetailRow("Instalación:", "Plaza Centro")
-                        Spacer(modifier = Modifier.height(12.dp))
-                        DetailRow("Checkpoints:", "8/8")
-                        Spacer(modifier = Modifier.height(12.dp))
-                        DetailRow("Duración:", "28 minutos")
-                        Spacer(modifier = Modifier.height(12.dp))
-                        DetailRow("Hora:", "14:30 - 14:58")
                     }
                 }
             }
@@ -195,13 +198,5 @@ fun SummaryItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: St
         Spacer(modifier = Modifier.height(8.dp))
         Text(title, fontSize = 20.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
         Text(subtitle, fontSize = 12.sp, color = TextSecondary)
-    }
-}
-
-@Composable
-fun DetailRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, color = TextSecondary, fontSize = 14.sp)
-        Text(value, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
     }
 }

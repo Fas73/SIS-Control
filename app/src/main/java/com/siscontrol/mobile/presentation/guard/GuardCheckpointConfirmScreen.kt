@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -24,6 +25,7 @@ import com.siscontrol.mobile.presentation.theme.*
 fun GuardCheckpointConfirmScreen(
     checkpointName: String = "Salida de Emergencia",
     checkpointNumber: Int = 4,
+    instruction: String? = null, // Agregado para mostrar la instrucción del jefe
     hour: String = "10:23",
     totalCheckpoints: Int = 8,
     completedCheckpoints: Int = 4,
@@ -106,6 +108,29 @@ fun GuardCheckpointConfirmScreen(
             )
 
             Spacer(modifier = Modifier.height(28.dp))
+
+            // Instrucción para el guardia (Si existe)
+            if (!instruction.isNullOrBlank()) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = PrimaryColor.copy(alpha = 0.05f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryColor.copy(alpha = 0.2f))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Info, null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Instrucción del Jefe", fontWeight = FontWeight.Bold, color = PrimaryColor, fontSize = 14.sp)
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(instruction, color = TextPrimary, fontSize = 14.sp, lineHeight = 20.sp)
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // Details card
             Card(

@@ -18,10 +18,44 @@ class PersonnelRepositoryImpl(
         }
     }
 
-    override suspend fun createPersonnel(request: UserRequestDto): Result<UserResponseDto> {
+    override suspend fun getUserById(id: Long): Result<UserResponseDto> {
         return try {
-            val response = apiService.createPersonnel(request)
+            val response = apiService.getUserById(id)
             Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun createPersonnel(creatorId: Long, request: UserRequestDto): Result<UserResponseDto> {
+        return try {
+            val response = apiService.createPersonnel(creatorId, request)
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updatePersonnel(id: Long, editorId: Long, request: UserRequestDto): Result<UserResponseDto> {
+        return try {
+            val response = apiService.updatePersonnel(id, editorId, request)
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun toggleUserStatus(id: Long, editorId: Long): Result<Int> {
+        return try {
+            val response = apiService.toggleUserStatus(id, editorId)
+            if (response.isSuccessful && response.body() != null) {
+                // El backend devuelve UserResponseDTO, pero en toggle-status solemos extraer el status
+                // Ajustado para manejar Map si es lo que devuelve el body según la interfaz
+                val statusValue = (response.body()!!["status"] as? Number)?.toInt() ?: 0
+                Result.success(statusValue)
+            } else {
+                Result.failure(Exception("Error al alternar estado del usuario: ${response.code()}"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

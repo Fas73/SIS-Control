@@ -6,15 +6,12 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
 
-/**
- * Interfaz Retrofit encargada de definir la firma de red para temas de autenticación.
- */
 interface AuthApiService {
 
     /**
-     * Endpoint responsable del inicio de sesión.
-     * Retorna una [Response] encapsulando la respuesta, para manejar códigos HTTP manualmente si se requiere.
+     * Endpoint para inicio de sesión.
+     * La ruta debe coincidir exactamente con el @PostMapping("/api/auth/login") de tu Backend.
      */
-    @POST("/api/auth/login")
+    @POST("api/auth/login")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 }

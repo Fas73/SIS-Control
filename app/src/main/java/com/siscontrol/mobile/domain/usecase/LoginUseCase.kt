@@ -15,13 +15,17 @@ class LoginUseCase(
      *
      * @return Result<LoginResult> con el JWT, rol y datos básicos del usuario en caso de éxito.
      */
-    suspend operator fun invoke(username: String, password: String): Result<LoginResult> {
+    suspend operator fun invoke(identifier: String, password: String): Result<LoginResult> {
         // Validaciones de negocio antes de intentar ir a la red
-        if (username.isBlank() || password.isBlank()) {
-            return Result.failure(Exception("El usuario y contraseña no pueden estar vacíos."))
+        if (identifier.isBlank()) {
+            return Result.failure(Exception("Debe ingresar su usuario o correo electrónico."))
+        }
+        
+        if (password.isBlank()) {
+            return Result.failure(Exception("La contraseña no puede estar vacía."))
         }
         
         // Se orquesta el uso del repositorio real
-        return authRepository.login(username, password)
+        return authRepository.login(identifier, password)
     }
 }

@@ -9,11 +9,21 @@ class AttendanceRepositoryImpl(
     private val api: AttendanceApiService
 ) : AttendanceRepository {
 
+    override suspend fun getAllShifts(): Result<List<AttendanceResponse>> {
+        return try {
+            val response = api.getAllShifts()
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun checkIn(request: AttendanceRequest): Result<AttendanceResponse> {
         return try {
             val response = api.checkIn(request)
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                // Extraemos el objeto 'jornada' del envoltorio verídico del backend
+                Result.success(response.body()!!.jornada)
             } else {
                 Result.failure(Exception("Error en check-in: ${response.code()}"))
             }
@@ -22,11 +32,12 @@ class AttendanceRepositoryImpl(
         }
     }
 
-    override suspend fun checkOut(userId: Long): Result<AttendanceResponse> {
+    override suspend fun checkOut(request: AttendanceRequest): Result<AttendanceResponse> {
         return try {
-            val response = api.checkOut(mapOf("userId" to userId))
+            val response = api.checkOut(request)
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                // Extraemos el objeto 'jornada' del envoltorio verídico del backend
+                Result.success(response.body()!!.jornada)
             } else {
                 Result.failure(Exception("Error en check-out: ${response.code()}"))
             }

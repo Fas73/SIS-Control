@@ -8,10 +8,18 @@ data class AttendanceRequest(
 )
 
 data class AttendanceResponse(
-    val id: Long,
-    val userId: Long,
-    val installationId: Long,
-    val checkInTime: String,
+    val id: Long? = null,
+    val userId: Long? = null,
+    val installationId: Long? = null,
+    val checkInTime: String? = null,
     val checkOutTime: String? = null,
-    val status: String
+    val status: String? = null
+)
+
+/**
+ * DTO para la respuesta envoltorio del backend de asistencia.
+ */
+data class AttendanceWrapperResponse(
+    val mensaje: String,
+    val jornada: AttendanceResponse
 )
