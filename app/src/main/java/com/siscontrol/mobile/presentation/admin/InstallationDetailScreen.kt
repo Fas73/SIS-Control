@@ -51,8 +51,8 @@ fun InstallationDetailScreen(
     }
 
     // Estados para edición
-    var name by remember(installation) { mutableStateOf(installation.name) }
-    var address by remember(installation) { mutableStateOf(installation.address) }
+    var name by remember(installation) { mutableStateOf(installation.name ?: "Sin nombre") }
+    var address by remember(installation) { mutableStateOf(installation.address ?: "Sin dirección") }
     var clientName by remember(installation) { mutableStateOf(installation.clientName ?: "") }
     var latitude by remember(installation) { mutableStateOf(installation.latitude?.toString() ?: "0.0") }
     var longitude by remember(installation) { mutableStateOf(installation.longitude?.toString() ?: "0.0") }
@@ -226,7 +226,7 @@ fun InstallationDetailScreen(
                             Button(
                                 onClick = { 
                                     navController.navigate(
-                                        Destinos.adminCreateCheckpointRoute(token, role, installationId, installation.name)
+                                        Destinos.adminCreateCheckpointRoute(token, role, installationId, installation.name ?: "Sede")
                                     )
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
@@ -290,7 +290,7 @@ fun InstallationDetailScreen(
                         }
                     }
                 } else {
-                    items(currentList, key = { it.id }) { checkpoint ->
+                    items(currentList, key = { it.id ?: 0L }) { checkpoint ->
                         CheckpointCardPolished(
                             checkpoint = checkpoint,
                             installationActive = isActive,
@@ -300,7 +300,7 @@ fun InstallationDetailScreen(
                                 viewModel.updateCheckpoint(updated, installationId)
                             },
                             onToggleStatus = {
-                                viewModel.toggleCheckpointStatus(checkpoint.id, installationId)
+                                viewModel.toggleCheckpointStatus(checkpoint.id ?: 0L, installationId)
                             }
                         )
                     }
@@ -358,7 +358,7 @@ fun DetailFieldPolished(
     onValueChange: (String) -> Unit
 ) {
     Column {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = TextSecondary, modifier = Modifier.padding(bottom = 6.dp, start = 4.dp))
+        Text(label, style = MaterialTheme.typography.labelMedium, color = TextPrimary, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp, start = 4.dp))
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
@@ -367,9 +367,12 @@ fun DetailFieldPolished(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             singleLine = true,
+            textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.SemiBold),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = PrimaryColor,
-                unfocusedBorderColor = Color(0xFFE5E7EB),
+                unfocusedBorderColor = Color.DarkGray,
+                focusedTextColor = TextPrimary,
+                unfocusedTextColor = TextPrimary,
                 disabledContainerColor = Color(0xFFF9FAFB),
                 disabledBorderColor = Color(0xFFF3F4F6),
                 disabledTextColor = TextPrimary
@@ -388,12 +391,37 @@ fun CheckpointCardPolished(
     onToggleStatus: () -> Unit
 ) {
     var isEditing by remember(checkpoint.id, selectedTab) { mutableStateOf(false) }
-    var name by remember(checkpoint) { mutableStateOf(checkpoint.name) }
+    var name by remember(checkpoint) { mutableStateOf(checkpoint.name ?: "") }
     var order by remember(checkpoint) { mutableStateOf(checkpoint.executionOrder.toString()) }
-    var code by remember(checkpoint) { mutableStateOf(checkpoint.nfcTagCode) }
+    var code by remember(checkpoint) { mutableStateOf(checkpoint.nfcTagCode ?: "") }
     var desc by remember(checkpoint) { mutableStateOf(checkpoint.locationDescription ?: "") }
     var instruction by remember(checkpoint) { mutableStateOf(checkpoint.instruction ?: "") }
     
+    // Estado para captura NFC
+    var isWaitingForScan by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    // Escuchar NFC de la MainActivity solo si estamos editando y esperando escaneo
+    LaunchedEffect(isWaitingForScan) {
+        if (isWaitingForScan && isEditing) {
+            com.siscontrol.mobile.MainActivity.nfcTagFlow.collect { tagId ->
+                code = tagId
+                isWaitingForScan = false
+                
+                // Vibración de confirmación de captura exitosa
+                val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    val vibratorManager = context.getSystemService(android.content.Context.VIBRATOR_MANAGER_SERVICE) as android.os.VibratorManager
+                    vibratorManager.defaultVibrator
+                } else {
+                    @Suppress("DEPRECATION")
+                    context.getSystemService(android.content.Context.VIBRATOR_SERVICE) as android.os.Vibrator
+                }
+                
+                vibrator.vibrate(android.os.VibrationEffect.createOneShot(200, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+            }
+        }
+    }
+
     val isActive = (checkpoint.status ?: 1) == 1
     
     val isTextFieldOrderDuplicate = remember(order, allCheckpoints) {
@@ -431,18 +459,21 @@ fun CheckpointCardPolished(
                 
                 Column(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
                     Text(
-                        text = "${checkpoint.executionOrder}. ${checkpoint.name.toTitleCase()}", 
+                        text = "${checkpoint.executionOrder}. ${(checkpoint.name ?: "Punto").toTitleCase()}", 
                         fontWeight = FontWeight.Bold,
                         color = if (isActive) TextPrimary else Color.Gray,
                         fontSize = 16.sp,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
-                    Text("Tag: ${checkpoint.nfcTagCode}", fontSize = 12.sp, color = TextSecondary)
+                    Text("Tag: ${checkpoint.nfcTagCode ?: "N/A"}", fontSize = 12.sp, color = TextSecondary)
                 }
                 
                 if (installationActive && (isActive || isEditing)) {
-                    IconButton(onClick = { isEditing = !isEditing }) {
+                    IconButton(onClick = { 
+                        isEditing = !isEditing
+                        if (!isEditing) isWaitingForScan = false // Resetear captura al cerrar
+                    }) {
                         Icon(
                             imageVector = if (isEditing) Icons.Default.Close else Icons.Default.Edit, 
                             contentDescription = null, 
@@ -460,7 +491,58 @@ fun CheckpointCardPolished(
                 if (isTextFieldOrderDuplicate) {
                     Text("Orden ya ocupada por otro punto activo.", color = DangerColor, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
                 }
-                DetailFieldPolished(label = "Código NFC", value = code, enabled = true, icon = Icons.Default.Nfc) { code = it }
+
+                // Campo Código NFC con botón de captura
+                Column {
+                    Text("Código NFC", style = MaterialTheme.typography.labelMedium, color = TextSecondary, modifier = Modifier.padding(bottom = 6.dp, start = 4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = code,
+                            onValueChange = { code = it },
+                            placeholder = { Text("NFC-XXXXXX", color = Color.Gray.copy(alpha = 0.5f)) },
+                            leadingIcon = { Icon(Icons.Default.Nfc, null, tint = PrimaryColor, modifier = Modifier.size(22.dp)) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryColor,
+                                unfocusedBorderColor = Color(0xFFE5E7EB),
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Button(
+                            onClick = { isWaitingForScan = true },
+                            modifier = Modifier.height(54.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isWaitingForScan) SuccessColor.copy(alpha = 0.1f) else PrimaryVariant.copy(alpha = 0.1f),
+                                contentColor = if (isWaitingForScan) SuccessColor else PrimaryVariant
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp)
+                        ) {
+                            Text(
+                                text = if (isWaitingForScan) "Leyendo..." else "Capturar",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+                    if (isWaitingForScan) {
+                        Text(
+                            "Acerque el tag NFC al teléfono...",
+                            color = SuccessColor,
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(top = 4.dp, start = 4.dp),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
                 DetailFieldPolished(label = "Descripción", value = desc, enabled = true, icon = Icons.Default.Description) { desc = it }
                 DetailFieldPolished(label = "Instrucción para Guardia", value = instruction, enabled = true, icon = Icons.Default.Info) { instruction = it }
                 

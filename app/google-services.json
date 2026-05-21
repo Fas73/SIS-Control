@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "64069146165",
+    "project_id": "vito-sis-control",
+    "storage_bucket": "vito-sis-control.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:64069146165:android:f1f89eca51f9560a46c37c",
+        "android_client_info": {
+          "package_name": "com.siscontrol.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCCQmdUqWcMFdzRROA0XGzf_wf_RfZSAQc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

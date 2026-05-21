@@ -141,25 +141,25 @@ fun PersonnelListScreen(
                                         modifier = Modifier.size(50.dp).background(com.siscontrol.mobile.presentation.theme.PrimaryColor, shape = androidx.compose.foundation.shape.CircleShape),
                                         contentAlignment = androidx.compose.ui.Alignment.Center
                                     ) {
-                                        Text(user.fullName.take(1).uppercase(), color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.titleLarge)
+                                        Text((user.fullName ?: "U").take(1).uppercase(), color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.titleLarge)
                                     }
                                     Spacer(modifier = Modifier.width(16.dp))
 
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = user.fullName,
+                                            text = user.fullName ?: "Usuario",
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                                         )
                                         Text(
-                                            text = "Rol: ${user.role}",
+                                            text = "Rol: ${user.role ?: "Desconocido"}",
                                             color = com.siscontrol.mobile.presentation.theme.TextSecondary,
                                             style = MaterialTheme.typography.bodyMedium
                                         )
                                         // CAMBIO AQUÍ: Eliminamos la referencia a installations.
                                         // Mostramos el email o el username que sí vienen en tu DTO de Java.
                                         Text(
-                                            text = user.email,
+                                            text = user.email ?: "",
                                             color = com.siscontrol.mobile.presentation.theme.TextSecondary,
                                             style = MaterialTheme.typography.bodySmall
                                         )

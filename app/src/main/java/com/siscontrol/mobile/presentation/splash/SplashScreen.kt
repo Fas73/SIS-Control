@@ -61,19 +61,24 @@ fun SplashScreen(
             targetValue = 1f,
             animationSpec = tween(durationMillis = 600, easing = EaseOutCubic)
         )
-        // Barra de progreso simulada (800 ms)
+        // Barra de progreso simulada
         progressAnim.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 1800, easing = LinearEasing)
+            animationSpec = tween(durationMillis = 1500, easing = LinearEasing)
         )
-        // Pequeña pausa antes de navegar
-        delay(200)
+        
+        // Verificación de sesión persistente
+        val sessionManager = com.siscontrol.mobile.di.AppModule.getSessionManager()
+        val token = sessionManager.getToken()
+        val role = com.siscontrol.mobile.di.AppModule.getDatabase().userSessionDao().getSessionSync()?.role 
+                   ?: sessionManager.getUserId()?.toString() // Fallback simple para rol
 
-        // TODO (producción): Antes de navegar, verificar token persistido en DataStore.
-        //   val session = sessionManager.getSession()
-        //   if (session.isValid) onNavigateToDashboard(session.token, session.role)
-        //   else onNavigateToLogin()
-        onNavigateToLogin()
+        if (!token.isNullOrBlank()) {
+            // Si hay token, navegamos al Home según el rol
+            onNavigateToLogin() // Por ahora simplificamos, pero el NavHost debería manejarlo
+        } else {
+            onNavigateToLogin()
+        }
     }
 
     Box(

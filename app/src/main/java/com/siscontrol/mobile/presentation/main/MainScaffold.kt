@@ -56,9 +56,9 @@ fun MainScaffold(
                                 if (item.baseRoute == Destinos.GUARD_RONDA) {
                                     // Protección inteligente: si no hay ronda, vamos a Iniciar
                                     scope.launch {
-                                        val activeId = sessionManager.getActiveRoundIdSync() ?: 0L
-                                        val instId = sessionManager.getActiveInstallationIdSync() ?: 0L
-                                        val instName = sessionManager.getActiveInstallationNameSync() ?: "Instalación"
+                                        val activeId = sessionManager.getActiveRoundId() ?: 0L
+                                        val instId = sessionManager.getActiveInstallationId() ?: 0L
+                                        val instName = sessionManager.getActiveInstallationName() ?: "Instalación"
                                         
                                         val route = if (activeId != 0L && instId != 0L) {
                                             Destinos.guardRondaRoute(token, userRole, activeId, instId, instName)

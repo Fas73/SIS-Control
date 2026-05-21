@@ -7,7 +7,8 @@ package com.siscontrol.mobile.data.remote.dto
 data class ProfileUpdateRequest(
     val fullName: String,
     val username: String,
-    val phoneNumber: String
+    val phoneNumber: String,
+    val imageUrl: String? = null
 )
 
 /**

@@ -25,6 +25,8 @@ import com.siscontrol.mobile.presentation.management.PersonnelListScreen
 import com.siscontrol.mobile.presentation.splash.SplashScreen
 import com.siscontrol.mobile.presentation.admin.AdminInstallationsViewModel
 import com.siscontrol.mobile.presentation.admin.AdminManagementViewModel
+import com.siscontrol.mobile.presentation.admin.AdminAlertsViewModel
+import com.siscontrol.mobile.presentation.AdminAlertsViewModelFactory
 import com.siscontrol.mobile.presentation.admin.AdminCheckpointsViewModel
 import com.siscontrol.mobile.presentation.admin.AdminHomeViewModel
 import com.siscontrol.mobile.presentation.admin.AdminHomeScreen
@@ -41,6 +43,8 @@ import com.siscontrol.mobile.presentation.admin.AdminAlertsScreen
 import com.siscontrol.mobile.presentation.supervisor.SupervisorHomeScreen
 import com.siscontrol.mobile.presentation.supervisor.SupervisorGuardsScreen
 import com.siscontrol.mobile.presentation.supervisor.CreateGuardScreen
+import com.siscontrol.mobile.presentation.admin.log.AdminIncidentLogScreen
+import com.siscontrol.mobile.presentation.admin.log.AdminIncidentLogViewModel
 import com.siscontrol.mobile.presentation.guard.*
 import com.siscontrol.mobile.presentation.main.MainScaffold
 
@@ -67,6 +71,7 @@ object Destinos {
     const val ADMIN_MAP = "admin_map/{token}/{role}"
     const val ADMIN_ALERTS = "admin_alerts/{token}/{role}"
     const val ADMIN_EDIT_USER = "admin_edit_user/{userId}/{token}/{role}"
+    const val ADMIN_INCIDENT_LOG = "admin_incident_log/{token}/{role}"
 
     const val SUPERVISOR_HOME = "supervisor_home/{token}/{role}"
     const val SUPERVISOR_GUARDS = "supervisor_guards/{token}/{role}"
@@ -96,6 +101,7 @@ object Destinos {
     fun adminCreateCheckpointRoute(token: String, role: String, installationId: Long, installationName: String) = 
         "admin_create_checkpoint/${encode(token)}/${encode(role)}/$installationId/${encode(installationName)}"
     fun adminMapRoute(token: String, role: String) = "admin_map/${encode(token)}/${encode(role)}"
+    fun adminIncidentLogRoute(token: String, role: String) = "admin_incident_log/${encode(token)}/${encode(role)}"
     fun adminAlertsRoute(token: String, role: String) = "admin_alerts/${encode(token)}/${encode(role)}"
     fun adminEditUserRoute(userId: Long, token: String, role: String) = "admin_edit_user/$userId/${encode(token)}/${encode(role)}"
     fun supervisorHomeRoute(token: String, role: String) = "supervisor_home/${encode(token)}/${encode(role)}"
@@ -150,7 +156,12 @@ private class AdminCheckpointsViewModelFactory : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T = AppModule.provideAdminCheckpointsViewModel() as T
 }
 
-private class AdminMapViewModelFactory : ViewModelProvider.Factory {
+private class AdminAlertsViewModelFactory : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T = AppModule.provideAdminAlertsViewModel() as T
+}
+
+class AdminMapViewModelFactory : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T = AppModule.provideAdminMapViewModel() as T
 }
@@ -158,6 +169,11 @@ private class AdminMapViewModelFactory : ViewModelProvider.Factory {
 private class SupervisorGuardsViewModelFactory : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T = AppModule.provideSupervisorGuardsViewModel() as T
+}
+
+private class GuardHomeViewModelFactory : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T = AppModule.provideGuardHomeViewModel() as T
 }
 
 private class GuardInstallationsViewModelFactory : ViewModelProvider.Factory {
@@ -183,6 +199,11 @@ private class IncidentViewModelFactory : ViewModelProvider.Factory {
 private class ProfileViewModelFactory : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T = AppModule.provideProfileViewModel() as T
+}
+
+private class AdminIncidentLogViewModelFactory : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T = AppModule.provideAdminIncidentLogViewModel() as T
 }
 
 // ---------------------------------------------------------------------------
@@ -295,12 +316,14 @@ fun AppNavigation() {
                     paddingValues = padding,
                     userName = fullName ?: "Usuario",
                     viewModel = vm,
+                    token = token,
+                    role = role,
                     onNavigate = { target ->
                         val route = when(target) {
                             "MAP" -> Destinos.adminMapRoute(token, role)
                             "ALERTS" -> Destinos.adminAlertsRoute(token, role)
                             "MANAGEMENT" -> Destinos.adminManagementRoute(token, role)
-                            else -> Destinos.adminHomeRoute(token, role)
+                            else -> target // Permitir rutas completas directas
                         }
                         navController.navigate(route)
                     }
@@ -475,12 +498,14 @@ fun AppNavigation() {
                 SupervisorHomeScreen(
                     paddingValues = padding,
                     userName = fullName ?: "Supervisor",
+                    token = token,
+                    role = role,
                     onNavigate = { target ->
                         val route = when(target) {
                             "MAP" -> Destinos.supervisorMapRoute(token, role)
                             "ALERTS" -> Destinos.supervisorAlertsRoute(token, role)
                             "USERS" -> Destinos.supervisorGuardsRoute(token, role)
-                            else -> Destinos.supervisorHomeRoute(token, role)
+                            else -> target
                         }
                         navController.navigate(route)
                     }
@@ -527,8 +552,10 @@ fun AppNavigation() {
         )) { backStack ->
             val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
             val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
+            val vm: AdminAlertsViewModel = viewModel(factory = AdminAlertsViewModelFactory())
+            
             MainScaffold(navController, role, token) { padding ->
-                AdminAlertsScreen(paddingValues = padding)
+                AdminAlertsScreen(paddingValues = padding, viewModel = vm)
             }
         }
 
@@ -540,32 +567,20 @@ fun AppNavigation() {
             val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
             val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
             val fullName by sessionManager.fullNameFlow.collectAsState(initial = "Cargando...")
+            val vm: GuardHomeViewModel = viewModel(factory = GuardHomeViewModelFactory())
+            val instVm: GuardInstallationsViewModel = viewModel(factory = GuardInstallationsViewModelFactory())
 
             MainScaffold(navController, role, token) { padding ->
                 GuardHomeScreen(
                     paddingValues = padding,
                     userName = fullName ?: "Guardia",
-                onNavigate = { target ->
-                    scope.launch {
-                        val route = when(target) {
-                            "START_ROUND" -> Destinos.guardStartRoundRoute(token, role)
-                            "RONDA" -> {
-                                val activeId = sessionManager.getActiveRoundIdSync() ?: 0L
-                                val instId = sessionManager.getActiveInstallationIdSync() ?: 0L
-                                val instName = sessionManager.getActiveInstallationNameSync() ?: "Instalación"
-                                
-                                if (activeId != 0L && instId != 0L) {
-                                    Destinos.guardRondaRoute(token, role, activeId, instId, instName)
-                                } else {
-                                    Destinos.guardStartRoundRoute(token, role)
-                                }
-                            }
-                            "HISTORY" -> Destinos.guardHistoryRoute(token, role)
-                            else -> Destinos.guardHomeRoute(token, role)
-                        }
+                    viewModel = vm,
+                    instViewModel = instVm,
+                    token = token,
+                    role = role,
+                    onNavigate = { route ->
                         navController.navigate(route)
                     }
-                }
                 )
             }
         }
@@ -611,6 +626,7 @@ fun AppNavigation() {
                 GuardStartRoundScreen(
                     paddingValues = padding,
                     viewModel = vm,
+                    onBack = { navController.popBackStack() },
                     onStartRound = { rId: Long, iId: Long, iName: String -> 
                         navController.navigate(Destinos.guardRondaRoute(token, role, rId, iId, iName))
                     }
@@ -633,20 +649,21 @@ fun AppNavigation() {
             
             val vm: GuardRoundViewModel = viewModel(factory = GuardRoundViewModelFactory())
 
-            LaunchedEffect(installationId) {
-                vm.loadCheckpoints(installationId)
+            LaunchedEffect(installationId, roundId) {
+                vm.loadCheckpoints(installationId, roundId)
             }
 
-            MainScaffold(navController, role, token) {
+            MainScaffold(navController, role, token) { padding ->
                 GuardiaRondaActivaScreen(
+                    paddingValues = padding,
                     roundId = roundId,
                     installationName = installationName,
                     viewModel = vm,
                     onFinishRound = { navController.popBackStack(Destinos.guardHomeRoute(token, role), false) },
                     onReportIncident = { navController.navigate("guard_incident_dynamic/$roundId") },
                     onPanic = { },
-                    onScanCheckpoint = { checkpoint ->
-                        navController.navigate("guard_checkpoint_confirm_dynamic/${checkpoint.id}/${checkpoint.name}/${checkpoint.executionOrder}/${checkpoint.instruction ?: "Ninguna"}")
+                    onScanCheckpoint = { checkpoint, scanned, total ->
+                        navController.navigate("guard_checkpoint_confirm_dynamic/${checkpoint.id}/${checkpoint.name}/${checkpoint.executionOrder}/${checkpoint.instruction ?: "Ninguna"}/$scanned/$total/${java.net.URLEncoder.encode(installationName, "UTF-8")}")
                     }
                 )
             }
@@ -667,22 +684,31 @@ fun AppNavigation() {
         }
 
         composable(
-            route = "guard_checkpoint_confirm_dynamic/{id}/{name}/{order}/{instruction}",
+            route = "guard_checkpoint_confirm_dynamic/{id}/{name}/{order}/{instruction}/{scanned}/{total}/{instName}",
             arguments = listOf(
                 navArgument("id") { type = NavType.LongType },
                 navArgument("name") { type = NavType.StringType },
                 navArgument("order") { type = NavType.IntType },
-                navArgument("instruction") { type = NavType.StringType }
+                navArgument("instruction") { type = NavType.StringType },
+                navArgument("scanned") { type = NavType.IntType },
+                navArgument("total") { type = NavType.IntType },
+                navArgument("instName") { type = NavType.StringType }
             )
         ) { backStack ->
             val name = backStack.arguments?.getString("name") ?: ""
             val order = backStack.arguments?.getInt("order") ?: 0
             val instruction = backStack.arguments?.getString("instruction")
+            val scanned = backStack.arguments?.getInt("scanned") ?: 0
+            val total = backStack.arguments?.getInt("total") ?: 0
+            val instName = java.net.URLDecoder.decode(backStack.arguments?.getString("instName") ?: "Instalación", "UTF-8")
             
             GuardCheckpointConfirmScreen(
                 checkpointName = name,
                 checkpointNumber = order,
+                installationName = instName,
                 instruction = if (instruction == "Ninguna") null else instruction,
+                completedCheckpoints = scanned,
+                totalCheckpoints = total,
                 onContinue = { navController.popBackStack() }
             )
         }
@@ -697,6 +723,23 @@ fun AppNavigation() {
 
             MainScaffold(navController, role, token) { padding ->
                 GuardHistoryScreen(paddingValues = padding, viewModel = vm)
+            }
+        }
+
+        composable(Destinos.ADMIN_INCIDENT_LOG, arguments = listOf(
+            navArgument("token") { type = NavType.StringType },
+            navArgument("role")  { type = NavType.StringType }
+        )) { backStack ->
+            val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
+            val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
+            val vm: AdminIncidentLogViewModel = viewModel(factory = AdminIncidentLogViewModelFactory())
+
+            MainScaffold(navController, role, token) { padding ->
+                AdminIncidentLogScreen(
+                    paddingValues = padding,
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() }
+                )
             }
         }
 
@@ -719,8 +762,10 @@ fun AppNavigation() {
         )) { backStack ->
             val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
             val role  = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
+            val vm: AdminAlertsViewModel = viewModel(factory = AdminAlertsViewModelFactory())
+            
             MainScaffold(navController, role, token) { padding ->
-                AdminAlertsScreen(paddingValues = padding)
+                AdminAlertsScreen(paddingValues = padding, viewModel = vm)
             }
         }
 

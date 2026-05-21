@@ -1,13 +1,13 @@
 package com.siscontrol.mobile.data.remote
 
-import com.siscontrol.mobile.data.remote.dto.EndRoundRequest
-import com.siscontrol.mobile.data.remote.dto.RoundResponseDto
-import com.siscontrol.mobile.data.remote.dto.RoundStartResponseDto
-import com.siscontrol.mobile.data.remote.dto.ScanCheckpointRequest
+import com.siscontrol.mobile.data.remote.dto.*
 import retrofit2.Response
 import retrofit2.http.*
 
 interface RoundApiService {
+
+    @GET("api/rondas/estado-actual/{userId}")
+    suspend fun getCurrentState(@Path("userId") userId: Long): Response<CurrentStateResponseDto>
 
     @GET("api/rondas/buscar")
     suspend fun getAllRounds(): List<RoundResponseDto>
@@ -22,10 +22,13 @@ interface RoundApiService {
     suspend fun endRound(
         @Path("id") roundId: Long,
         @Body request: EndRoundRequest
-    ): Response<RoundResponseDto>
+    ): Response<RoundEndResponseDto>
+
+    @GET("api/rondas/{id}")
+    suspend fun getRoundDetail(@Path("id") id: Long): RoundDetailResponseDto
 
     @POST("api/rondas/escaneo")
-    suspend fun scanCheckpoint(@Body request: ScanCheckpointRequest): Response<Unit>
+    suspend fun scanCheckpoint(@Body request: ScanCheckpointRequest): Response<Map<String, Any>>
 
     @PUT("api/rondas/cancelar/{id}")
     suspend fun cancelRoundAdministratively(

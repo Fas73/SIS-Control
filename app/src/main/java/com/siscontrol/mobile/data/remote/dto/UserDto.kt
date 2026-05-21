@@ -5,15 +5,16 @@ package com.siscontrol.mobile.data.remote.dto
  * Sincronizado con UserResponseDTO.java del Backend.
  */
 data class UserResponseDto(
-    val id: Long,
+    val id: Long? = 0L,
     val rut: String? = null,
-    val username: String,
-    val email: String,
-    val fullName: String,
-    val role: String,
+    val username: String? = "",
+    val email: String? = "",
+    val fullName: String? = "Usuario",
+    val role: String? = "GUARD",
     val phoneNumber: String? = null,
-    val status: Int, // 1: Activo, 0: Inactivo
-    val createdAt: String?
+    val imageUrl: String? = null,
+    val status: Int? = 1,
+    val createdAt: String? = null
 )
 
 /**

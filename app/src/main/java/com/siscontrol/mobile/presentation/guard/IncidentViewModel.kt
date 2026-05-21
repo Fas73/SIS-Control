@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.siscontrol.mobile.data.remote.dto.IncidentDto
 import com.siscontrol.mobile.domain.usecase.ReportIncidentUseCase
+import com.siscontrol.mobile.core.FirebaseStorageManager
 import kotlinx.coroutines.launch
 
 class IncidentViewModel(
@@ -27,11 +28,19 @@ class IncidentViewModel(
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)
             
-            // Simulación de subida: si hay URI, simulamos una URL remota
-            val simulatedUrl = if (imageUri != null) {
-                "https://siscontrol-storage.s3.amazonaws.com/incidents/${java.util.UUID.randomUUID()}.jpg"
-            } else {
-                null
+            var remoteUrl: String? = null
+            
+            // Subir a Firebase si hay una imagen local
+            if (imageUri != null) {
+                FirebaseStorageManager.uploadImage(imageUri, "evidencias")
+                    .onSuccess { remoteUrl = it }
+                    .onFailure { e ->
+                        _state.value = _state.value.copy(
+                            isLoading = false,
+                            error = "Error al subir imagen: ${e.message}"
+                        )
+                        return@launch
+                    }
             }
 
             val incident = IncidentDto(
@@ -40,7 +49,7 @@ class IncidentViewModel(
                 severity = severity,
                 type = type,
                 roundExecutionId = roundExecutionId,
-                imageUrl = simulatedUrl
+                imageUrl = remoteUrl
             )
 
             reportIncidentUseCase(incident)

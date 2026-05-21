@@ -18,17 +18,17 @@ data class GuardStatsResponse(
 )
 
 data class AdminDashboardResponse(
-    val totalGuards: Int,
-    val activeShiftsCount: Int,
-    val totalRoundsToday: Int,
-    val roundsInProgress: Int,
-    val roundsCompleted: Int,
-    val totalIncidents: Int,
-    val pendingIncidents: Int,
-    val totalInstallations: Int,
-    val activeInstallationsCount: Int,
-    val activeRoundsList: List<DashboardActiveRoundDto>,
-    val activeShiftsList: List<DashboardActiveShiftDto>
+    val totalGuards: Int = 0,
+    val activeShiftsCount: Int = 0,
+    val totalRoundsToday: Int = 0,
+    val roundsInProgress: Int = 0,
+    val roundsCompleted: Int = 0,
+    val totalIncidents: Int = 0,
+    val pendingIncidents: Int = 0,
+    val totalInstallations: Int = 0,
+    val activeInstallationsCount: Int = 0,
+    val activeRoundsList: List<DashboardActiveRoundDto> = emptyList(),
+    val activeShiftsList: List<DashboardActiveShiftDto> = emptyList()
 )
 
 data class DashboardActiveRoundDto(

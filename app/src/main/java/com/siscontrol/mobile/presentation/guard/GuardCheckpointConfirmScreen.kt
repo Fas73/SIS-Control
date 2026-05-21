@@ -23,12 +23,13 @@ import com.siscontrol.mobile.presentation.theme.*
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
 fun GuardCheckpointConfirmScreen(
-    checkpointName: String = "Salida de Emergencia",
-    checkpointNumber: Int = 4,
-    instruction: String? = null, // Agregado para mostrar la instrucción del jefe
-    hour: String = "10:23",
-    totalCheckpoints: Int = 8,
-    completedCheckpoints: Int = 4,
+    checkpointName: String = "Punto de Control",
+    checkpointNumber: Int = 1,
+    installationName: String = "Instalación",
+    instruction: String? = null,
+    hour: String = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date()),
+    totalCheckpoints: Int = 1,
+    completedCheckpoints: Int = 1,
     onContinue: () -> Unit
 ) {
     Column(
@@ -52,7 +53,7 @@ fun GuardCheckpointConfirmScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    "Checkpoint $checkpointNumber: $checkpointName",
+                    installationName, // Mostramos la instalación
                     color = Color.White.copy(alpha = 0.85f),
                     fontSize = 14.sp
                 )
@@ -67,6 +68,16 @@ fun GuardCheckpointConfirmScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            // Logotipo Corporativo (Simulado)
+            Icon(
+                imageVector = Icons.Default.LocationOn,
+                contentDescription = null, 
+                tint = PrimaryColor.copy(alpha = 0.2f),
+                modifier = Modifier.size(60.dp)
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Green checkmark circle
             Box(
                 modifier = Modifier
@@ -92,16 +103,16 @@ fun GuardCheckpointConfirmScreen(
             Spacer(modifier = Modifier.height(28.dp))
 
             Text(
-                "¡Checkpoint Verificado!",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                "¡Marcaje Verificado!",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = SuccessColor
             )
 
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                checkpointName,
+                "N° $checkpointNumber: $checkpointName",
                 fontSize = 15.sp,
                 color = PrimaryColor,
                 fontWeight = FontWeight.Medium
@@ -143,9 +154,9 @@ fun GuardCheckpointConfirmScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    ConfirmDetailRow("Hora:", hour)
+                    ConfirmDetailRow("Instalación:", installationName)
                     Spacer(modifier = Modifier.height(12.dp))
-                    ConfirmDetailRow("Ubicación GPS:", "Verificada ✓")
+                    ConfirmDetailRow("Hora:", hour)
                     Spacer(modifier = Modifier.height(12.dp))
                     ConfirmDetailRow("Progreso:", "$completedCheckpoints/$totalCheckpoints checkpoints")
                 }

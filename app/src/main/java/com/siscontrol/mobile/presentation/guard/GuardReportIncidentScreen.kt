@@ -26,6 +26,9 @@ import com.siscontrol.mobile.presentation.theme.*
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,16 +43,26 @@ fun GuardReportIncidentScreen(
     var severity by rememberSaveable { mutableStateOf("MEDIA") }
     var type by rememberSaveable { mutableStateOf("HALLAZGO") }
     
-    // Camera logic
     val context = LocalContext.current
-    var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var tempUri by remember { mutableStateOf<Uri?>(null) }
+    var capturedImageUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    var tempCameraUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    var showImageSourceDialog by remember { mutableStateOf(false) }
 
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success ->
-        if (success) {
-            capturedImageUri = tempUri
+    // LANZADORES
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success && tempCameraUri != null) capturedImageUri = tempCameraUri
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) capturedImageUri = uri
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) {
+            CameraUtils.createTempImageUri(context)?.let { uri ->
+                tempCameraUri = uri
+                cameraLauncher.launch(uri)
+            }
         }
     }
 
@@ -60,264 +73,112 @@ fun GuardReportIncidentScreen(
     var expandedSeverity by remember { mutableStateOf(false) }
     var expandedType by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
-    ) {
-        // ── Header ───────────────────────────────────────────────────────────
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Brush.horizontalGradient(listOf(PrimaryColor, PrimaryVariant)))
-                .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 20.dp)
-        ) {
+    Column(modifier = Modifier.fillMaxSize().background(BackgroundColor)) {
+        Box(modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(PrimaryColor, PrimaryVariant))).statusBarsPadding().padding(horizontal = 16.dp, vertical = 20.dp)) {
             Column {
-                Text(
-                    "Reportar Incidente",
-                    color = Color.White,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Documenta evidencia de lo sucedido en la ronda",
-                    color = Color.White.copy(alpha = 0.85f),
-                    fontSize = 14.sp
-                )
+                Text("Reportar Incidente", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Documenta evidencia de lo sucedido", color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp)
             }
         }
 
-        // ── Scrollable Form ──────────────────────────────────────────────────
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text("Detalles del Incidente", fontWeight = FontWeight.Bold, color = PrimaryColor)
 
-                        // Título
+                        // Titulo
                         Column {
-                            Text("Título breve", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
-                            OutlinedTextField(
-                                value = title,
-                                onValueChange = { title = it },
-                                placeholder = { Text("Ej: Puerta forzada") },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                leadingIcon = { Icon(Icons.Default.Title, null, tint = PrimaryColor) }
-                            )
+                            Text("Título breve", style = MaterialTheme.typography.labelMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                            OutlinedTextField(value = title, onValueChange = { title = it }, placeholder = { Text("Ej: Puerta forzada", color = TextPlaceholder) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedBorderColor = PrimaryColor, unfocusedBorderColor = Color.DarkGray))
                         }
 
-                        // Tipo (Dropdown)
+                        // Categoría
                         Column {
-                            Text("Categoría", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
-                            ExposedDropdownMenuBox(
-                                expanded = expandedType,
-                                onExpandedChange = { expandedType = !expandedType }
-                            ) {
-                                OutlinedTextField(
-                                    value = type,
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedType) },
-                                    modifier = Modifier.menuAnchor().fillMaxWidth(),
-                                    shape = RoundedCornerShape(12.dp),
-                                    leadingIcon = { Icon(Icons.Default.Category, null, tint = PrimaryColor) }
-                                )
+                            Text("Categoría", style = MaterialTheme.typography.labelMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                            ExposedDropdownMenuBox(expanded = expandedType, onExpandedChange = { expandedType = !expandedType }) {
+                                OutlinedTextField(value = type, onValueChange = {}, readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedType) }, modifier = Modifier.menuAnchor().fillMaxWidth(), shape = RoundedCornerShape(12.dp), leadingIcon = { Icon(Icons.Default.Category, null, tint = PrimaryColor) }, textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedBorderColor = PrimaryColor, unfocusedBorderColor = Color.DarkGray))
                                 ExposedDropdownMenu(expanded = expandedType, onDismissRequest = { expandedType = false }) {
-                                    typeOptions.forEach { option ->
-                                        DropdownMenuItem(
-                                            text = { Text(option) },
-                                            onClick = { type = option; expandedType = false }
-                                        )
-                                    }
+                                    typeOptions.forEach { option -> DropdownMenuItem(text = { Text(option) }, onClick = { type = option; expandedType = false }) }
                                 }
                             }
                         }
 
-                        // Gravedad (Dropdown)
+                        // Severidad
                         Column {
-                            Text("Severidad", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
-                            ExposedDropdownMenuBox(
-                                expanded = expandedSeverity,
-                                onExpandedChange = { expandedSeverity = !expandedSeverity }
-                            ) {
-                                OutlinedTextField(
-                                    value = severity,
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSeverity) },
-                                    modifier = Modifier.menuAnchor().fillMaxWidth(),
-                                    shape = RoundedCornerShape(12.dp),
-                                    leadingIcon = { Icon(Icons.Default.PriorityHigh, null, tint = if (severity == "ALTA") DangerColor else PrimaryColor) }
-                                )
+                            Text("Severidad", style = MaterialTheme.typography.labelMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                            ExposedDropdownMenuBox(expanded = expandedSeverity, onExpandedChange = { expandedSeverity = !expandedSeverity }) {
+                                OutlinedTextField(value = severity, onValueChange = {}, readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSeverity) }, modifier = Modifier.menuAnchor().fillMaxWidth(), shape = RoundedCornerShape(12.dp), leadingIcon = { Icon(Icons.Default.PriorityHigh, null, tint = if (severity == "ALTA") DangerColor else PrimaryColor) }, textStyle = LocalTextStyle.current.copy(color = if (severity == "ALTA") DangerColor else TextPrimary, fontWeight = FontWeight.Bold), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = if (severity == "ALTA") DangerColor else TextPrimary, unfocusedTextColor = if (severity == "ALTA") DangerColor else TextPrimary, focusedBorderColor = if (severity == "ALTA") DangerColor else PrimaryColor, unfocusedBorderColor = Color.DarkGray))
                                 ExposedDropdownMenu(expanded = expandedSeverity, onDismissRequest = { expandedSeverity = false }) {
-                                    severityOptions.forEach { option ->
-                                        DropdownMenuItem(
-                                            text = { Text(option) },
-                                            onClick = { severity = option; expandedSeverity = false }
-                                        )
-                                    }
+                                    severityOptions.forEach { option -> DropdownMenuItem(text = { Text(option) }, onClick = { severity = option; expandedSeverity = false }) }
                                 }
                             }
                         }
 
-                        // Fotografía (Cámara Real)
+                        // Imagen
                         Column {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("Evidencia Fotográfica", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
-                                OutlinedButton(
-                                    onClick = {
-                                        val uri = CameraUtils.createTempImageUri(context)
-                                        tempUri = uri
-                                        cameraLauncher.launch(uri)
-                                    },
-                                    shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                                ) {
-                                    Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(16.dp))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("Evidencia Fotográfica", style = MaterialTheme.typography.labelMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                                OutlinedButton(onClick = { showImageSourceDialog = true }, shape = RoundedCornerShape(8.dp), border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryColor)) {
+                                    Icon(Icons.Default.AddAPhoto, null, modifier = Modifier.size(16.dp), tint = PrimaryColor)
                                     Spacer(Modifier.width(8.dp))
-                                    Text("Tomar Foto", fontSize = 12.sp)
+                                    Text("Agregar Imagen", fontSize = 12.sp, color = PrimaryColor, fontWeight = FontWeight.Bold)
                                 }
                             }
-                            
-                            Spacer(Modifier.height(8.dp))
-                            
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(150.dp)
-                                    .background(Color(0xFFF9FAFB), RoundedCornerShape(12.dp))
-                                    .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(12.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Box(modifier = Modifier.fillMaxWidth().height(180.dp).background(Color(0xFFF9FAFB), RoundedCornerShape(12.dp)).border(1.dp, Color.DarkGray.copy(alpha = 0.5f), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
                                 if (capturedImageUri != null) {
-                                    AsyncImage(
-                                        model = capturedImageUri,
-                                        contentDescription = "Vista previa",
-                                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp))
-                                    )
-                                    IconButton(
-                                        onClick = { capturedImageUri = null },
-                                        modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                                    ) {
-                                        Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                    }
+                                    AsyncImage(model = capturedImageUri, contentDescription = null, modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+                                    IconButton(onClick = { capturedImageUri = null }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape)) { Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(18.dp)) }
                                 } else {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Icon(Icons.Default.Image, null, tint = Color.LightGray, modifier = Modifier.size(40.dp))
-                                        Text("Sin imagen capturada", fontSize = 12.sp, color = TextSecondary)
-                                    }
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Default.Image, null, tint = Color.LightGray, modifier = Modifier.size(48.dp)); Text("Sin imagen capturada", fontSize = 13.sp, color = TextPlaceholder, fontWeight = FontWeight.Medium) }
                                 }
                             }
                         }
 
                         // Descripción
                         Column {
-                            Text("Descripción detallada", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
-                            OutlinedTextField(
-                                value = description,
-                                onValueChange = { description = it },
-                                placeholder = { Text("Describe detalladamente lo sucedido...") },
-                                modifier = Modifier.fillMaxWidth().height(120.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                maxLines = 5
-                            )
+                            Text("Descripción detallada", style = MaterialTheme.typography.labelMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                            OutlinedTextField(value = description, onValueChange = { description = it }, placeholder = { Text("Describa lo sucedido...", color = TextPlaceholder) }, modifier = Modifier.fillMaxWidth().height(120.dp), shape = RoundedCornerShape(12.dp), textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.SemiBold), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedBorderColor = PrimaryColor, unfocusedBorderColor = Color.DarkGray))
                         }
                     }
                 }
             }
-
-            // Info hint
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF6FF)),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBFDBFE)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.Info, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            "La evidencia fotográfica será vinculada automáticamente a la ronda en curso.",
-                            color = PrimaryColor,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-
-            if (state.error != null) {
-                item {
-                    Surface(
-                        color = DangerColor.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(state.error!!, color = DangerColor, modifier = Modifier.padding(12.dp), fontSize = 13.sp)
-                    }
-                }
-            }
         }
 
-        // ── Action buttons ───────────────────────────────────────────────────
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White)
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = { 
-                    viewModel.reportIncident(title, description, severity, type, roundExecutionId, capturedImageUri, onSaveSuccess)
-                },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = SuccessColor),
-                shape = RoundedCornerShape(12.dp),
-                enabled = title.isNotBlank() && description.isNotBlank() && !state.isLoading
-            ) {
-                if (state.isLoading) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                } else {
-                    Icon(Icons.Default.Save, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("GUARDAR INCIDENTE", fontWeight = FontWeight.Bold)
-                }
+        Column(modifier = Modifier.fillMaxWidth().background(Color.White).navigationBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = { viewModel.reportIncident(title, description, severity, type, roundExecutionId, capturedImageUri, onSaveSuccess) }, modifier = Modifier.fillMaxWidth().height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = SuccessColor), shape = RoundedCornerShape(12.dp), enabled = title.isNotBlank() && description.isNotBlank() && !state.isLoading) {
+                if (state.isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                else { Icon(Icons.Default.Save, null); Spacer(Modifier.width(8.dp)); Text("GUARDAR INCIDENTE", fontWeight = FontWeight.Bold) }
             }
-
-            OutlinedButton(
-                onClick = onCancel,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E7EB)),
-                shape = RoundedCornerShape(12.dp),
-                enabled = !state.isLoading
-            ) {
-                Text("CANCELAR", fontWeight = FontWeight.Bold)
-            }
+            OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth().height(52.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color.DarkGray.copy(alpha = 0.5f)), shape = RoundedCornerShape(12.dp)) { Text("CANCELAR", fontWeight = FontWeight.Bold) }
         }
+    }
+
+    if (showImageSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showImageSourceDialog = false },
+            title = { Text("Evidencia Fotográfica", fontWeight = FontWeight.Bold) },
+            text = { Text("¿Cómo desea adjuntar la imagen?") },
+            confirmButton = {
+                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(onClick = {
+                        val hasPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                        if (hasPermission) {
+                            CameraUtils.createTempImageUri(context)?.let { uri -> tempCameraUri = uri; cameraLauncher.launch(uri) }
+                        } else {
+                            permissionLauncher.launch(Manifest.permission.CAMERA)
+                        }
+                        showImageSourceDialog = false
+                    }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) {
+                        Icon(Icons.Default.CameraAlt, null); Spacer(Modifier.width(10.dp)); Text("Tomar Fotografía")
+                    }
+                    Button(onClick = { galleryLauncher.launch("image/*"); showImageSourceDialog = false }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = SuccessColor)) {
+                        Icon(Icons.Default.PhotoLibrary, null); Spacer(Modifier.width(10.dp)); Text("Elegir de Galería")
+                    }
+                }
+            },
+            dismissButton = { TextButton(onClick = { showImageSourceDialog = false }) { Text("Cerrar") } }
+        )
     }
 }

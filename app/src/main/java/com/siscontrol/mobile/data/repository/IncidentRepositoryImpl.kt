@@ -29,4 +29,22 @@ class IncidentRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    override suspend fun triggerPanic(roundId: Long, descripcion: String?): Result<Unit> {
+        return try {
+            android.util.Log.d("PANIC_REPO", "Enviando pánico - RoundExecutionId: $roundId")
+            val response = apiService.triggerPanic(roundId, descripcion)
+            if (response.isSuccessful) {
+                android.util.Log.d("PANIC_REPO", "✅ Pánico enviado exitosamente")
+                Result.success(Unit)
+            } else {
+                val error = response.errorBody()?.string() ?: "Error desconocido"
+                android.util.Log.e("PANIC_REPO", "❌ Falla en pánico: $error")
+                Result.failure(Exception("Error ${response.code()}: $error"))
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("PANIC_REPO", "❌ Crash al enviar pánico", e)
+            Result.failure(e)
+        }
+    }
 }

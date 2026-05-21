@@ -63,13 +63,14 @@ fun AdminCheckpointsScreen(
                         viewModel.onSearchQueryChanged(it)
                     },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
-                    placeholder = { Text("Buscar checkpoint...", color = Color.White.copy(alpha = 0.6f)) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.6f)) },
+                    placeholder = { Text("Buscar checkpoint...", color = Color.White.copy(alpha = 0.7f)) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.8f)) },
+                    textStyle = LocalTextStyle.current.copy(color = Color.White, fontWeight = FontWeight.Bold),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedContainerColor = PrimaryColor.copy(alpha = 0.3f),
-                        unfocusedContainerColor = PrimaryColor.copy(alpha = 0.3f),
+                        focusedBorderColor = Color.White,
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                        focusedContainerColor = PrimaryColor.copy(alpha = 0.4f),
+                        unfocusedContainerColor = PrimaryColor.copy(alpha = 0.2f),
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
                         cursorColor = Color.White
@@ -149,9 +150,9 @@ fun AdminCheckpointsScreen(
 
                 items(state.filteredCheckpoints) { checkpoint ->
                     CheckpointCard(
-                        name = checkpoint.name,
+                        name = checkpoint.name ?: "Punto sin nombre",
                         installation = state.selectedInstallationName ?: "Instalación General",
-                        nfcCode = checkpoint.nfcTagCode,
+                        nfcCode = checkpoint.nfcTagCode ?: "S/C",
                         status = "ACTIVO"
                     )
                 }

@@ -55,6 +55,7 @@ fun CreateInstallationScreen(
     }
 
     Scaffold(
+        modifier = Modifier.imePadding(), // Añade espacio para el teclado
         topBar = {
             TopAppBar(
                 title = {
@@ -158,15 +159,28 @@ fun FormField(
     keyboardType: KeyboardType = KeyboardType.Text
 ) {
     Column {
-        Text(label, fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+        Text(label, fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Bold) // Texto en Negrita
         Spacer(modifier = Modifier.height(4.dp))
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            placeholder = { Text(placeholder, fontSize = 14.sp, color = TextSecondary) },
+            placeholder = { Text(placeholder, fontSize = 14.sp, color = Color.Gray) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             shape = RoundedCornerShape(8.dp),
+            // FORZAR COLORES OSCUROS PARA MÁXIMA VISIBILIDAD
+            textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = TextPrimary,
+                unfocusedTextColor = TextPrimary,
+                focusedLabelColor = PrimaryColor,
+                unfocusedLabelColor = TextSecondary,
+                focusedBorderColor = PrimaryColor,
+                unfocusedBorderColor = Color.DarkGray,
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White,
+                cursorColor = PrimaryColor
+            ),
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = keyboardType)
         )
     }

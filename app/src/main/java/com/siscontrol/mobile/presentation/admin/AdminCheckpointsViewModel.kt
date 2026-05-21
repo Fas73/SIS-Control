@@ -80,8 +80,8 @@ class AdminCheckpointsViewModel(
             state.checkpoints
         } else {
             state.checkpoints.filter {
-                it.name.contains(query, ignoreCase = true) ||
-                        it.nfcTagCode.contains(query, ignoreCase = true)
+                (it.name ?: "").contains(query, ignoreCase = true) ||
+                        (it.nfcTagCode ?: "").contains(query, ignoreCase = true)
             }
         }
         state = state.copy(filteredCheckpoints = filtered)

@@ -60,12 +60,17 @@ fun SupervisorGuardsScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Buscar por nombre o RUT...") },
+                placeholder = { Text("Buscar por nombre o RUT...", color = Color.Gray) },
                 leadingIcon = { Icon(Icons.Default.Search, null, tint = PrimaryColor) },
                 shape = RoundedCornerShape(12.dp),
+                textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
+                    unfocusedContainerColor = Color.White,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    focusedBorderColor = PrimaryColor,
+                    unfocusedBorderColor = Color.DarkGray
                 )
             )
 
@@ -77,7 +82,7 @@ fun SupervisorGuardsScreen(
                 }
             } else {
                 val filteredGuards = state.guards.filter {
-                    it.fullName.contains(searchQuery, ignoreCase = true) || 
+                    (it.fullName ?: "").contains(searchQuery, ignoreCase = true) || 
                     it.rut?.contains(searchQuery) == true
                 }
 
@@ -95,9 +100,10 @@ fun SupervisorGuardsScreen(
                     }
 
                     items(filteredGuards) { guard ->
+                        val userId = guard.id ?: 0L
                         UserCard(
                             user = guard,
-                            onToggleStatus = { viewModel.toggleGuardStatus(guard.id) },
+                            onToggleStatus = { viewModel.toggleGuardStatus(userId) },
                             onRoleChange = { /* Supervisor no puede cambiar roles */ },
                             onEditClick = { /* TODO: Navegar a editar */ }
                         )

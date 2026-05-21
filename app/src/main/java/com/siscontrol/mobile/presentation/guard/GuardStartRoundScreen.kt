@@ -30,7 +30,8 @@ import com.siscontrol.mobile.presentation.theme.*
 @Composable
 fun GuardStartRoundScreen(
     paddingValues: PaddingValues,
-    viewModel: GuardInstallationsViewModel, // Agregado para datos reales
+    viewModel: GuardInstallationsViewModel, 
+    onBack: () -> Unit, // Añadido
     onStartRound: (Long, Long, String) -> Unit
 ) {
     val state by viewModel.state
@@ -169,21 +170,25 @@ fun GuardStartRoundScreen(
                     }
                 }
 
-                // Carga dinámica de instalaciones reales
-                items(state.installations) { inst ->
-                    val isActiveSession = state.activeInstallationId == inst.id
+                // Carga dinámica de instalaciones reales (Solo activas para Guardias: status == 1)
+                val activeInstallations = state.installations.filter { (it.status ?: 1) == 1 }
+                
+                items(activeInstallations) { inst ->
+                    val installationId = inst.id ?: 0L
+                    val installationName = inst.clientName ?: inst.name ?: "Sede" // Priorizar Nombre Cliente
+                    
+                    val isActiveSession = state.activeInstallationId == installationId
                     val hasAnotherActiveSession = state.activeInstallationId != 0L && !isActiveSession
 
-                    // Por ahora simulamos una distancia basada en si la lat/lon son 0 en tu BD
                     val isLocationSet = inst.latitude != null && inst.latitude != 0.0
                     val distanceMeters = if (isLocationSet) 150 else 3500
                     val distanceText = if (isLocationSet) "150m" else "3.5km"
                     
-                    val cpCount = viewModel.checkpointCounts[inst.id]
+                    val cpCount = viewModel.checkpointCounts[installationId]
                     val cpText = if (cpCount != null) "$cpCount puntos" else "Cargando..."
 
                     InstallationCard(
-                        name = inst.name, 
+                        name = installationName, 
                         distance = distanceText, 
                         distanceMeters = distanceMeters,
                         checkpoints = cpText,
@@ -191,11 +196,17 @@ fun GuardStartRoundScreen(
                         hasAnotherActiveSession = hasAnotherActiveSession,
                         onStartRound = { 
                             if (isActiveSession) {
-                                // Navegamos directamente si ya hay sesión
-                                onStartRound(state.activeRoundId, state.activeInstallationId, state.activeInstallationName)
+                                // Si ya tiene jornada iniciada, ir a la ronda o volver al Home
+                                if (state.activeRoundId != 0L) {
+                                    onStartRound(state.activeRoundId, installationId, installationName)
+                                } else {
+                                    onBack()
+                                }
                             } else {
-                                // Iniciamos nueva sesión
-                                viewModel.startTurnAndRound(inst.id ?: 0L, inst.name, onStartRound)
+                                // INICIAR JORNADA ÚNICAMENTE
+                                viewModel.startShiftOnly(installationId, installationName) {
+                                    onBack()
+                                }
                             }
                         }
                     )
@@ -245,7 +256,7 @@ fun InstallationCard(
     val canStart = !isTooFar && !hasAnotherActiveSession
 
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(enabled = isActiveSession) { if(isActiveSession) onStartRound() },
+        modifier = Modifier.fillMaxWidth().clickable(enabled = isActiveSession || canStart) { onStartRound() },
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isActiveSession) Color(0xFFF0FDF4) else Color.White

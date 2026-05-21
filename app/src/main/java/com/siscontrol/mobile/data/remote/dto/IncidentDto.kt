@@ -3,8 +3,8 @@ package com.siscontrol.mobile.data.remote.dto
 import com.google.gson.annotations.SerializedName
 
 /**
- * Mapeo exacto de IncidentDTO.java del Backend.
- * Permite enviar reportes de incidentes desde la App.
+ * DTO unificado para Incidentes y Alertas en tiempo real.
+ * Sincronizado con AlertNotificationDTO.java del Backend.
  */
 data class IncidentDto(
     @SerializedName("id")
@@ -17,23 +17,37 @@ data class IncidentDto(
     val description: String,
 
     @SerializedName("severity")
-    val severity: String, // "BAJA", "MEDIA", "ALTA"
+    val severity: String, // "Alta", "Media", "Baja"
 
     @SerializedName("type")
-    val type: String, // "ROBO", "VANDALISMO", "HALLAZGO", etc.
+    val type: String,
 
     @SerializedName("imageUrl")
     val imageUrl: String? = null,
-
-    @SerializedName("roundExecutionId")
-    val roundExecutionId: Long,
-
-    @SerializedName("checklogId")
-    val checklogId: Long? = null,
 
     @SerializedName("createdAt")
     val createdAt: String? = null,
 
     @SerializedName("status")
-    val status: Int = 0 // 0: Pendiente, 1: Atendido
+    val status: Int? = 0,
+
+    // --- NUEVOS CAMPOS APLANADOS (Desde AlertNotificationDTO) ---
+    @SerializedName("username")
+    val username: String? = null,
+
+    @SerializedName("clientName")
+    val clientName: String? = null,
+
+    @SerializedName("checkpointName")
+    val checkpointName: String? = null,
+
+    @SerializedName("executionOrder")
+    val executionOrder: Int? = null,
+
+    @SerializedName("roundExecutionId")
+    val roundExecutionId: Long? = null,
+
+    // Compatibilidad con objeto anidado (si el GET aún lo envía así)
+    @SerializedName("roundExecution")
+    val roundExecution: RoundResponseDto? = null
 )

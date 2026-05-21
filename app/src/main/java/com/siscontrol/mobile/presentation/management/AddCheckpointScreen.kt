@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,6 +15,7 @@ import com.siscontrol.mobile.data.remote.dto.InstallationIdRequest
 import com.siscontrol.mobile.domain.usecase.CreateCheckpointUseCase
 import com.siscontrol.mobile.domain.usecase.GetInstallationsUseCase
 import com.siscontrol.mobile.di.SessionManager
+import com.siscontrol.mobile.presentation.theme.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -123,9 +126,18 @@ fun AddCheckpointScreen(
                     readOnly = true,
                     value = currentText,
                     onValueChange = {},
-                    label = { Text("Instalación") },
+                    label = { Text("Instalación", color = TextPrimary, fontWeight = FontWeight.Bold) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedInst) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        focusedBorderColor = PrimaryColor,
+                        unfocusedBorderColor = Color.DarkGray,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
+                    )
                 )
                 ExposedDropdownMenu(
                     expanded = expandedInst,
@@ -133,7 +145,7 @@ fun AddCheckpointScreen(
                 ) {
                     installations.forEach { inst ->
                         DropdownMenuItem(
-                            text = { Text(inst.name) },
+                            text = { Text(inst.name ?: "Sede sin nombre") },
                             onClick = {
                                 selectedInstallationId = inst.id
                                 expandedInst = false
@@ -146,22 +158,49 @@ fun AddCheckpointScreen(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Nombre (Ej: Puerta Principal)") },
-                modifier = Modifier.fillMaxWidth()
+                label = { Text("Nombre (Ej: Puerta Principal)", color = TextPrimary, fontWeight = FontWeight.Bold) },
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    focusedBorderColor = PrimaryColor,
+                    unfocusedBorderColor = Color.DarkGray,
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White
+                )
             )
 
             OutlinedTextField(
                 value = tagCode,
                 onValueChange = { tagCode = it },
-                label = { Text("Código NFC") },
-                modifier = Modifier.fillMaxWidth()
+                label = { Text("Código NFC", color = TextPrimary, fontWeight = FontWeight.Bold) },
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    focusedBorderColor = PrimaryColor,
+                    unfocusedBorderColor = Color.DarkGray,
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White
+                )
             )
 
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Descripción de Ubicación") },
-                modifier = Modifier.fillMaxWidth()
+                label = { Text("Descripción de Ubicación", color = TextPrimary, fontWeight = FontWeight.Bold) },
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    focusedBorderColor = PrimaryColor,
+                    unfocusedBorderColor = Color.DarkGray,
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White
+                )
             )
 
             if (uiState is CheckpointUiState.Error) {

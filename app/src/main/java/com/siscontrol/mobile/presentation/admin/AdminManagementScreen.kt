@@ -105,15 +105,16 @@ fun AdminManagementScreen(
                     placeholder = { 
                         Text(
                             if (selectedTab == 0) "Buscar usuario..." else "Buscar instalación...", 
-                            color = Color.White.copy(alpha = 0.6f)
+                            color = Color.White.copy(alpha = 0.7f)
                         ) 
                     },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.6f)) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.8f)) },
+                    textStyle = LocalTextStyle.current.copy(color = Color.White, fontWeight = FontWeight.Bold),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedContainerColor = PrimaryColor.copy(alpha = 0.3f),
-                        unfocusedContainerColor = PrimaryColor.copy(alpha = 0.3f),
+                        focusedBorderColor = Color.White,
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                        focusedContainerColor = PrimaryColor.copy(alpha = 0.4f),
+                        unfocusedContainerColor = PrimaryColor.copy(alpha = 0.2f),
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
                         cursorColor = Color.White
@@ -190,7 +191,7 @@ fun UsersTabContent(
         }
     } else {
         val filteredUsers = state.users.filter { 
-            it.fullName.contains(searchQuery, ignoreCase = true) || it.username.contains(searchQuery, ignoreCase = true)
+            (it.fullName ?: "").contains(searchQuery, ignoreCase = true) || (it.username ?: "").contains(searchQuery, ignoreCase = true)
         }
         
         if (state.error != null) {
@@ -228,11 +229,12 @@ fun UsersTabContent(
                 }
                 if (expandedRole == "ADMIN") {
                     items(administrators) { user ->
+                        val userId = user.id ?: 0L
                         UserCard(
                             user = user,
-                            onToggleStatus = { viewModel.toggleUserStatus(user.id) },
+                            onToggleStatus = { viewModel.toggleUserStatus(userId) },
                             onRoleChange = { newRole -> viewModel.updateUserRole(user, newRole) },
-                            onEditClick = { navController.navigate(Destinos.adminEditUserRoute(user.id, token, role)) }
+                            onEditClick = { navController.navigate(Destinos.adminEditUserRoute(userId, token, role)) }
                         )
                     }
                 }
@@ -250,11 +252,12 @@ fun UsersTabContent(
                 }
                 if (expandedRole == "SUPERVISOR") {
                     items(supervisors) { user ->
+                        val userId = user.id ?: 0L
                         UserCard(
                             user = user,
-                            onToggleStatus = { viewModel.toggleUserStatus(user.id) },
+                            onToggleStatus = { viewModel.toggleUserStatus(userId) },
                             onRoleChange = { newRole -> viewModel.updateUserRole(user, newRole) },
-                            onEditClick = { navController.navigate(Destinos.adminEditUserRoute(user.id, token, role)) }
+                            onEditClick = { navController.navigate(Destinos.adminEditUserRoute(userId, token, role)) }
                         )
                     }
                 }
@@ -272,11 +275,12 @@ fun UsersTabContent(
                 }
                 if (expandedRole == "GUARD") {
                     items(guards) { user ->
+                        val userId = user.id ?: 0L
                         UserCard(
                             user = user,
-                            onToggleStatus = { viewModel.toggleUserStatus(user.id) },
+                            onToggleStatus = { viewModel.toggleUserStatus(userId) },
                             onRoleChange = { newRole -> viewModel.updateUserRole(user, newRole) },
-                            onEditClick = { navController.navigate(Destinos.adminEditUserRoute(user.id, token, role)) }
+                            onEditClick = { navController.navigate(Destinos.adminEditUserRoute(userId, token, role)) }
                         )
                     }
                 }
@@ -285,11 +289,12 @@ fun UsersTabContent(
                     Text("Resultados de búsqueda", fontWeight = FontWeight.Bold, color = TextPrimary)
                 }
                 items(filteredUsers) { user ->
+                    val userId = user.id ?: 0L
                     UserCard(
                         user = user,
-                        onToggleStatus = { viewModel.toggleUserStatus(user.id) },
+                        onToggleStatus = { viewModel.toggleUserStatus(userId) },
                         onRoleChange = { newRole -> viewModel.updateUserRole(user, newRole) },
-                        onEditClick = { navController.navigate(Destinos.adminEditUserRoute(user.id, token, role)) }
+                        onEditClick = { navController.navigate(Destinos.adminEditUserRoute(userId, token, role)) }
                     )
                 }
             }
@@ -311,7 +316,8 @@ fun InstallationsTabContent(
         }
     } else {
         val filteredList = state.installations.filter {
-            it.name.contains(searchQuery, ignoreCase = true)
+            (it.clientName ?: "").contains(searchQuery, ignoreCase = true) || 
+            (it.name ?: "").contains(searchQuery, ignoreCase = true)
         }
 
         LazyColumn(
@@ -329,9 +335,9 @@ fun InstallationsTabContent(
             }
 
             items(filteredList) { inst ->
-                val checkpointCount = state.checkpointCounts[inst.id] ?: 0
+                val checkpointCount = state.checkpointCounts[inst.id ?: 0L] ?: 0
                 InstallationSimpleCard(
-                    name = inst.name,
+                    name = inst.clientName ?: inst.name ?: "Sede sin cliente",
                     checkpointCount = checkpointCount,
                     status = inst.status ?: 1,
                     onClick = {
@@ -423,7 +429,7 @@ fun UserCard(
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = user.fullName.toTitleCase(),
+                                text = (user.fullName ?: "Sin nombre").toTitleCase(),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimary,
@@ -434,21 +440,22 @@ fun UserCard(
                             Spacer(modifier = Modifier.width(8.dp))
                             
                             // Role Badge
-                            val displayRole = when(user.role.uppercase()) {
+                            val roleStr = user.role ?: "GUARD"
+                            val displayRole = when(roleStr.uppercase()) {
                                 "ADMIN" -> "Administrador"
                                 "SUPERVISOR" -> "Supervisor"
                                 "GUARD", "GUARDIA" -> "Guardia"
-                                else -> user.role
+                                else -> roleStr
                             }
                             
                             Surface(
-                                color = if (user.role.uppercase() == "ADMIN") Color(0xFFEDE9FE) else Color(0xFFD1FAE5),
+                                color = if (roleStr.uppercase() == "ADMIN") Color(0xFFEDE9FE) else Color(0xFFD1FAE5),
                                 shape = RoundedCornerShape(16.dp),
                                 modifier = Modifier.clickable { showRoleMenu = true }
                             ) {
                                 Text(
                                     text = displayRole,
-                                    color = if (user.role.uppercase() == "ADMIN") PrimaryColor else SuccessColor,
+                                    color = if (roleStr.uppercase() == "ADMIN") PrimaryColor else SuccessColor,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -483,7 +490,7 @@ fun UserCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = user.email,
+                                text = user.email ?: "",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextSecondary,
                                 maxLines = 1,
@@ -523,9 +530,9 @@ fun UserCard(
                 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     UserDetailItem(label = "RUT", value = user.rut ?: "N/A")
-                    UserDetailItem(label = "Nombre de usuario", value = user.username)
+                    UserDetailItem(label = "Nombre de usuario", value = user.username ?: "N/A")
                     UserDetailItem(label = "Teléfono móvil", value = user.phoneNumber ?: "N/A")
-                    UserDetailItem(label = "Fecha de registro", value = user.createdAt.formatDateToDisplay())
+                    UserDetailItem(label = "Fecha de registro", value = (user.createdAt ?: "").formatDateToDisplay())
                     
                     Spacer(modifier = Modifier.height(12.dp))
                     

@@ -13,6 +13,7 @@ interface AttendanceApiService {
     @GET("api/asistencia")
     suspend fun getAllShifts(): List<AttendanceResponse>
 
+    // Usamos el Wrapper porque tu Java envía Map.of("jornada", ...)
     @POST("api/asistencia/check-in")
     suspend fun checkIn(@Body request: AttendanceRequest): Response<AttendanceWrapperResponse>
 

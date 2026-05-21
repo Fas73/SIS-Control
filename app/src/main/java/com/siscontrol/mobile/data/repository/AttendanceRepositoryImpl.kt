@@ -21,11 +21,18 @@ class AttendanceRepositoryImpl(
     override suspend fun checkIn(request: AttendanceRequest): Result<AttendanceResponse> {
         return try {
             val response = api.checkIn(request)
-            if (response.isSuccessful && response.body() != null) {
-                // Extraemos el objeto 'jornada' del envoltorio verídico del backend
-                Result.success(response.body()!!.jornada)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                // Extraemos la jornada del objeto envoltorio
+                body.jornada?.let { 
+                    Result.success(it) 
+                } ?: Result.failure(Exception("El servidor no devolvió los datos de la jornada."))
             } else {
-                Result.failure(Exception("Error en check-in: ${response.code()}"))
+                val errorJson = response.errorBody()?.string() ?: ""
+                val msg = if (errorJson.contains("\"message\":\"")) {
+                    errorJson.substringAfter("\"message\":\"").substringBefore("\"")
+                } else "Error ${response.code()}"
+                Result.failure(Exception(msg))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -35,9 +42,11 @@ class AttendanceRepositoryImpl(
     override suspend fun checkOut(request: AttendanceRequest): Result<AttendanceResponse> {
         return try {
             val response = api.checkOut(request)
-            if (response.isSuccessful && response.body() != null) {
-                // Extraemos el objeto 'jornada' del envoltorio verídico del backend
-                Result.success(response.body()!!.jornada)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                body.jornada?.let { 
+                    Result.success(it) 
+                } ?: Result.failure(Exception("Error al procesar salida."))
             } else {
                 Result.failure(Exception("Error en check-out: ${response.code()}"))
             }

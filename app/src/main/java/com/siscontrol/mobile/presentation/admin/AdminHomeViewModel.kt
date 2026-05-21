@@ -27,6 +27,7 @@ class AdminHomeViewModel(
 
             getAdminDashboardUseCase()
                 .onSuccess { data ->
+                    android.util.Log.d("ADMIN_DASHBOARD", "Data recibida: $data")
                     _state.value = _state.value.copy(
                         isLoading = false,
                         totalGuards = data.totalGuards,
@@ -70,24 +71,42 @@ class AdminHomeViewModel(
     fun cancelRound(roundId: Long, motivo: String) {
         viewModelScope.launch {
             val adminId = sessionManager.getUserIdSync() ?: 0L
+            _state.value = _state.value.copy(isLoading = true)
             cancelRoundUseCase(roundId, adminId, motivo)
-                .onSuccess { loadDashboardData() }
-                .onFailure { e -> _state.value = _state.value.copy(error = com.siscontrol.mobile.core.ErrorUtils.parse(e)) }
+                .onSuccess { 
+                    // El Backend ya guardó la etiqueta en las observaciones
+                    _state.value = _state.value.copy(successMessage = "Acción realizada con éxito")
+                    loadDashboardData() 
+                }
+                .onFailure { e -> 
+                    _state.value = _state.value.copy(isLoading = false, error = com.siscontrol.mobile.core.ErrorUtils.parse(e)) 
+                }
         }
     }
 
     fun cancelShift(shiftId: Long, motivo: String) {
         viewModelScope.launch {
             val adminId = sessionManager.getUserIdSync() ?: 0L
+            _state.value = _state.value.copy(isLoading = true)
             cancelShiftUseCase(shiftId, adminId, motivo)
-                .onSuccess { loadDashboardData() }
-                .onFailure { e -> _state.value = _state.value.copy(error = com.siscontrol.mobile.core.ErrorUtils.parse(e)) }
+                .onSuccess { 
+                    _state.value = _state.value.copy(successMessage = "Jornada cortada administrativamente")
+                    loadDashboardData() 
+                }
+                .onFailure { e -> 
+                    _state.value = _state.value.copy(isLoading = false, error = com.siscontrol.mobile.core.ErrorUtils.parse(e)) 
+                }
         }
+    }
+    
+    fun resetMessages() {
+        _state.value = _state.value.copy(error = null, successMessage = null)
     }
 }
 
 data class AdminHomeState(
     val isLoading: Boolean = false,
+    val successMessage: String? = null,
     val totalGuards: Int = 0,
     val activeShifts: Int = 0,
     val totalRoundsToday: Int = 0,

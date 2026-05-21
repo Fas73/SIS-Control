@@ -32,6 +32,8 @@ fun AdminHomeScreen(
     paddingValues: PaddingValues,
     onNavigate: (String) -> Unit,
     viewModel: AdminHomeViewModel,
+    token: String,
+    role: String,
     userName: String = "Usuario"
 ) {
     val formattedName = userName.toTitleCase()
@@ -71,16 +73,34 @@ fun AdminHomeScreen(
             } else {
                 item {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        KpiCard(
+                        // Tarjeta 1: Guardias (Totales y En Jornada)
+                        Card(
                             modifier = Modifier.weight(1f),
-                            title = "Guardias",
-                            value = state.totalGuards.toString(),
-                            subtitle = "${state.activeShifts} en ronda",
-                            subtitleColor = SuccessColor,
-                            icon = Icons.Default.People,
-                            iconColor = PrimaryVariant,
-                            iconBg = Color.Transparent
-                        )
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E7EB))
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.People, contentDescription = null, tint = PrimaryVariant, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Guardias", fontSize = 13.sp, color = TextSecondary)
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(state.totalGuards.toString(), fontSize = 24.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(if (state.activeShifts > 0) SuccessColor else Color.Gray, CircleShape)
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("${state.activeShifts} en jornada", fontSize = 11.sp, color = if (state.activeShifts > 0) SuccessColor else TextSecondary)
+                                }
+                            }
+                        }
                         
                         // Tarjeta 2: Rondas Hoy con doble subtexto
                         Card(
@@ -169,19 +189,19 @@ fun AdminHomeScreen(
                         onClick = { onNavigate("MANAGEMENT") }
                     )
                     QuickAccessButton(
-                        title = "Rondas Prueba",
-                        icon = Icons.Default.PlayCircle,
+                        title = "Bitácora",
+                        icon = Icons.Default.History,
                         containerColor = Color(0xFF8B5CF6).copy(alpha = 0.05f),
                         contentColor = Color(0xFF8B5CF6),
                         modifier = Modifier.weight(1f),
-                        onClick = { /* TODO */ }
+                        onClick = { onNavigate(com.siscontrol.mobile.presentation.Destinos.adminIncidentLogRoute(token, role)) }
                     )
                 }
             }
 
             item {
                 Text(
-                    "Rondas Activas",
+                    "Rondas en Curso",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary,
@@ -212,7 +232,7 @@ fun AdminHomeScreen(
 
             item {
                 Text(
-                    "Jornadas sin Ronda",
+                    "Jornadas en Curso",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary,
@@ -256,10 +276,17 @@ fun AdminHomeScreen(
                     OutlinedTextField(
                         value = cancelReason,
                         onValueChange = { cancelReason = it },
-                        label = { Text("Motivo de la cancelación") },
-                        placeholder = { Text("Ej: Guardia abandonó puesto") },
+                        label = { Text("Motivo de la cancelación", color = TextPrimary, fontWeight = FontWeight.Bold) },
+                        placeholder = { Text("Ej: Guardia abandonó puesto", color = Color.Gray) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryColor,
+                            unfocusedBorderColor = Color.DarkGray,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        )
                     )
                 }
             },
@@ -297,10 +324,17 @@ fun AdminHomeScreen(
                     OutlinedTextField(
                         value = cancelReason,
                         onValueChange = { cancelReason = it },
-                        label = { Text("Motivo del cierre") },
-                        placeholder = { Text("Ej: Término de turno manual") },
+                        label = { Text("Motivo del cierre", color = TextPrimary, fontWeight = FontWeight.Bold) },
+                        placeholder = { Text("Ej: Término de turno manual", color = Color.Gray) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryColor,
+                            unfocusedBorderColor = Color.DarkGray,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        )
                     )
                 }
             },

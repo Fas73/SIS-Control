@@ -114,15 +114,15 @@ class AdminManagementViewModel(
 
             val request = UserRequestDto(
                 rut = (user.rut ?: "11111111-1").replace(".", ""), // Quitamos puntos si existen
-                username = user.username,
-                email = user.email,
-                fullName = user.fullName,
+                username = user.username ?: "",
+                email = user.email ?: "",
+                fullName = user.fullName ?: "Usuario",
                 password = "pass123",
                 phoneNumber = user.phoneNumber ?: "+56900000000",
                 role = newRole
             )
 
-            updatePersonnelUseCase(user.id, editorId, request)
+            updatePersonnelUseCase(user.id ?: 0L, editorId, request)
                 .onSuccess {
                     Log.d("AdminVM", "Respuesta exitosa del servidor. Refrescando lista...")
                     _state.value = _state.value.copy(isActionLoading = false)

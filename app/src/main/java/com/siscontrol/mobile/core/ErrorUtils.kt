@@ -14,9 +14,16 @@ object ErrorUtils {
 
         val message = error.message ?: ""
 
+        // Prioridad: Si el mensaje contiene un texto legible (no solo el código), lo mostramos
+        if (message.length > 10 && !message.contains("HTTP") && !message.contains("Code")) {
+            return message
+        }
+
         // Manejo de códigos HTTP comunes
         return when {
-            message.contains("400") -> "Datos inválidos. Verifique el RUT o formato."
+            message.contains("400") -> {
+                if (message.contains(":")) message.substringAfter(":") else "Datos inválidos. Verifique el formato."
+            }
             message.contains("401") -> "Sesión expirada. Inicie sesión nuevamente."
             message.contains("403") -> "Acceso denegado. Verifique si su usuario está ACTIVO."
             message.contains("404") -> "Instalación o Usuario no encontrado."

@@ -6,10 +6,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,13 +21,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.siscontrol.mobile.presentation.components.SISBadge
-import com.siscontrol.mobile.presentation.components.SISCard
-import com.siscontrol.mobile.presentation.components.SISTopBar
 import com.siscontrol.mobile.presentation.theme.*
 import com.siscontrol.mobile.presentation.profile.ProfileViewModel
 import com.siscontrol.mobile.core.*
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import coil.compose.AsyncImage
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.siscontrol.mobile.core.CameraUtils
+import androidx.compose.ui.draw.clip
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 
 @Composable
 fun GuardProfileScreen(
@@ -38,14 +45,36 @@ fun GuardProfileScreen(
     val state by viewModel.state
     var showEditDialog by remember { mutableStateOf(false) }
     var showPasswordDialog by remember { mutableStateOf(false) }
+    var showImageSourceDialog by remember { mutableStateOf(false) }
+    
+    val context = androidx.compose.ui.platform.LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    var selectedImageUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    var tempCameraUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+
+    // LANZADORES
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success && tempCameraUri != null) selectedImageUri = tempCameraUri
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) selectedImageUri = uri
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) {
+            CameraUtils.createTempImageUri(context)?.let { uri ->
+                tempCameraUri = uri
+                cameraLauncher.launch(uri)
+            }
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
+        containerColor = BackgroundColor // F3F4F6
     ) { padding ->
         Column(
             modifier = Modifier
@@ -53,300 +82,188 @@ fun GuardProfileScreen(
                 .padding(padding)
                 .padding(bottom = paddingValues.calculateBottomPadding())
         ) {
+            // Header Azul Vibrante
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Brush.horizontalGradient(listOf(PrimaryColor, PrimaryVariant)))
+                    .background(Brush.verticalGradient(listOf(PrimaryColor, PrimaryVariant)))
                     .statusBarsPadding()
-                    .padding(vertical = 12.dp)
+                    .padding(vertical = 14.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Mi Perfil", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("Mi Perfil", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     IconButton(onClick = { viewModel.logout(onLogout) }) {
-                        Icon(Icons.Default.ExitToApp, contentDescription = "Cerrar Sesión", tint = Color.White)
+                        Icon(Icons.Default.Logout, "Salir", tint = Color.White)
                     }
                 }
             }
 
             if (state.isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = PrimaryColor)
-                }
-            } else if (state.error != null) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(state.error!!, color = DangerColor)
-                }
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PrimaryColor) }
             } else {
                 val user = state.user
-                val displayRole = when(user?.role) {
-                    "ADMIN" -> "Administrador"
-                    "SUPERVISOR" -> "Supervisor"
-                    "GUARD", "GUARDIA" -> "Guardia"
-                    else -> user?.role ?: "Sin Rol"
-                }
-
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(20.dp)
-                        .verticalScroll(rememberScrollState()),
+                    modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Avatar con sombra y borde
+                    // Avatar con BORDE BLANCO para resaltar del fondo
                     Surface(
-                        modifier = Modifier.size(130.dp),
+                        modifier = Modifier.size(140.dp).clickable { showImageSourceDialog = true },
                         shape = CircleShape,
                         color = Color.White,
-                        tonalElevation = 4.dp,
-                        shadowElevation = 4.dp
+                        shadowElevation = 8.dp,
+                        border = androidx.compose.foundation.BorderStroke(3.dp, Color.White)
                     ) {
-                        Box(
-                            modifier = Modifier.padding(6.dp).background(Color(0xFFF3F4F6), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.Person, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(70.dp))
+                        Box(contentAlignment = Alignment.Center) {
+                            val img = selectedImageUri ?: user?.imageUrl
+                            if (img != null) {
+                                AsyncImage(
+                                    model = img,
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
+                            } else {
+                                Icon(Icons.Default.Person, null, tint = Color.LightGray, modifier = Modifier.size(80.dp))
+                            }
+                            
+                            // Botón Cámara Flotante
+                            Surface(
+                                modifier = Modifier.align(Alignment.BottomEnd).size(38.dp).offset(x = (-4).dp, y = (-4).dp),
+                                shape = CircleShape,
+                                color = PrimaryColor,
+                                border = androidx.compose.foundation.BorderStroke(2.dp, Color.White)
+                            ) {
+                                Icon(Icons.Default.CameraAlt, null, tint = Color.White, modifier = Modifier.padding(8.dp))
+                            }
                         }
                     }
                     
                     Spacer(modifier = Modifier.height(20.dp))
                     
-                    Text(user?.fullName?.toTitleCase() ?: "Usuario", fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+                    // TEXTO EN NEGRO ABSOLUTO
+                    Text(
+                        user?.fullName?.toTitleCase() ?: "Usuario SIS", 
+                        fontSize = 24.sp, 
+                        fontWeight = FontWeight.Black, 
+                        color = TextPrimary
+                    )
+                    
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     SISBadge(
-                        displayRole, 
-                        containerColor = when(user?.role) {
-                            "ADMIN" -> Color(0xFFEDE9FE)
-                            "SUPERVISOR" -> Color(0xFFFEF3C7)
-                            else -> Color(0xFFD1FAE5)
-                        },
-                        contentColor = when(user?.role) {
-                            "ADMIN" -> PrimaryColor
-                            "SUPERVISOR" -> WarningColor
-                            else -> SuccessColor
-                        }
+                        if(user?.role?.contains("ADMIN") == true) "Administrador" else "Guardia SIS",
+                        containerColor = PrimaryColor.copy(alpha = 0.1f),
+                        contentColor = PrimaryColor
                     )
                     
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(30.dp))
                     
-                    // Info Card
+                    // Tarjeta de Información Blanca
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                            Text("Información de la Cuenta", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+                        Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                            Text("Información de la Cuenta", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryColor, letterSpacing = 1.sp)
                             
-                            ProfileItemRow(icon = Icons.Default.Email, label = "Email", value = user?.email ?: "N/A", color = PrimaryVariant)
-                            ProfileItemRow(icon = Icons.Default.Phone, label = "Teléfono", value = user?.phoneNumber ?: "N/A", color = SuccessColor)
-                            ProfileItemRow(icon = Icons.Default.DateRange, label = "Miembro desde", value = user?.createdAt.formatDateToDisplay(), color = WarningColor)
+                            ProfileItemRow(Icons.Default.Email, "Email", user?.email ?: "N/A", PrimaryVariant)
+                            ProfileItemRow(Icons.Default.Phone, "Teléfono", user?.phoneNumber ?: "N/A", SuccessColor)
+                            ProfileItemRow(Icons.Default.CalendarToday, "Miembro desde", (user?.createdAt ?: "").formatDateToDisplay(), WarningColor)
                         }
                     }
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    // Buttons
+                    // Botones de Acción Claros
                     Button(
                         onClick = { showEditDialog = true },
-                        modifier = Modifier.fillMaxWidth().height(54.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = PrimaryColor),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryColor.copy(alpha = 0.2f)),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
                     ) {
-                        Icon(Icons.Default.Edit, null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Edit, null)
                         Spacer(Modifier.width(10.dp))
-                        Text("Editar Datos Personales", fontWeight = FontWeight.Bold)
+                        Text("EDITAR PERFIL", fontWeight = FontWeight.Bold)
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    Button(
+                    OutlinedButton(
                         onClick = { showPasswordDialog = true },
-                        modifier = Modifier.fillMaxWidth().height(54.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = TextPrimary),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E7EB)),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, PrimaryColor.copy(alpha = 0.3f))
                     ) {
-                        Icon(Icons.Default.Lock, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(10.dp))
-                        Text("Cambiar Contraseña", fontWeight = FontWeight.Bold)
+                        Text("CAMBIAR CONTRASEÑA", color = PrimaryColor, fontWeight = FontWeight.Bold)
                     }
                     
-                    Spacer(modifier = Modifier.height(32.dp))
-                    
-                    // Logout
-                    TextButton(
-                        onClick = { viewModel.logout(onLogout) },
-                        modifier = Modifier.fillMaxWidth().height(50.dp)
-                    ) {
-                        Icon(Icons.Default.ExitToApp, null, tint = DangerColor, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(10.dp))
-                        Text("Cerrar Sesión", color = DangerColor, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    }
+                    Spacer(modifier = Modifier.height(40.dp))
                 }
             }
         }
     }
 
+    if (showImageSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showImageSourceDialog = false },
+            title = { Text("Actualizar Fotografía", fontWeight = FontWeight.Black, color = TextPrimary) },
+            text = { Text("Elija una opción para su foto de perfil.", color = TextSecondary) },
+            confirmButton = {
+                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(
+                        onClick = {
+                            val hasPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                            if (hasPermission) {
+                                CameraUtils.createTempImageUri(context)?.let { uri -> tempCameraUri = uri; cameraLauncher.launch(uri) }
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.CAMERA)
+                            }
+                            showImageSourceDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                    ) {
+                        Icon(Icons.Default.CameraAlt, null); Spacer(Modifier.width(8.dp)); Text("Tomar Foto")
+                    }
+                    Button(
+                        onClick = { galleryLauncher.launch("image/*"); showImageSourceDialog = false },
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SuccessColor)
+                    ) {
+                        Icon(Icons.Default.PhotoLibrary, null); Spacer(Modifier.width(8.dp)); Text("Galería")
+                    }
+                }
+            },
+            dismissButton = { TextButton(onClick = { showImageSourceDialog = false }) { Text("CANCELAR", color = TextSecondary, fontWeight = FontWeight.Bold) } },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
+
     if (showEditDialog && state.user != null) {
-        EditProfileDialogPolished(
-            user = state.user!!,
-            onDismiss = { showEditDialog = false },
-            onConfirm = { name, username, phone ->
-                viewModel.updateProfile(name, username, "+56$phone") { success, msg ->
-                    if (success) showEditDialog = false
-                    scope.launch { snackbarHostState.showSnackbar(msg) }
-                }
-            },
-            isSaving = state.isActionLoading
-        )
+        EditProfileDialogPolished(state.user!!, { showEditDialog = false }, { n, u, p ->
+            viewModel.updateProfile(n, u, "+56$p", selectedImageUri) { s, m ->
+                if (s) showEditDialog = false
+                scope.launch { snackbarHostState.showSnackbar(m) }
+            }
+        }, state.isActionLoading)
     }
-
+    
     if (showPasswordDialog) {
-        ChangePasswordDialogPolished(
-            onDismiss = { showPasswordDialog = false },
-            onConfirm = { current, new ->
-                viewModel.changePassword(current, new) { success, msg ->
-                    if (success) showPasswordDialog = false
-                    scope.launch { snackbarHostState.showSnackbar(msg) }
-                }
-            },
-            isSaving = state.isActionLoading
-        )
+        ChangePasswordDialogPolished({ showPasswordDialog = false }, { c, n ->
+            viewModel.changePassword(c, n) { s, m ->
+                if (s) showPasswordDialog = false
+                scope.launch { snackbarHostState.showSnackbar(m) }
+            }
+        }, state.isActionLoading)
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EditProfileDialogPolished(
-    user: com.siscontrol.mobile.data.remote.dto.UserResponseDto,
-    onDismiss: () -> Unit,
-    onConfirm: (String, String, String) -> Unit,
-    isSaving: Boolean
-) {
-    var fullName by remember { mutableStateOf(user.fullName) }
-    var username by remember { mutableStateOf(user.username) }
-    var phoneDigits by remember { mutableStateOf(user.phoneNumber.toPhoneDigits()) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Box(modifier = Modifier.size(56.dp).background(PrimaryColor.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Person, null, tint = PrimaryColor, modifier = Modifier.size(32.dp))
-                }
-                Spacer(Modifier.height(16.dp))
-                Text("Editar Perfil", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
-            }
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(top = 10.dp)) {
-                EditFieldPolished(label = "Nombre Completo", value = fullName, onValueChange = { fullName = it }, icon = Icons.Default.Badge)
-                EditFieldPolished(label = "Usuario", value = username, onValueChange = { username = it }, icon = Icons.Default.AccountCircle)
-                EditFieldPolished(
-                    label = "Teléfono", 
-                    value = phoneDigits, 
-                    onValueChange = { if (it.length <= 9) phoneDigits = it.filter { c -> c.isDigit() } }, 
-                    icon = Icons.Default.Phone,
-                    prefix = "+56 ",
-                    supportingText = "Ej: 987654321 (${phoneDigits.length}/9)"
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onConfirm(fullName, username, phoneDigits) },
-                enabled = !isSaving && fullName.isNotBlank() && phoneDigits.length == 9,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-            ) {
-                if (isSaving) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
-                else Text("GUARDAR CAMBIOS", fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isSaving, modifier = Modifier.fillMaxWidth()) {
-                Text("CANCELAR", color = TextSecondary, fontWeight = FontWeight.Bold)
-            }
-        },
-        shape = RoundedCornerShape(24.dp),
-        containerColor = Color.White
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ChangePasswordDialogPolished(
-    onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit,
-    isSaving: Boolean
-) {
-    var currentPass by remember { mutableStateOf("") }
-    var newPass by remember { mutableStateOf("") }
-    var confirmPass by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var errorMsg by remember { mutableStateOf<String?>(null) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Box(modifier = Modifier.size(56.dp).background(WarningColor.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.LockReset, null, tint = WarningColor, modifier = Modifier.size(32.dp))
-                }
-                Spacer(Modifier.height(16.dp))
-                Text("Nueva Contraseña", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
-            }
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(top = 10.dp)) {
-                PasswordInputPolished(label = "Clave Actual", value = currentPass, onValueChange = { currentPass = it }, visible = passwordVisible)
-                PasswordInputPolished(label = "Clave Nueva", value = newPass, onValueChange = { newPass = it }, visible = passwordVisible)
-                PasswordInputPolished(label = "Confirmar Clave", value = confirmPass, onValueChange = { confirmPass = it }, visible = passwordVisible)
-
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { passwordVisible = !passwordVisible }) {
-                    Checkbox(checked = passwordVisible, onCheckedChange = { passwordVisible = it }, colors = CheckboxDefaults.colors(checkedColor = PrimaryColor))
-                    Text("Mostrar caracteres", fontSize = 14.sp, color = TextSecondary)
-                }
-
-                if (errorMsg != null) {
-                    Text(errorMsg!!, color = DangerColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (newPass != confirmPass) errorMsg = "Las claves no coinciden"
-                    else if (newPass.length < 4) errorMsg = "Mínimo 4 caracteres"
-                    else onConfirm(currentPass, newPass)
-                },
-                enabled = !isSaving && currentPass.isNotBlank() && newPass.isNotBlank(),
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-            ) {
-                if (isSaving) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
-                else Text("ACTUALIZAR CLAVE", fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isSaving, modifier = Modifier.fillMaxWidth()) {
-                Text("CANCELAR", color = TextSecondary, fontWeight = FontWeight.Bold)
-            }
-        },
-        shape = RoundedCornerShape(24.dp),
-        containerColor = Color.White
-    )
 }
 
 @Composable
@@ -357,43 +274,34 @@ fun ProfileItemRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label:
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column {
-            Text(label, fontSize = 12.sp, color = TextSecondary)
-            Text(value, fontSize = 15.sp, color = TextPrimary, fontWeight = FontWeight.Bold)
+            Text(label, fontSize = 11.sp, color = TextSecondary, fontWeight = FontWeight.Bold)
+            Text(value, fontSize = 15.sp, color = TextPrimary, fontWeight = FontWeight.Black)
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PasswordInputPolished(label: String, value: String, onValueChange: (String) -> Unit, visible: Boolean) {
-    Column {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = TextSecondary, modifier = Modifier.padding(bottom = 6.dp, start = 4.dp))
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            leadingIcon = { Icon(Icons.Default.Lock, null, tint = PrimaryColor, modifier = Modifier.size(22.dp)) },
-            visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryColor, unfocusedBorderColor = Color(0xFFE5E7EB))
-        )
-    }
+fun EditProfileDialogPolished(user: com.siscontrol.mobile.data.remote.dto.UserResponseDto, onDismiss: () -> Unit, onConfirm: (String, String, String) -> Unit, isSaving: Boolean) {
+    var fullName by remember { mutableStateOf(user.fullName ?: "") }
+    var username by remember { mutableStateOf(user.username ?: "") }
+    var phoneDigits by remember { mutableStateOf(user.phoneNumber.toPhoneDigits()) }
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("Editar Perfil", fontWeight = FontWeight.Black) }, text = { Column(verticalArrangement = Arrangement.spacedBy(16.dp)) { EditFieldPolished("Nombre Completo", fullName, { fullName = it }, Icons.Default.Badge); EditFieldPolished("Usuario", username, { username = it }, Icons.Default.AccountCircle); EditFieldPolished("Teléfono", phoneDigits, { if (it.length <= 9) phoneDigits = it.filter { c -> c.isDigit() } }, Icons.Default.Phone, "+56 ") } }, confirmButton = { Button(onClick = { onConfirm(fullName, username, phoneDigits) }, enabled = !isSaving && fullName.isNotBlank() && phoneDigits.length == 9, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) { Text("GUARDAR") } }, dismissButton = { TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("CERRAR", color = TextSecondary) } }, containerColor = Color.White, shape = RoundedCornerShape(24.dp))
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChangePasswordDialogPolished(onDismiss: () -> Unit, onConfirm: (String, String) -> Unit, isSaving: Boolean) {
+    var currentPass by remember { mutableStateOf("") }
+    var newPass by remember { mutableStateOf("") }
+    var confirmPass by remember { mutableStateOf("") }
+    var visible by remember { mutableStateOf(false) }
+    var err by remember { mutableStateOf<String?>(null) }
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("Seguridad", fontWeight = FontWeight.Black) }, text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { PasswordInputPolished("Clave Actual", currentPass, { currentPass = it }, visible); PasswordInputPolished("Nueva Clave", newPass, { newPass = it }, visible); PasswordInputPolished("Confirmar", confirmPass, { confirmPass = it }, visible); Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { visible = !visible }) { Checkbox(visible, { visible = it }); Text("Ver claves", fontSize = 12.sp) }; err?.let { Text(it, color = DangerColor, fontSize = 12.sp, fontWeight = FontWeight.Bold) } } }, confirmButton = { Button(onClick = { if (newPass != confirmPass) err = "No coinciden" else onConfirm(currentPass, newPass) }, modifier = Modifier.fillMaxWidth()) { Text("ACTUALIZAR") } }, dismissButton = { TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("CERRAR") } }, containerColor = Color.White, shape = RoundedCornerShape(24.dp))
 }
 
 @Composable
-fun EditFieldPolished(label: String, value: String, onValueChange: (String) -> Unit, icon: androidx.compose.ui.graphics.vector.ImageVector, prefix: String? = null, supportingText: String? = null) {
-    Column {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = TextSecondary, modifier = Modifier.padding(bottom = 6.dp, start = 4.dp))
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            leadingIcon = { Icon(icon, null, tint = PrimaryColor, modifier = Modifier.size(22.dp)) },
-            prefix = prefix?.let { { Text(it, fontWeight = FontWeight.Bold) } },
-            supportingText = supportingText?.let { { Text(it, fontSize = 11.sp) } },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryColor, unfocusedBorderColor = Color(0xFFE5E7EB))
-        )
-    }
-}
+fun PasswordInputPolished(l: String, v: String, onV: (String) -> Unit, vis: Boolean) { Column { Text(l, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextPrimary); OutlinedTextField(v, onV, leadingIcon = { Icon(Icons.Default.Lock, null, tint = PrimaryColor) }, visualTransformation = if (vis) VisualTransformation.None else PasswordVisualTransformation(), singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryColor, unfocusedBorderColor = Color.DarkGray, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)) } }
+
+@Composable
+fun EditFieldPolished(l: String, v: String, onV: (String) -> Unit, i: androidx.compose.ui.graphics.vector.ImageVector, p: String? = null) { Column { Text(l, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextPrimary); OutlinedTextField(v, onV, leadingIcon = { Icon(i, null, tint = PrimaryColor) }, prefix = p?.let { { Text(it, fontWeight = FontWeight.Bold, color = TextPrimary) } }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryColor, unfocusedBorderColor = Color.DarkGray, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)) } }

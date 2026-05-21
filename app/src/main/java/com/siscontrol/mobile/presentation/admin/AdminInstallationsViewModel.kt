@@ -183,7 +183,7 @@ class AdminInstallationsViewModel(
                 installation = InstallationIdRequest(id = installationId)
             )
             
-            updateCheckpointUseCase(checkpoint.id, editorId, request)
+            updateCheckpointUseCase(checkpoint.id ?: 0L, editorId, request)
                 .onSuccess {
                     loadCheckpointsForInstallation(installationId)
                 }

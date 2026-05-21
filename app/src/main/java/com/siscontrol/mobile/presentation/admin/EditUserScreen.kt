@@ -203,7 +203,7 @@ fun EditFieldPolished(
     onPasswordToggle: (() -> Unit)? = null
 ) {
     Column {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = TextSecondary, modifier = Modifier.padding(bottom = 6.dp, start = 4.dp))
+        Text(label, style = MaterialTheme.typography.labelMedium, color = TextPrimary, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp, start = 4.dp))
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
@@ -211,20 +211,23 @@ fun EditFieldPolished(
             shape = RoundedCornerShape(12.dp),
             singleLine = true,
             leadingIcon = { Icon(icon, null, tint = PrimaryColor, modifier = Modifier.size(22.dp)) },
-            placeholder = if (placeholder.isNotEmpty()) { { Text(placeholder, color = Color.Gray.copy(alpha = 0.5f)) } } else null,
+            placeholder = if (placeholder.isNotEmpty()) { { Text(placeholder, color = Color.Gray) } } else null,
             prefix = if (prefix != null) { { Text(prefix, fontWeight = FontWeight.Bold, color = TextPrimary) } } else null,
             visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
             trailingIcon = if (isPassword && onPasswordToggle != null) {
                 {
                     val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
                     IconButton(onClick = onPasswordToggle) {
-                        Icon(image, null, modifier = Modifier.size(22.dp))
+                        Icon(image, null, modifier = Modifier.size(22.dp), tint = PrimaryColor)
                     }
                 }
             } else null,
+            textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = PrimaryColor,
-                unfocusedBorderColor = Color(0xFFE5E7EB),
+                unfocusedBorderColor = Color.DarkGray,
+                focusedTextColor = TextPrimary,
+                unfocusedTextColor = TextPrimary,
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White
             )

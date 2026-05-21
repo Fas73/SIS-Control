@@ -11,6 +11,19 @@ class RoundRepositoryImpl(
     private val api: RoundApiService
 ) : RoundRepository {
 
+    override suspend fun getCurrentState(userId: Long): Result<com.siscontrol.mobile.data.remote.dto.CurrentStateResponseDto> {
+        return try {
+            val response = api.getCurrentState(userId)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Error al obtener estado actual: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getAllRounds(): Result<List<RoundResponseDto>> {
         return try {
             val response = api.getAllRounds()
@@ -23,8 +36,9 @@ class RoundRepositoryImpl(
     override suspend fun startRound(userId: Long, installationId: Long): Result<Long> {
         return try {
             val response = api.startRound(userId, installationId)
-            if (response.isSuccessful && response.body() != null) {
-                val roundId = response.body()!!.ronda.id
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                val roundId = body.ronda?.id ?: 0L
                 Result.success(roundId)
             } else {
                 val errorMsg = response.errorBody()?.string() ?: ""
@@ -45,19 +59,36 @@ class RoundRepositoryImpl(
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
-                Result.failure(Exception("Error al finalizar ronda: ${response.code()}"))
+                val errorMsg = response.errorBody()?.string() ?: ""
+                // Si el error es 400 y el mensaje dice que ya está finalizada, lo tratamos como éxito
+                if (response.code() == 400 && errorMsg.contains("finalizada anteriormente", ignoreCase = true)) {
+                    Result.success(Unit)
+                } else {
+                    Result.failure(Exception("Error ${response.code()}: $errorMsg"))
+                }
             }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    override suspend fun scanCheckpoint(roundId: Long, checkpointId: Long, comment: String): Result<Unit> {
+    override suspend fun getRoundDetail(roundId: Long): Result<com.siscontrol.mobile.data.remote.dto.RoundDetailResponseDto> {
+        return try {
+            val response = api.getRoundDetail(roundId)
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun scanCheckpoint(roundId: Long, checkpointId: Long, comment: String, status: Int, imageUrl: String?): Result<Unit> {
         return try {
             val request = ScanCheckpointRequest(
                 roundExecution = IdRequest(roundId),
                 checkpoint = IdRequest(checkpointId),
-                notes = comment
+                notes = comment,
+                status = status,
+                imageUrl = imageUrl
             )
             val response = api.scanCheckpoint(request)
             if (response.isSuccessful) {

@@ -18,3 +18,7 @@ class EndRoundUseCase(private val repository: RoundRepository) {
         return repository.endRound(roundId, observations)
     }
 }
+
+class GetRoundDetailUseCase(private val repository: RoundRepository) {
+    suspend operator fun invoke(roundId: Long) = repository.getRoundDetail(roundId)
+}

@@ -10,6 +10,7 @@ import com.siscontrol.mobile.data.remote.dto.ProfileUpdateRequest
 import com.siscontrol.mobile.data.remote.dto.UserResponseDto
 import com.siscontrol.mobile.domain.usecase.*
 import com.siscontrol.mobile.di.SessionManager
+import com.siscontrol.mobile.core.FirebaseStorageManager
 import kotlinx.coroutines.launch
 
 class ProfileViewModel(
@@ -54,54 +55,54 @@ class ProfileViewModel(
 
     fun logout(onSuccess: () -> Unit) {
         viewModelScope.launch {
-            val userId = sessionManager.getUserIdSync() ?: 0L
-            val installationId = sessionManager.getActiveInstallationIdSync() ?: 0L
-            
-            if (userId != 0L && installationId != 0L) {
-                // Registrar salida antes de cerrar sesión
-                checkOutUseCase(
-                    AttendanceRequest(
-                        userId = userId,
-                        installationId = installationId,
-                        latitude = -33.3616, // Usamos las mismas de prueba
-                        longitude = -70.7304
-                    )
-                )
-            }
-            // Borrar también la sesión de ronda activa al cerrar sesión manual
+            // Limpiamos los datos locales
             sessionManager.clearActiveSession()
             sessionManager.clearSession()
             onSuccess()
         }
     }
 
-    fun updateProfile(fullName: String, username: String, phoneNumber: String, onResult: (Boolean, String) -> Unit) {
+    fun updateProfile(fullName: String, username: String, phoneNumber: String, imageUri: android.net.Uri? = null, onResult: (Boolean, String) -> Unit) {
         viewModelScope.launch {
             val user = _state.value.user ?: return@launch
             _state.value = _state.value.copy(isActionLoading = true)
 
+            var remoteUrl = user.imageUrl
+            
+            // Si hay una nueva imagen, subirla a Firebase
+            if (imageUri != null) {
+                FirebaseStorageManager.uploadImage(imageUri, "perfiles")
+                    .onSuccess { remoteUrl = it }
+                    .onFailure { e ->
+                        _state.value = _state.value.copy(isActionLoading = false)
+                        onResult(false, "Error al subir foto: ${e.message}")
+                        return@launch
+                    }
+            }
+
             val request = ProfileUpdateRequest(
                 fullName = fullName,
                 username = username,
-                phoneNumber = phoneNumber
+                phoneNumber = phoneNumber,
+                imageUrl = remoteUrl
             )
 
-            updateProfileDataUseCase(user.id, request)
+            updateProfileDataUseCase(user.id ?: 0L, request)
                 .onSuccess { updatedUser ->
-                    // Actualizamos localmente en DataStore y Room para reflejar cambios en toda la App
+                    // Actualizamos localmente
                     sessionManager.saveSession(
                         token = sessionManager.getTokenSync() ?: "",
-                        role = updatedUser.role,
-                        userId = updatedUser.id,
-                        fullName = updatedUser.fullName
+                        role = updatedUser.role ?: "GUARD",
+                        userId = updatedUser.id ?: 0L,
+                        fullName = updatedUser.fullName ?: "Usuario"
                     )
                     
                     com.siscontrol.mobile.di.AppModule.getDatabase().userSessionDao().insertSession(
                         com.siscontrol.mobile.data.local.entities.UserSessionEntity(
-                            id = updatedUser.id,
-                            username = updatedUser.username,
-                            fullName = updatedUser.fullName,
-                            role = updatedUser.role,
+                            id = updatedUser.id ?: 0L,
+                            username = updatedUser.username ?: "",
+                            fullName = updatedUser.fullName ?: "Usuario",
+                            role = updatedUser.role ?: "GUARD",
                             status = updatedUser.status.toString()
                         )
                     )
@@ -126,7 +127,7 @@ class ProfileViewModel(
                 newPassword = newPass
             )
 
-            changeMyPasswordUseCase(user.id, request)
+            changeMyPasswordUseCase(user.id ?: 0L, request)
                 .onSuccess {
                     _state.value = _state.value.copy(isActionLoading = false)
                     onResult(true, "Contraseña actualizada correctamente")

@@ -23,6 +23,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.siscontrol.mobile.MainActivity
 import com.siscontrol.mobile.presentation.theme.*
+import android.os.Vibrator
+import android.os.VibratorManager
+import android.os.VibrationEffect
+import android.content.Context
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +48,7 @@ fun CreateCheckpointScreen(
     
     // Estado para saber si estamos esperando un escaneo NFC
     var isWaitingForScan by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     // Escuchar el flujo de NFC de la MainActivity
     LaunchedEffect(isWaitingForScan) {
@@ -51,6 +56,17 @@ fun CreateCheckpointScreen(
             MainActivity.nfcTagFlow.collect { tagId ->
                 nfcCode = tagId
                 isWaitingForScan = false
+                
+                // Vibración de confirmación de captura exitosa
+                val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                    vibratorManager.defaultVibrator
+                } else {
+                    @Suppress("DEPRECATION")
+                    context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                }
+                
+                vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE))
             }
         }
     }
@@ -153,19 +169,24 @@ fun CreateCheckpointScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Wifi, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Nombre del checkpoint", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+                    Text("Nombre del checkpoint", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = { Text("Ej: Entrada Principal", color = TextSecondary, fontSize = 14.sp) },
+                    placeholder = { Text("Ej: Entrada Principal", color = Color.Gray, fontSize = 14.sp) },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     singleLine = true,
                     shape = RoundedCornerShape(8.dp),
+                    textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                     colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color(0xFFE5E7EB),
-                        focusedBorderColor = PrimaryVariant
+                        unfocusedBorderColor = Color.DarkGray,
+                        focusedBorderColor = PrimaryVariant,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
                     )
                 )
                 
@@ -174,19 +195,24 @@ fun CreateCheckpointScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Place, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Descripción de la ubicación", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+                    Text("Descripción de la ubicación", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 OutlinedTextField(
                     value = locationDescription,
                     onValueChange = { locationDescription = it },
-                    placeholder = { Text("Ej: Lobby junto a recepción", color = TextSecondary, fontSize = 14.sp) },
+                    placeholder = { Text("Ej: Lobby junto a recepción", color = Color.Gray, fontSize = 14.sp) },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     singleLine = true,
                     shape = RoundedCornerShape(8.dp),
+                    textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                     colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color(0xFFE5E7EB),
-                        focusedBorderColor = PrimaryVariant
+                        unfocusedBorderColor = Color.DarkGray,
+                        focusedBorderColor = PrimaryVariant,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
                     )
                 )
                 
@@ -195,7 +221,7 @@ fun CreateCheckpointScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Business, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Instalación", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+                    Text("Instalación", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 
@@ -205,10 +231,15 @@ fun CreateCheckpointScreen(
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(8.dp),
+                    textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                     colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color(0xFFE5E7EB),
+                        unfocusedBorderColor = Color.DarkGray,
                         focusedBorderColor = PrimaryVariant,
-                        disabledContainerColor = Color(0xFFF9FAFB)
+                        disabledContainerColor = Color(0xFFF9FAFB),
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        disabledTextColor = TextPrimary,
+                        disabledBorderColor = Color.DarkGray
                     ),
                     enabled = false
                 )
@@ -218,20 +249,25 @@ fun CreateCheckpointScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Numbers, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Orden en la ronda", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+                    Text("Orden en la ronda", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 OutlinedTextField(
                     value = order,
                     onValueChange = { order = it },
-                    placeholder = { Text("1, 2, 3...", color = TextSecondary, fontSize = 14.sp) },
+                    placeholder = { Text("1, 2, 3...", color = Color.Gray, fontSize = 14.sp) },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     singleLine = true,
                     shape = RoundedCornerShape(8.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                     colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color(0xFFE5E7EB),
-                        focusedBorderColor = PrimaryVariant
+                        unfocusedBorderColor = Color.DarkGray,
+                        focusedBorderColor = PrimaryVariant,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
                     )
                 )
                 Text(
@@ -259,20 +295,25 @@ fun CreateCheckpointScreen(
                     color = TextPrimary
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("Código del tag NFC", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+                Text("Código del tag NFC", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(4.dp))
                 
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         value = nfcCode,
                         onValueChange = { nfcCode = it },
-                        placeholder = { Text("NFC-XXXXXX", color = TextSecondary, fontSize = 14.sp) },
+                        placeholder = { Text("NFC-XXXXXX", color = Color.Gray, fontSize = 14.sp) },
                         modifier = Modifier.weight(1f).height(52.dp),
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
+                        textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = Color(0xFFE5E7EB),
-                            focusedBorderColor = PrimaryVariant
+                            unfocusedBorderColor = Color.DarkGray,
+                            focusedBorderColor = PrimaryVariant,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White
                         )
                     )
                     Spacer(modifier = Modifier.width(12.dp))
@@ -337,36 +378,46 @@ fun CreateCheckpointScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Latitud", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+                        Text("Latitud", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
                         OutlinedTextField(
                             value = lat,
                             onValueChange = { lat = it },
-                            placeholder = { Text("-33.4372", color = TextSecondary, fontSize = 14.sp) },
+                            placeholder = { Text("-33.4372", color = Color.Gray, fontSize = 14.sp) },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             singleLine = true,
                             shape = RoundedCornerShape(8.dp),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                             colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = Color(0xFFE5E7EB),
-                                focusedBorderColor = PrimaryVariant
+                                unfocusedBorderColor = Color.DarkGray,
+                                focusedBorderColor = PrimaryVariant,
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary,
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White
                             )
                         )
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Longitud", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+                        Text("Longitud", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
                         OutlinedTextField(
                             value = lng,
                             onValueChange = { lng = it },
-                            placeholder = { Text("-70.6506", color = TextSecondary, fontSize = 14.sp) },
+                            placeholder = { Text("-70.6506", color = Color.Gray, fontSize = 14.sp) },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             singleLine = true,
                             shape = RoundedCornerShape(8.dp),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                             colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = Color(0xFFE5E7EB),
-                                focusedBorderColor = PrimaryVariant
+                                unfocusedBorderColor = Color.DarkGray,
+                                focusedBorderColor = PrimaryVariant,
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary,
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White
                             )
                         )
                     }
@@ -409,12 +460,17 @@ fun CreateCheckpointScreen(
                 OutlinedTextField(
                     value = instructions,
                     onValueChange = { instructions = it },
-                    placeholder = { Text("Ej: Verificar que la puerta esté cerrada con llave. Revisar iluminación del área.", color = TextSecondary, fontSize = 14.sp) },
+                    placeholder = { Text("Ej: Verificar que la puerta esté cerrada con llave.", color = Color.Gray, fontSize = 14.sp) },
                     modifier = Modifier.fillMaxWidth().height(100.dp),
                     shape = RoundedCornerShape(8.dp),
+                    textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.SemiBold),
                     colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color(0xFFE5E7EB),
-                        focusedBorderColor = PrimaryVariant
+                        unfocusedBorderColor = Color.DarkGray,
+                        focusedBorderColor = PrimaryVariant,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
                     )
                 )
                 Text(

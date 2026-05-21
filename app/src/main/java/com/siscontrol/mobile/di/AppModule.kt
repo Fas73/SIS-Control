@@ -11,6 +11,7 @@ import com.siscontrol.mobile.presentation.admin.AdminManagementViewModel
 import com.siscontrol.mobile.presentation.admin.AdminCheckpointsViewModel
 import com.siscontrol.mobile.presentation.admin.AdminHomeViewModel
 import com.siscontrol.mobile.presentation.admin.AdminMapViewModel
+import com.siscontrol.mobile.presentation.admin.AdminAlertsViewModel
 import com.siscontrol.mobile.presentation.guard.IncidentViewModel
 import com.siscontrol.mobile.presentation.guard.GuardInstallationsViewModel
 import com.siscontrol.mobile.presentation.guard.GuardRoundViewModel
@@ -18,6 +19,7 @@ import com.siscontrol.mobile.presentation.guard.GuardHistoryViewModel
 import com.siscontrol.mobile.presentation.profile.ProfileViewModel
 import com.siscontrol.mobile.presentation.supervisor.SupervisorGuardsViewModel
 import com.siscontrol.mobile.presentation.management.CreateCheckpointViewModel
+import com.siscontrol.mobile.presentation.admin.log.AdminIncidentLogViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.runBlocking
@@ -31,8 +33,9 @@ object AppModule {
 
     // CAMBIA ESTA IP por la de tu Mac (puedes verla en Ajustes -> Red -> Wi-Fi)
     // Ejemplo: "http://192.168.1.15:8080/"
-    private const val BASE_URL = "http://10.0.2.2:8080/"
-
+    // private const val BASE_URL = "http://10.0.2.2:8080/"
+    //private const val BASE_URL = "http://192.168.100.147:8080/"
+    private const val BASE_URL = "http://10.148.98.46:8080/"
     private lateinit var sessionManager: SessionManager
     private lateinit var database: com.siscontrol.mobile.data.local.AppDatabase
 
@@ -142,6 +145,8 @@ object AppModule {
     val checkOutUseCase by lazy { CheckOutUseCase(attendanceRepository) }
     val startRoundUseCase by lazy { StartRoundUseCase(roundRepository) }
     val endRoundUseCase by lazy { EndRoundUseCase(roundRepository) }
+    val getCurrentGuardStateUseCase by lazy { GetCurrentGuardStateUseCase(roundRepository) }
+    val getRoundDetailUseCase by lazy { GetRoundDetailUseCase(roundRepository) }
     val scanCheckpointUseCase by lazy { ScanCheckpointUseCase(roundRepository) }
     val cancelRoundUseCase by lazy { CancelRoundUseCase(roundRepository) }
     val cancelShiftUseCase by lazy { CancelShiftUseCase(roundRepository) }
@@ -156,6 +161,7 @@ object AppModule {
 
     // Incidents
     val reportIncidentUseCase by lazy { ReportIncidentUseCase(incidentRepository) }
+    val triggerPanicUseCase by lazy { TriggerPanicUseCase(incidentRepository) }
 
     // -------------------------------------------------------------------------
     // ViewModel Factories
@@ -216,22 +222,36 @@ object AppModule {
     fun provideAdminCheckpointsViewModel(): AdminCheckpointsViewModel =
         AdminCheckpointsViewModel(getCheckpointsUseCase, getInstallationsUseCase)
 
+    fun provideAdminAlertsViewModel(): AdminAlertsViewModel =
+        AdminAlertsViewModel(incidentRepository)
+
+    fun provideAdminIncidentLogViewModel(): AdminIncidentLogViewModel =
+        AdminIncidentLogViewModel(incidentRepository)
+
     fun provideAdminMapViewModel(): AdminMapViewModel =
         AdminMapViewModel(getAdminDashboardUseCase)
 
     fun provideGuardInstallationsViewModel(): GuardInstallationsViewModel =
         GuardInstallationsViewModel(
             getInstallationsUseCase = getInstallationsUseCase,
+            getCheckpointsUseCase = getCheckpointsUseCase,
             checkInUseCase = checkInUseCase,
+            checkOutUseCase = checkOutUseCase,
+            getCurrentGuardStateUseCase = getCurrentGuardStateUseCase,
             startRoundUseCase = startRoundUseCase,
             sessionManager = sessionManager
         )
+
+    fun provideGuardHomeViewModel(): com.siscontrol.mobile.presentation.guard.GuardHomeViewModel =
+        com.siscontrol.mobile.presentation.guard.GuardHomeViewModel(getCurrentGuardStateUseCase, sessionManager)
 
     fun provideGuardRoundViewModel(): GuardRoundViewModel =
         GuardRoundViewModel(
             endRoundUseCase = endRoundUseCase,
             getCheckpointsUseCase = getCheckpointsUseCase,
+            getRoundDetailUseCase = getRoundDetailUseCase,
             scanCheckpointUseCase = scanCheckpointUseCase,
+            triggerPanicUseCase = triggerPanicUseCase,
             sessionManager = sessionManager
         )
 

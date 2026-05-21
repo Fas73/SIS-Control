@@ -180,6 +180,7 @@ fun CreatePersonnelScreen(
             && phoneDigits.length == 9
 
     Scaffold(
+        modifier = Modifier.imePadding(),
         topBar = {
             Box(
                 modifier = Modifier
@@ -434,21 +435,24 @@ fun FormField(
     isError: Boolean = false
 ) {
     Column {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = if(isError) DangerColor else TextSecondary, modifier = Modifier.padding(bottom = 6.dp, start = 4.dp))
+        Text(label, style = MaterialTheme.typography.labelMedium, color = if(isError) DangerColor else TextPrimary, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp, start = 4.dp))
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            placeholder = { Text(placeholder, color = Color.Gray.copy(alpha = 0.5f)) },
+            placeholder = { Text(placeholder, color = Color.Gray) },
             leadingIcon = { Icon(icon, null, tint = if(isError) DangerColor else PrimaryColor, modifier = Modifier.size(20.dp)) },
-            prefix = prefix?.let { { Text(it, fontWeight = FontWeight.Bold, color = TextPrimary) } },
-            supportingText = supportingText?.let { { Text(it, fontSize = 11.sp, color = if(isError) DangerColor else TextSecondary) } },
+            prefix = prefix?.let { { Text(it, fontWeight = FontWeight.ExtraBold, color = TextPrimary) } },
+            supportingText = supportingText?.let { { Text(it, fontSize = 11.sp, color = if(isError) DangerColor else TextSecondary, fontWeight = FontWeight.Medium) } },
             isError = isError,
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
+            textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = if(isError) DangerColor else PrimaryColor,
-                unfocusedBorderColor = if(isError) DangerColor else Color(0xFFE5E7EB),
+                unfocusedBorderColor = if(isError) DangerColor else Color.DarkGray,
+                focusedTextColor = TextPrimary,
+                unfocusedTextColor = TextPrimary,
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White
             )

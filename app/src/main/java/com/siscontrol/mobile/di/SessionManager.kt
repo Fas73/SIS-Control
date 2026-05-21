@@ -37,6 +37,19 @@ class SessionManager(private val context: Context) {
         }
     }
 
+    suspend fun saveActiveInstallation(installationId: Long, installationName: String) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_ACTIVE_INSTALLATION_ID] = installationId
+            preferences[KEY_ACTIVE_INSTALLATION_NAME] = installationName
+        }
+    }
+
+    suspend fun saveActiveRound(roundId: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_ACTIVE_ROUND_ID] = roundId
+        }
+    }
+
     /**
      * Limpia la información de la ronda activa (al finalizar).
      */
@@ -48,17 +61,41 @@ class SessionManager(private val context: Context) {
         }
     }
 
-    fun getActiveRoundIdSync(): Long? = runBlocking {
-        context.dataStore.data.map { it[KEY_ACTIVE_ROUND_ID] }.first()
+    /**
+     * Recupera el ID de usuario de forma segura (suspendida).
+     */
+    suspend fun getUserId(): Long? {
+        return context.dataStore.data.map { it[KEY_USER_ID] }.first()
     }
 
-    fun getActiveInstallationNameSync(): String? = runBlocking {
-        context.dataStore.data.map { it[KEY_ACTIVE_INSTALLATION_NAME] }.first()
+    /**
+     * Recupera el token de forma segura (suspendida).
+     */
+    suspend fun getToken(): String? {
+        return context.dataStore.data.map { it[KEY_TOKEN] }.first()
     }
 
-    fun getActiveInstallationIdSync(): Long? = runBlocking {
-        context.dataStore.data.map { it[KEY_ACTIVE_INSTALLATION_ID] }.first()
+    /**
+     * Recupera la instalación activa de forma segura.
+     */
+    suspend fun getActiveInstallationId(): Long? {
+        return context.dataStore.data.map { it[KEY_ACTIVE_INSTALLATION_ID] }.first()
     }
+
+    suspend fun getActiveInstallationName(): String? {
+        return context.dataStore.data.map { it[KEY_ACTIVE_INSTALLATION_NAME] }.first()
+    }
+
+    suspend fun getActiveRoundId(): Long? {
+        return context.dataStore.data.map { it[KEY_ACTIVE_ROUND_ID] }.first()
+    }
+
+    // MÉTODOS SÍNCRONOS (Usar con precaución, pueden causar lag en UI)
+    fun getActiveRoundIdSync(): Long? = runBlocking { getActiveRoundId() }
+    fun getActiveInstallationIdSync(): Long? = runBlocking { getActiveInstallationId() }
+    fun getActiveInstallationNameSync(): String? = runBlocking { getActiveInstallationName() }
+    fun getUserIdSync(): Long? = runBlocking { getUserId() }
+    fun getTokenSync(): String? = runBlocking { getToken() }
 
     /**
      * Guarda los datos de la sesión.
@@ -91,27 +128,6 @@ class SessionManager(private val context: Context) {
      * Recupera el nombre completo como un Flow.
      */
     val fullNameFlow: Flow<String?> = context.dataStore.data.map { it[KEY_FULL_NAME] }
-
-    /**
-     * Recupera el ID de usuario de forma síncrona.
-     */
-    fun getUserIdSync(): Long? = runBlocking {
-        context.dataStore.data.map { it[KEY_USER_ID] }.first()
-    }
-
-    /**
-     * Recupera el nombre completo de forma síncrona.
-     */
-    fun getFullNameSync(): String? = runBlocking {
-        context.dataStore.data.map { it[KEY_FULL_NAME] }.first()
-    }
-
-    /**
-     * Recupera el token de forma síncrona.
-     */
-    fun getTokenSync(): String? = runBlocking {
-        context.dataStore.data.map { it[KEY_TOKEN] }.first()
-    }
 
     /**
      * Limpia todos los datos de sesión (Logout).
