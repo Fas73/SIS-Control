@@ -91,12 +91,14 @@ fun SISCard(
 @Composable
 fun SISBadge(
     text: String,
+    modifier: Modifier = Modifier,
     containerColor: Color = SuccessColor.copy(alpha = 0.2f),
     contentColor: Color = SuccessColor
 ) {
     Surface(
         color = containerColor,
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
+        modifier = modifier
     ) {
         Text(
             text = text,

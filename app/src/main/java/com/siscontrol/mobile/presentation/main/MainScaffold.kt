@@ -23,6 +23,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.siscontrol.mobile.presentation.Destinos
+import kotlinx.coroutines.launch
 
 @Composable
 fun MainScaffold(
@@ -31,6 +32,8 @@ fun MainScaffold(
     token: String,
     content: @Composable (PaddingValues) -> Unit
 ) {
+    val sessionManager = com.siscontrol.mobile.di.AppModule.getSessionManager()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val items = getBottomNavItemsForRole(userRole, token)
 
     Scaffold(
@@ -50,12 +53,35 @@ fun MainScaffold(
                             label = { Text(item.title) },
                             selected = isSelected,
                             onClick = {
-                                navController.navigate(item.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+                                if (item.baseRoute == Destinos.GUARD_RONDA) {
+                                    // Protección inteligente: si no hay ronda, vamos a Iniciar
+                                    scope.launch {
+                                        val activeId = sessionManager.getActiveRoundId() ?: 0L
+                                        val instId = sessionManager.getActiveInstallationId() ?: 0L
+                                        val instName = sessionManager.getActiveInstallationName() ?: "Instalación"
+                                        
+                                        val route = if (activeId != 0L && instId != 0L) {
+                                            Destinos.guardRondaRoute(token, userRole, activeId, instId, instName)
+                                        } else {
+                                            Destinos.guardStartRoundRoute(token, userRole)
+                                        }
+                                        
+                                        navController.navigate(route) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
+                                } else {
+                                    navController.navigate(item.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
                                 }
                             },
                             colors = NavigationBarItemDefaults.colors(
@@ -84,7 +110,7 @@ data class BottomNavItem(
 )
 
 fun getBottomNavItemsForRole(role: String, token: String): List<BottomNavItem> {
-    return when (role) {
+    return when (role.uppercase()) {
         "ADMIN" -> listOf(
             BottomNavItem("Inicio", Destinos.adminHomeRoute(token, role), Destinos.ADMIN_HOME, Icons.Default.Home),
             BottomNavItem("Mapa", Destinos.adminMapRoute(token, role), Destinos.ADMIN_MAP, Icons.Default.Map),
@@ -99,9 +125,9 @@ fun getBottomNavItemsForRole(role: String, token: String): List<BottomNavItem> {
             BottomNavItem("Guardias", Destinos.supervisorGuardsRoute(token, role), Destinos.SUPERVISOR_GUARDS, Icons.Default.Group),
             BottomNavItem("Perfil", Destinos.guardProfileRoute(token, role), Destinos.GUARD_PROFILE, Icons.Default.Person)
         )
-        "GUARDIA" -> listOf(
+        "GUARD", "GUARDIA" -> listOf(
             BottomNavItem("Inicio", Destinos.guardHomeRoute(token, role), Destinos.GUARD_HOME, Icons.Default.Home),
-            BottomNavItem("Ronda", Destinos.guardRondaRoute(token, role), Destinos.GUARD_RONDA, Icons.Default.RadioButtonChecked),
+            BottomNavItem("Ronda", Destinos.guardRondaRoute(token, role, 0L, 0L, "Instalación"), Destinos.GUARD_RONDA, Icons.Default.RadioButtonChecked),
             BottomNavItem("Historial", Destinos.guardHistoryRoute(token, role), Destinos.GUARD_HISTORY, Icons.Default.History),
             BottomNavItem("Perfil", Destinos.guardProfileRoute(token, role), Destinos.GUARD_PROFILE, Icons.Default.Person)
         )

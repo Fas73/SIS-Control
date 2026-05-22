@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.siscontrol.mobile.MainActivity
 import com.siscontrol.mobile.presentation.theme.*
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -27,8 +28,19 @@ import com.siscontrol.mobile.presentation.theme.*
 fun GuardCheckpointScreen(
     checkpointName: String = "Salida de Emergencia",
     checkpointNumber: Int = 4,
+    expectedNfcCode: String = "NFC1234",
+    onScanSuccess: (String) -> Unit,
     onSimulateScan: () -> Unit
 ) {
+    // Listen for real NFC tags
+    LaunchedEffect(Unit) {
+        MainActivity.nfcTagFlow.collect { tagId ->
+            // En una implementación real, aquí validaríamos contra expectedNfcCode
+            // Por ahora, cualquier tag exitoso navega al éxito
+            onScanSuccess(tagId)
+        }
+    }
+
     // Pulse animation for the concentric rings
     val infiniteTransition = rememberInfiniteTransition(label = "nfc_pulse")
     val outerScale by infiniteTransition.animateFloat(

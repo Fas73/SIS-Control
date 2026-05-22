@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -25,59 +24,52 @@ import com.siscontrol.mobile.presentation.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateInstallationScreen(
-    onBack: () -> Unit,
-    onCreate: () -> Unit
+    viewModel: AdminInstallationsViewModel, // Conectamos el ViewModel
+    onBack: () -> Unit
 ) {
+    // Obtenemos el estado del ViewModel
+    val state by viewModel.state
+
+    // Estados locales para el formulario (Sincronizados con tu Postman y BD)
     var name by rememberSaveable { mutableStateOf("") }
     var address by rememberSaveable { mutableStateOf("") }
-    var city by rememberSaveable { mutableStateOf("") }
-    var lat by rememberSaveable { mutableStateOf("-33.4372") }
-    var lng by rememberSaveable { mutableStateOf("-70.6506") }
-    var description by rememberSaveable { mutableStateOf("") }
-    var showSuccessDialog by rememberSaveable { mutableStateOf(false) }
+    var clientName by rememberSaveable { mutableStateOf("") }
+    var latitude by rememberSaveable { mutableStateOf("") }
+    var longitude by rememberSaveable { mutableStateOf("") }
+    var radius by rememberSaveable { mutableStateOf("100.0") }
 
-    val isFormValid = name.isNotBlank() && address.isNotBlank() && city.isNotBlank()
+    // Validación: name, address, clientName, lat y lon son obligatorios y radio debe ser positivo
+    val isFormValid = name.isNotBlank() && 
+                     address.isNotBlank() && 
+                     clientName.isNotBlank() && 
+                     latitude.toDoubleOrNull() != null && 
+                     longitude.toDoubleOrNull() != null &&
+                     (radius.toDoubleOrNull() ?: -1.0) >= 0.0
+
+    // Observamos si la creación fue exitosa para volver atrás
+    LaunchedEffect(state.isCreateSuccess) {
+        if (state.isCreateSuccess) {
+            viewModel.resetCreateState()
+            onBack()
+        }
+    }
 
     Scaffold(
+        modifier = Modifier.imePadding(), // Añade espacio para el teclado
         topBar = {
             TopAppBar(
-                title = { 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Business,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Column {
-                            Text(
-                                "Nueva Instalación", 
-                                fontWeight = FontWeight.Bold, 
-                                color = Color.White,
-                                fontSize = 18.sp
-                            )
-                            Text(
-                                "Complete los datos de la instalación", 
-                                color = Color.White.copy(alpha = 0.8f),
-                                fontSize = 12.sp
-                            )
-                        }
+                title = {
+                    Column {
+                        Text("Nueva Instalación", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp)
+                        Text("Datos según registro oficial", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
                     }
                 },
                 navigationIcon = {
-                    Row(
-                        modifier = Modifier.padding(start = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
-                        }
-                        Text("Volver", color = Color.White, fontWeight = FontWeight.Medium, fontSize = 16.sp, modifier = Modifier.offset(x = (-8).dp))
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = PrimaryVariant
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PrimaryVariant)
             )
         },
         containerColor = BackgroundColor
@@ -87,290 +79,109 @@ fun CreateInstallationScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Info Box Blue
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFEFF6FF), RoundedCornerShape(8.dp))
-                    .border(1.dp, Color(0xFFBFDBFE), RoundedCornerShape(8.dp))
-                    .padding(12.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF3B82F6), modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    "La instalación es el lugar físico donde se realizarán las rondas de seguridad",
-                    color = Color(0xFF1E3A8A),
-                    fontSize = 14.sp
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Card 1: Información General
+            // Card de Formulario
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.White, RoundedCornerShape(8.dp))
                     .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(8.dp))
-                    .padding(16.dp)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    "Información General",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+                FormField(label = "Nombre de Instalación", value = name, onValueChange = { name = it }, placeholder = "Ej: Planta Industrial Norte")
+                FormField(label = "Dirección", value = address, onValueChange = { address = it }, placeholder = "Ej: Av. Industrial 500")
+                FormField(label = "Nombre del Cliente", value = clientName, onValueChange = { clientName = it }, placeholder = "Ej: Manufacturas S.A.")
                 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Business, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Nombre de la instalación", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    placeholder = { Text("Ej: Plaza Centro", color = TextSecondary, fontSize = 14.sp) },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    singleLine = true,
-                    shape = RoundedCornerShape(8.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color(0xFFE5E7EB),
-                        focusedBorderColor = PrimaryVariant
-                    )
-                )
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                Text("Dirección completa", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
-                Spacer(modifier = Modifier.height(4.dp))
-                OutlinedTextField(
-                    value = address,
-                    onValueChange = { address = it },
-                    placeholder = { Text("Av. Principal #123", color = TextSecondary, fontSize = 14.sp) },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    singleLine = true,
-                    shape = RoundedCornerShape(8.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color(0xFFE5E7EB),
-                        focusedBorderColor = PrimaryVariant
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                Text("Ciudad", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
-                Spacer(modifier = Modifier.height(4.dp))
-                OutlinedTextField(
-                    value = city,
-                    onValueChange = { city = it },
-                    placeholder = { Text("Santiago, Chile", color = TextSecondary, fontSize = 14.sp) },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    singleLine = true,
-                    shape = RoundedCornerShape(8.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color(0xFFE5E7EB),
-                        focusedBorderColor = PrimaryVariant
-                    )
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Card 2: Ubicación GPS
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White, RoundedCornerShape(8.dp))
-                    .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(8.dp))
-                    .padding(16.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        "Ubicación GPS",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Latitud", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        OutlinedTextField(
-                            value = lat,
-                            onValueChange = { lat = it },
-                            placeholder = { Text("-33.4372", color = TextSecondary, fontSize = 14.sp) },
-                            modifier = Modifier.fillMaxWidth().height(52.dp),
-                            singleLine = true,
-                            shape = RoundedCornerShape(8.dp),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = Color(0xFFE5E7EB),
-                                focusedBorderColor = PrimaryVariant
-                            )
-                        )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        FormField(label = "Latitud", value = latitude, onValueChange = { latitude = it }, placeholder = "Ej: -33.1234", keyboardType = KeyboardType.Decimal)
                     }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Longitud", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        OutlinedTextField(
-                            value = lng,
-                            onValueChange = { lng = it },
-                            placeholder = { Text("-70.6506", color = TextSecondary, fontSize = 14.sp) },
-                            modifier = Modifier.fillMaxWidth().height(52.dp),
-                            singleLine = true,
-                            shape = RoundedCornerShape(8.dp),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = Color(0xFFE5E7EB),
-                                focusedBorderColor = PrimaryVariant
-                            )
-                        )
+                    Box(modifier = Modifier.weight(1f)) {
+                        FormField(label = "Longitud", value = longitude, onValueChange = { longitude = it }, placeholder = "Ej: -70.5678", keyboardType = KeyboardType.Decimal)
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Button(
-                    onClick = { /* Get current location */ },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFF3F6FF),
-                        contentColor = PrimaryVariant
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFFE11D48), modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Obtener ubicación actual", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                FormField(label = "Radio de Tolerancia (Metros)", value = radius, onValueChange = { radius = it }, placeholder = "Ej: 100.0", keyboardType = KeyboardType.Decimal)
+                if ((radius.toDoubleOrNull() ?: 0.0) < 0.0) {
+                    Text("El radio no puede ser negativo", color = Color.Red, fontSize = 12.sp)
                 }
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
 
-            // Card 3: Descripción
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White, RoundedCornerShape(8.dp))
-                    .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(8.dp))
-                    .padding(16.dp)
-            ) {
-                Text(
-                    "Descripción",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    placeholder = { Text("Descripción adicional de la instalación, características especiales, horarios, etc.", color = TextSecondary, fontSize = 14.sp) },
-                    modifier = Modifier.fillMaxWidth().height(100.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color(0xFFE5E7EB),
-                        focusedBorderColor = PrimaryVariant
-                    )
-                )
+            // Error del Backend si existe
+            if (state.error != null) {
+                Text(state.error!!, color = Color.Red, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
 
-            // Yellow Info Box
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFFEF9C3), RoundedCornerShape(8.dp))
-                    .border(1.dp, Color(0xFFFEF08A), RoundedCornerShape(8.dp))
-                    .padding(12.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                Icon(Icons.Default.Lightbulb, contentDescription = null, tint = Color(0xFFEAB308), modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(
-                        "Siguiente paso:",
-                        color = Color(0xFF854D0E),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        "Una vez creada la instalación, podrás agregar los checkpoints correspondientes",
-                        color = Color(0xFF854D0E),
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Buttons
+            // Botón de Acción
             Button(
-                onClick = { showSuccessDialog = true },
+                onClick = {
+                    viewModel.createInstallation(
+                        name = name,
+                        address = address,
+                        clientName = clientName,
+                        latitude = latitude.toDoubleOrNull() ?: 0.0,
+                        longitude = longitude.toDoubleOrNull() ?: 0.0,
+                        radius = radius.toDoubleOrNull() ?: 100.0
+                    )
+                },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryColor,
-                    contentColor = Color.White
-                ),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
                 shape = RoundedCornerShape(8.dp),
-                enabled = isFormValid
+                enabled = isFormValid && !state.isLoading
             ) {
-                Text("Crear Instalación", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                if (state.isLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                } else {
+                    Text("Crear Instalación", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
             }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            Button(
+
+            OutlinedButton(
                 onClick = onBack,
                 modifier = Modifier.fillMaxWidth().height(50.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFE5E7EB),
-                    contentColor = Color(0xFF111827)
-                ),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text("Cancelar", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Cancelar")
             }
-            
-            Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+}
 
-        if (showSuccessDialog) {
-            AlertDialog(
-                onDismissRequest = { /* No dismiss on click outside */ },
-                title = {
-                    Text(text = "Éxito", fontWeight = FontWeight.Bold)
-                },
-                text = {
-                    Text("Instalación creada exitosamente!")
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        showSuccessDialog = false
-                        onCreate()
-                    }) {
-                        Text("Cerrar", color = PrimaryColor, fontWeight = FontWeight.Bold)
-                    }
-                },
-                shape = RoundedCornerShape(16.dp),
-                containerColor = Color.White
-            )
-        }
+@Composable
+fun FormField(
+    label: String, 
+    value: String, 
+    onValueChange: (String) -> Unit, 
+    placeholder: String,
+    keyboardType: KeyboardType = KeyboardType.Text
+) {
+    Column {
+        Text(label, fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Bold) // Texto en Negrita
+        Spacer(modifier = Modifier.height(4.dp))
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = { Text(placeholder, fontSize = 14.sp, color = Color.Gray) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            shape = RoundedCornerShape(8.dp),
+            // FORZAR COLORES OSCUROS PARA MÁXIMA VISIBILIDAD
+            textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = TextPrimary,
+                unfocusedTextColor = TextPrimary,
+                focusedLabelColor = PrimaryColor,
+                unfocusedLabelColor = TextSecondary,
+                focusedBorderColor = PrimaryColor,
+                unfocusedBorderColor = Color.DarkGray,
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White,
+                cursorColor = PrimaryColor
+            ),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = keyboardType)
+        )
     }
 }

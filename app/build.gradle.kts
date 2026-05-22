@@ -1,11 +1,13 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("kotlin-kapt")
+    id("com.google.gms.google-services")
 }
 
 android {
     namespace = "com.siscontrol.mobile"
-    compileSdk = 35
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.siscontrol.mobile"
@@ -41,16 +43,27 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.10"
+        kotlinCompilerExtensionVersion = "1.5.7"
     }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    configurations.all {
+        resolutionStrategy {
+            force("org.jetbrains.kotlin:kotlin-stdlib:1.9.21")
+            force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.21")
+            force("org.jetbrains.kotlin:kotlin-stdlib-common:1.9.21")
+        }
+    }
 }
 
 dependencies {
+    // Kotlin BOM para asegurar consistencia de versiones
+    implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.9.21"))
+
     // AndroidX Core
     implementation("androidx.compose.material:material-icons-extended")
     
@@ -79,6 +92,20 @@ dependencies {
     // Jetpack Preferences DataStore — persistencia de sesión segura
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     implementation("androidx.compose.foundation:foundation-layout")
+
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
+    implementation("com.google.firebase:firebase-storage-ktx")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
+    // Image Loading
+    implementation("io.coil-kt:coil-compose:2.5.0")
+
+    // Room Database
+    val room_version = "2.6.1"
+    implementation("androidx.room:room-runtime:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+    kapt("androidx.room:room-compiler:$room_version")
 
     // Herramientas de Testing
     testImplementation("junit:junit:4.13.2")

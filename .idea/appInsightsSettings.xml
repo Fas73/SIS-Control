@@ -9,10 +9,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.siscontrol.mobile" />
+                  <option name="mobileSdkAppId" value="1:64069146165:android:f1f89eca51f9560a46c37c" />
+                  <option name="projectId" value="vito-sis-control" />
+                  <option name="projectNumber" value="64069146165" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

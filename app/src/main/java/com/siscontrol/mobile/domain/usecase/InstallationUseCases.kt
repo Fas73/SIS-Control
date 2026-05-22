@@ -1,7 +1,5 @@
 package com.siscontrol.mobile.domain.usecase
 
-import com.siscontrol.mobile.data.remote.dto.CheckpointDto
-import com.siscontrol.mobile.data.remote.dto.CheckpointRequestDto
 import com.siscontrol.mobile.data.remote.dto.InstallationDto
 import com.siscontrol.mobile.data.remote.dto.InstallationRequestDto
 import com.siscontrol.mobile.domain.repository.InstallationRepository
@@ -17,23 +15,23 @@ class GetInstallationsUseCase(
 class CreateInstallationUseCase(
     private val repository: InstallationRepository
 ) {
-    suspend operator fun invoke(request: InstallationRequestDto): Result<InstallationDto> {
-        return repository.createInstallation(request)
+    suspend operator fun invoke(editorId: Long, request: InstallationRequestDto): Result<Unit> {
+        return repository.createInstallation(editorId, request)
     }
 }
 
-class GetCheckpointsUseCase(
+class UpdateInstallationUseCase(
     private val repository: InstallationRepository
 ) {
-    suspend operator fun invoke(installationId: Long): Result<List<CheckpointDto>> {
-        return repository.getCheckpoints(installationId)
+    suspend operator fun invoke(id: Long, editorId: Long, request: InstallationDto): Result<Unit> {
+        return repository.updateInstallation(id, editorId, request)
     }
 }
 
-class CreateCheckpointUseCase(
+class ToggleInstallationStatusUseCase(
     private val repository: InstallationRepository
 ) {
-    suspend operator fun invoke(installationId: Long, request: CheckpointRequestDto): Result<CheckpointDto> {
-        return repository.createCheckpoint(installationId, request)
+    suspend operator fun invoke(id: Long, editorId: Long): Result<Int> {
+        return repository.toggleInstallationStatus(id, editorId)
     }
 }

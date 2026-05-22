@@ -21,27 +21,63 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.siscontrol.mobile.MainActivity
 import com.siscontrol.mobile.presentation.theme.*
+import android.os.Vibrator
+import android.os.VibratorManager
+import android.os.VibrationEffect
+import android.content.Context
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateCheckpointScreen(
+    installationId: Long,
+    predefinedInstallationName: String,
+    viewModel: AdminInstallationsViewModel,
     onBack: () -> Unit,
     onCreate: () -> Unit
 ) {
     var name by rememberSaveable { mutableStateOf("") }
+    var locationDescription by rememberSaveable { mutableStateOf("") }
     var nfcCode by rememberSaveable { mutableStateOf("") }
-    var installationName by rememberSaveable { mutableStateOf("") } 
     var order by rememberSaveable { mutableStateOf("") }
     var lat by rememberSaveable { mutableStateOf("-33.4372") }
     var lng by rememberSaveable { mutableStateOf("-70.6506") }
     var instructions by rememberSaveable { mutableStateOf("") }
     var showSuccessDialog by rememberSaveable { mutableStateOf(false) }
+    
+    // Estado para saber si estamos esperando un escaneo NFC
+    var isWaitingForScan by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
-    var expanded by remember { mutableStateOf(false) }
-    val installations = listOf("Plaza Centro", "Edificio Norte", "Bodega Sur")
+    // Escuchar el flujo de NFC de la MainActivity
+    LaunchedEffect(isWaitingForScan) {
+        if (isWaitingForScan) {
+            MainActivity.nfcTagFlow.collect { tagId ->
+                nfcCode = tagId
+                isWaitingForScan = false
+                
+                // Vibración de confirmación de captura exitosa
+                val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                    vibratorManager.defaultVibrator
+                } else {
+                    @Suppress("DEPRECATION")
+                    context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                }
+                
+                vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE))
+            }
+        }
+    }
 
-    val isFormValid = name.isNotBlank() && nfcCode.isNotBlank() && installationName.isNotBlank()
+    val isFormValid = name.isNotBlank() && 
+                     locationDescription.isNotBlank() && 
+                     nfcCode.isNotBlank() && 
+                     order.toIntOrNull() != null
+
+    // Observar éxito en el ViewModel para cerrar
+    // (Asumiendo que el ViewModel tiene un estado de éxito para checkpoints o reutilizando el de instalaciones)
 
     Scaffold(
         topBar = {
@@ -133,19 +169,50 @@ fun CreateCheckpointScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Wifi, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Nombre del checkpoint", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+                    Text("Nombre del checkpoint", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = { Text("Ej: Entrada Principal", color = TextSecondary, fontSize = 14.sp) },
+                    placeholder = { Text("Ej: Entrada Principal", color = Color.Gray, fontSize = 14.sp) },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     singleLine = true,
                     shape = RoundedCornerShape(8.dp),
+                    textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                     colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color(0xFFE5E7EB),
-                        focusedBorderColor = PrimaryVariant
+                        unfocusedBorderColor = Color.DarkGray,
+                        focusedBorderColor = PrimaryVariant,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
+                    )
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Place, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Descripción de la ubicación", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedTextField(
+                    value = locationDescription,
+                    onValueChange = { locationDescription = it },
+                    placeholder = { Text("Ej: Lobby junto a recepción", color = Color.Gray, fontSize = 14.sp) },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    singleLine = true,
+                    shape = RoundedCornerShape(8.dp),
+                    textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color.DarkGray,
+                        focusedBorderColor = PrimaryVariant,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
                     )
                 )
                 
@@ -154,66 +221,53 @@ fun CreateCheckpointScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Business, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Instalación", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+                    Text("Instalación", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded }
-                ) {
-                    OutlinedTextField(
-                        value = installationName,
-                        onValueChange = {},
-                        readOnly = true,
-                        placeholder = { Text("Seleccionar instalación", color = TextSecondary, fontSize = 14.sp) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .menuAnchor(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = Color(0xFFE5E7EB),
-                            focusedBorderColor = PrimaryVariant
-                        )
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        installations.forEach { selectionOption ->
-                            DropdownMenuItem(
-                                text = { Text(selectionOption) },
-                                onClick = {
-                                    installationName = selectionOption
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
+                OutlinedTextField(
+                    value = predefinedInstallationName,
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color.DarkGray,
+                        focusedBorderColor = PrimaryVariant,
+                        disabledContainerColor = Color(0xFFF9FAFB),
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        disabledTextColor = TextPrimary,
+                        disabledBorderColor = Color.DarkGray
+                    ),
+                    enabled = false
+                )
 
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Numbers, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Orden en la ronda", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+                    Text("Orden en la ronda", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 OutlinedTextField(
                     value = order,
                     onValueChange = { order = it },
-                    placeholder = { Text("1, 2, 3...", color = TextSecondary, fontSize = 14.sp) },
+                    placeholder = { Text("1, 2, 3...", color = Color.Gray, fontSize = 14.sp) },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     singleLine = true,
                     shape = RoundedCornerShape(8.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                     colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color(0xFFE5E7EB),
-                        focusedBorderColor = PrimaryVariant
+                        unfocusedBorderColor = Color.DarkGray,
+                        focusedBorderColor = PrimaryVariant,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
                     )
                 )
                 Text(
@@ -241,41 +295,60 @@ fun CreateCheckpointScreen(
                     color = TextPrimary
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("Código del tag NFC", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+                Text("Código del tag NFC", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(4.dp))
                 
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         value = nfcCode,
                         onValueChange = { nfcCode = it },
-                        placeholder = { Text("NFC-XXXXXX", color = TextSecondary, fontSize = 14.sp) },
+                        placeholder = { Text("NFC-XXXXXX", color = Color.Gray, fontSize = 14.sp) },
                         modifier = Modifier.weight(1f).height(52.dp),
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
+                        textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = Color(0xFFE5E7EB),
-                            focusedBorderColor = PrimaryVariant
+                            unfocusedBorderColor = Color.DarkGray,
+                            focusedBorderColor = PrimaryVariant,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White
                         )
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Button(
-                        onClick = { nfcCode = "NFC-${(100000..999999).random()}" },
+                        onClick = { isWaitingForScan = true },
                         modifier = Modifier.height(52.dp),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFF3E8FF),
-                            contentColor = Color(0xFFA855F7)
+                            containerColor = if (isWaitingForScan) SuccessColor.copy(alpha = 0.2f) else Color(0xFFF3E8FF),
+                            contentColor = if (isWaitingForScan) SuccessColor else Color(0xFFA855F7)
                         )
                     ) {
-                        Text("Generar", fontWeight = FontWeight.Bold)
+                        if (isWaitingForScan) {
+                            Text("Leyendo...", fontWeight = FontWeight.Bold)
+                        } else {
+                            Text("Capturar NFC", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
-                Text(
-                    "Código único que identifica el tag NFC físico", 
-                    color = TextSecondary, 
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+                if (isWaitingForScan) {
+                    Text(
+                        "Acerque el tag NFC al teléfono para capturar su ID",
+                        color = SuccessColor,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                } else {
+                    Text(
+                        "Puede ingresar el ID manualmente o usar el botón para capturarlo", 
+                        color = TextSecondary, 
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -305,36 +378,46 @@ fun CreateCheckpointScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Latitud", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+                        Text("Latitud", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
                         OutlinedTextField(
                             value = lat,
                             onValueChange = { lat = it },
-                            placeholder = { Text("-33.4372", color = TextSecondary, fontSize = 14.sp) },
+                            placeholder = { Text("-33.4372", color = Color.Gray, fontSize = 14.sp) },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             singleLine = true,
                             shape = RoundedCornerShape(8.dp),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                             colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = Color(0xFFE5E7EB),
-                                focusedBorderColor = PrimaryVariant
+                                unfocusedBorderColor = Color.DarkGray,
+                                focusedBorderColor = PrimaryVariant,
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary,
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White
                             )
                         )
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Longitud", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+                        Text("Longitud", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
                         OutlinedTextField(
                             value = lng,
                             onValueChange = { lng = it },
-                            placeholder = { Text("-70.6506", color = TextSecondary, fontSize = 14.sp) },
+                            placeholder = { Text("-70.6506", color = Color.Gray, fontSize = 14.sp) },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             singleLine = true,
                             shape = RoundedCornerShape(8.dp),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                             colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = Color(0xFFE5E7EB),
-                                focusedBorderColor = PrimaryVariant
+                                unfocusedBorderColor = Color.DarkGray,
+                                focusedBorderColor = PrimaryVariant,
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary,
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White
                             )
                         )
                     }
@@ -377,12 +460,17 @@ fun CreateCheckpointScreen(
                 OutlinedTextField(
                     value = instructions,
                     onValueChange = { instructions = it },
-                    placeholder = { Text("Ej: Verificar que la puerta esté cerrada con llave. Revisar iluminación del área.", color = TextSecondary, fontSize = 14.sp) },
+                    placeholder = { Text("Ej: Verificar que la puerta esté cerrada con llave.", color = Color.Gray, fontSize = 14.sp) },
                     modifier = Modifier.fillMaxWidth().height(100.dp),
                     shape = RoundedCornerShape(8.dp),
+                    textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.SemiBold),
                     colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color(0xFFE5E7EB),
-                        focusedBorderColor = PrimaryVariant
+                        unfocusedBorderColor = Color.DarkGray,
+                        focusedBorderColor = PrimaryVariant,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
                     )
                 )
                 Text(
@@ -427,7 +515,17 @@ fun CreateCheckpointScreen(
             
             // Buttons
             Button(
-                onClick = { showSuccessDialog = true },
+                onClick = { 
+                    viewModel.createCheckpoint(
+                        installationId = installationId,
+                        name = name,
+                        executionOrder = order.toIntOrNull() ?: 0,
+                        nfcCode = nfcCode,
+                        desc = locationDescription,
+                        instruction = instructions
+                    )
+                    showSuccessDialog = true 
+                },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryColor,

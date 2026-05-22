@@ -127,20 +127,23 @@ fun CreateGuardScreen(
                     // Full Name Field
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Person, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Person, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Nombre completo", color = TextPrimary, fontWeight = FontWeight.Medium)
+                            Text("Nombre completo", color = TextPrimary, fontWeight = FontWeight.Bold)
                         }
                         OutlinedTextField(
                             value = fullName,
                             onValueChange = { fullName = it },
-                            placeholder = { Text("Juan Pérez González", color = TextSecondary) },
+                            placeholder = { Text("Juan Pérez González", color = Color.Gray) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
                             singleLine = true,
+                            textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = PrimaryColor,
-                                unfocusedBorderColor = Color(0xFFE5E7EB),
+                                unfocusedBorderColor = Color.DarkGray,
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary,
                                 focusedContainerColor = Color.White,
                                 unfocusedContainerColor = Color.White
                             )
@@ -150,20 +153,23 @@ fun CreateGuardScreen(
                     // Email Field
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Email, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Email, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Correo electrónico", color = TextPrimary, fontWeight = FontWeight.Medium)
+                            Text("Correo electrónico", color = TextPrimary, fontWeight = FontWeight.Bold)
                         }
                         OutlinedTextField(
                             value = email,
                             onValueChange = { email = it },
-                            placeholder = { Text("usuario@empresa.com", color = TextSecondary) },
+                            placeholder = { Text("usuario@empresa.com", color = Color.Gray) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
                             singleLine = true,
+                            textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = PrimaryColor,
-                                unfocusedBorderColor = Color(0xFFE5E7EB),
+                                unfocusedBorderColor = Color.DarkGray,
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary,
                                 focusedContainerColor = Color.White,
                                 unfocusedContainerColor = Color.White
                             )
@@ -173,20 +179,23 @@ fun CreateGuardScreen(
                     // Phone Field
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Phone, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Phone, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Teléfono", color = TextPrimary, fontWeight = FontWeight.Medium)
+                            Text("Teléfono", color = TextPrimary, fontWeight = FontWeight.Bold)
                         }
                         OutlinedTextField(
                             value = phone,
                             onValueChange = { phone = it },
-                            placeholder = { Text("+56 9 XXXX XXXX", color = TextSecondary) },
+                            placeholder = { Text("+56 9 XXXX XXXX", color = Color.Gray) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
                             singleLine = true,
+                            textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = PrimaryColor,
-                                unfocusedBorderColor = Color(0xFFE5E7EB),
+                                unfocusedBorderColor = Color.DarkGray,
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary,
                                 focusedContainerColor = Color.White,
                                 unfocusedContainerColor = Color.White
                             )
@@ -196,23 +205,26 @@ fun CreateGuardScreen(
                     // Installation Field
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Instalación asignada", color = TextPrimary, fontWeight = FontWeight.Medium)
+                            Text("Instalación asignada", color = TextPrimary, fontWeight = FontWeight.Bold)
                         }
                         OutlinedTextField(
                             value = installation,
                             onValueChange = { },
                             readOnly = true,
-                            placeholder = { Text("Seleccionar instalación", color = TextPrimary) },
+                            placeholder = { Text("Seleccionar instalación", color = Color.Gray) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
                             trailingIcon = {
                                 Icon(Icons.Default.ArrowDropDown, contentDescription = "Seleccionar", tint = TextPrimary)
                             },
+                            textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = PrimaryColor,
-                                unfocusedBorderColor = Color(0xFFE5E7EB),
+                                unfocusedBorderColor = Color.DarkGray,
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary,
                                 focusedContainerColor = Color.White,
                                 unfocusedContainerColor = Color.White
                             )

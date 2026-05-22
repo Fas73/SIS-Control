@@ -7,9 +7,11 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
@@ -35,10 +37,13 @@ import com.siscontrol.mobile.presentation.components.ButtonVariant
 import com.siscontrol.mobile.presentation.components.PrimaryButton
 import com.siscontrol.mobile.presentation.theme.*
 
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
-    onLoginSuccess: (token: String, role: String) -> Unit,
+    onLoginSuccess: (token: String, role: String, userId: Long, fullName: String, username: String) -> Unit,
     onForgotPassword: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -46,7 +51,7 @@ fun LoginScreen(
     LaunchedEffect(state) {
         if (state is LoginUiState.Success) {
             val success = state as LoginUiState.Success
-            onLoginSuccess(success.token, success.role)
+            onLoginSuccess(success.token, success.role, success.userId, success.fullName, success.username)
         }
     }
 
@@ -66,17 +71,21 @@ fun LoginScreenContent(
 ) {
     var username by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundColor)
-            .padding(horizontal = 24.dp, vertical = 32.dp),
-        contentAlignment = Alignment.Center
+            .imePadding() // Empuja el contenido hacia arriba cuando sale el teclado
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()) // Permite deslizar si el teclado tapa campos
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             // Animación sutil de entrada para el Logo
             Image(
@@ -109,14 +118,17 @@ fun LoginScreenContent(
                     value = username,
                     onValueChange = { username = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Correo electrónico", color = TextSecondary) },
+                    label = { Text("Usuario o Correo", color = TextSecondary, fontWeight = FontWeight.Bold) },
                     leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = PrimaryColor) },
                     singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                     colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
                         focusedBorderColor = PrimaryColor,
-                        unfocusedBorderColor = Color(0xFFE5E7EB),
-                        focusedContainerColor = Color(0xFFF9FAFB),
-                        unfocusedContainerColor = Color(0xFFF9FAFB)
+                        unfocusedBorderColor = Color.DarkGray,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -129,16 +141,25 @@ fun LoginScreenContent(
                     value = password,
                     onValueChange = { password = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Contraseña", color = TextSecondary) },
+                    label = { Text("Contraseña", color = TextSecondary, fontWeight = FontWeight.Bold) },
                     leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = PrimaryColor) },
+                    trailingIcon = {
+                        val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(image, null, tint = PrimaryColor)
+                        }
+                    },
                     singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
+                    textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
+                    visualTransformation = if (passwordVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
                         focusedBorderColor = PrimaryColor,
-                        unfocusedBorderColor = Color(0xFFE5E7EB),
-                        focusedContainerColor = Color(0xFFF9FAFB),
-                        unfocusedContainerColor = Color(0xFFF9FAFB)
+                        unfocusedBorderColor = Color.DarkGray,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )

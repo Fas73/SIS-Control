@@ -107,20 +107,23 @@ fun CreateSupervisorScreen(
                     // Email Field
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Email, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Email, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Correo electrónico", color = TextPrimary, fontWeight = FontWeight.Medium)
+                            Text("Correo electrónico", color = TextPrimary, fontWeight = FontWeight.Bold)
                         }
                         OutlinedTextField(
                             value = email,
                             onValueChange = { email = it },
-                            placeholder = { Text("usuario@empresa.com", color = TextSecondary) },
+                            placeholder = { Text("usuario@empresa.com", color = Color.Gray) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
                             singleLine = true,
+                            textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = PrimaryColor,
-                                unfocusedBorderColor = Color(0xFFE5E7EB),
+                                unfocusedBorderColor = Color.DarkGray,
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary,
                                 focusedContainerColor = Color.White,
                                 unfocusedContainerColor = Color.White
                             )
@@ -130,20 +133,23 @@ fun CreateSupervisorScreen(
                     // Phone Field
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Phone, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Phone, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Teléfono", color = TextPrimary, fontWeight = FontWeight.Medium)
+                            Text("Teléfono", color = TextPrimary, fontWeight = FontWeight.Bold)
                         }
                         OutlinedTextField(
                             value = phone,
                             onValueChange = { phone = it },
-                            placeholder = { Text("+56 9 XXXX XXXX", color = TextSecondary) },
+                            placeholder = { Text("+56 9 XXXX XXXX", color = Color.Gray) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
                             singleLine = true,
+                            textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = PrimaryColor,
-                                unfocusedBorderColor = Color(0xFFE5E7EB),
+                                unfocusedBorderColor = Color.DarkGray,
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary,
                                 focusedContainerColor = Color.White,
                                 unfocusedContainerColor = Color.White
                             )

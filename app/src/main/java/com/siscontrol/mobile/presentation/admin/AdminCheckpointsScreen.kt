@@ -3,6 +3,7 @@ package com.siscontrol.mobile.presentation.admin
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,11 +32,13 @@ import com.siscontrol.mobile.presentation.theme.*
 fun AdminCheckpointsScreen(
     paddingValues: PaddingValues,
     navController: NavController,
+    viewModel: AdminCheckpointsViewModel, // ViewModel agregado
     token: String,
     role: String,
     onCreateCheckpoint: () -> Unit = {}
 ) {
     var searchQuery by rememberSaveable { mutableStateOf("") }
+    val state = viewModel.state
 
     Column(
         modifier = Modifier
@@ -51,19 +54,23 @@ fun AdminCheckpointsScreen(
                 .padding(16.dp)
         ) {
             Column {
-                Text("Gestión Operativa", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text("Gestión de Checkpoints", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = searchQuery,
-                    onValueChange = { searchQuery = it },
+                    onValueChange = { 
+                        searchQuery = it 
+                        viewModel.onSearchQueryChanged(it)
+                    },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
-                    placeholder = { Text("Buscar checkpoint...", color = Color.White.copy(alpha = 0.6f)) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.6f)) },
+                    placeholder = { Text("Buscar checkpoint...", color = Color.White.copy(alpha = 0.7f)) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.8f)) },
+                    textStyle = LocalTextStyle.current.copy(color = Color.White, fontWeight = FontWeight.Bold),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedContainerColor = PrimaryColor.copy(alpha = 0.3f),
-                        unfocusedContainerColor = PrimaryColor.copy(alpha = 0.3f),
+                        focusedBorderColor = Color.White,
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                        focusedContainerColor = PrimaryColor.copy(alpha = 0.4f),
+                        unfocusedContainerColor = PrimaryColor.copy(alpha = 0.2f),
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
                         cursorColor = Color.White
@@ -83,9 +90,7 @@ fun AdminCheckpointsScreen(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             Button(
-                onClick = { navController.navigate(Destinos.adminManagementRoute(token, role)) {
-                    popUpTo(Destinos.ADMIN_MANAGEMENT) { inclusive = false }
-                } },
+                onClick = { navController.navigate(Destinos.adminManagementRoute(token, role)) },
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                 shape = RoundedCornerShape(20.dp),
                 modifier = Modifier.weight(1f).padding(horizontal = 4.dp).height(40.dp),
@@ -94,9 +99,7 @@ fun AdminCheckpointsScreen(
                 Text("Usuarios", color = PrimaryColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
             Button(
-                onClick = { navController.navigate(Destinos.adminInstallationsRoute(token, role)) {
-                    popUpTo(Destinos.ADMIN_MANAGEMENT) { inclusive = false }
-                } },
+                onClick = { navController.navigate(Destinos.adminInstallationsRoute(token, role)) },
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                 shape = RoundedCornerShape(20.dp),
                 modifier = Modifier.weight(1f).padding(horizontal = 4.dp).height(40.dp),
@@ -115,53 +118,44 @@ fun AdminCheckpointsScreen(
             }
         }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Checkpoints (3)", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                    Button(
-                        onClick = onCreateCheckpoint,
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        modifier = Modifier.height(36.dp)
+        if (state.isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = PrimaryColor)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Nuevo", fontSize = 14.sp)
+                        Text("Puntos de Control (${state.filteredCheckpoints.size})", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Button(
+                            onClick = onCreateCheckpoint,
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Nuevo", fontSize = 14.sp)
+                        }
                     }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                // Hardcoded Checkpoints
-                CheckpointCard(
-                    name = "Punto Control Acceso 1",
-                    installation = "Bodega Central Norte",
-                    nfcCode = "NFC-A1-8899",
-                    status = "ACTIVO"
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                CheckpointCard(
-                    name = "Punto Control Recepción",
-                    installation = "Bodega Central Norte",
-                    nfcCode = "NFC-B2-1122",
-                    status = "ACTIVO"
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                CheckpointCard(
-                    name = "Ronda Perimetral Sur",
-                    installation = "Edificio Corporativo Sur",
-                    nfcCode = "NFC-C3-5566",
-                    status = "INACTIVO"
-                )
+
+                items(state.filteredCheckpoints) { checkpoint ->
+                    CheckpointCard(
+                        name = checkpoint.name ?: "Punto sin nombre",
+                        installation = state.selectedInstallationName ?: "Instalación General",
+                        nfcCode = checkpoint.nfcTagCode ?: "S/C",
+                        status = "ACTIVO"
+                    )
+                }
             }
         }
     }
@@ -176,7 +170,6 @@ fun CheckpointCard(
 ) {
     SISCard(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-            // Icon
             Box(
                 modifier = Modifier
                     .size(50.dp)
@@ -191,11 +184,7 @@ fun CheckpointCard(
             Column(modifier = Modifier.weight(1f)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text(name, fontWeight = FontWeight.Bold, color = TextPrimary, fontSize = 16.sp)
-                    if (status == "ACTIVO") {
-                        SISBadge(status, containerColor = Color(0xFFD1FAE5), contentColor = SuccessColor)
-                    } else {
-                        SISBadge(status, containerColor = Color(0xFFFEE2E2), contentColor = DangerColor)
-                    }
+                    SISBadge(status, containerColor = Color(0xFFD1FAE5), contentColor = SuccessColor)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 

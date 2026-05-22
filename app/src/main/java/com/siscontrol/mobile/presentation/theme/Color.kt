@@ -2,13 +2,20 @@ package com.siscontrol.mobile.presentation.theme
 
 import androidx.compose.ui.graphics.Color
 
-val PrimaryColor = Color(0xFF1E3A8A) // Azul oscuro (Figma)
-val PrimaryVariant = Color(0xFF3B82F6) // Azul secundario (Figma gradiente)
-val SecondaryColor = Color(0xFF3B82F6)
-val BackgroundColor = Color(0xFFFFFFFF) // Blanco puro (Figma)
-val SurfaceColor = Color(0xFFFFFFFF)
-val SuccessColor = Color(0xFF10B981) // Verde (Figma)
-val WarningColor = Color(0xFFF59E0B) // Amarillo (Figma)
-val DangerColor = Color(0xFFDC2626) // Rojo (Figma)
-val TextPrimary = Color(0xFF030213) // Foreground (Figma oklch(0.145 0 0))
-val TextSecondary = Color(0xFF717182) // Muted Foreground (Figma)
+// MARCA SIS CONTROL - COLORES VIBRANTES PARA CELULAR
+val PrimaryColor = Color(0xFF1E3A8A)    // Azul Marino Profundo
+val PrimaryVariant = Color(0xFF2563EB)  // Azul Eléctrico (Mejor visibilidad)
+val SecondaryColor = Color(0xFF3B82F6)  // Azul Cielo
+
+val BackgroundColor = Color(0xFFF3F4F6) // Gris muy claro (descansa la vista)
+val SurfaceColor = Color(0xFFFFFFFF)    // Blanco Puro para tarjetas
+
+val SuccessColor = Color(0xFF059669)    // Verde Esmeralda (Más oscuro para contraste)
+val WarningColor = Color(0xFFD97706)    // Ámbar Oscuro
+val DangerColor = Color(0xFFDC2626)     // Rojo Intenso
+
+// TEXTOS DE ALTA LEGIBILIDAD (Fuerza Negro sobre Blanco)
+val TextPrimary = Color(0xFF000000)     // Negro Absoluto
+val TextSecondary = Color(0xFF1F2937)   // Gris Carboncillo
+val TextOnDark = Color(0xFFFFFFFF)      // Blanco Puro para fondos azules
+val TextPlaceholder = Color(0xFF6B7280) // Gris Medio para ayudas

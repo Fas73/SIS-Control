@@ -152,7 +152,7 @@ fun ForgotPasswordScreen(
                     value = email,
                     onValueChange = { email = it; uiState = ForgotPasswordUiState.Idle },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Correo electrónico", color = TextSecondary) },
+                    label = { Text("Correo electrónico", color = TextSecondary, fontWeight = FontWeight.Bold) },
                     leadingIcon = {
                         Icon(
                             Icons.Default.Email,
@@ -161,12 +161,15 @@ fun ForgotPasswordScreen(
                         )
                     },
                     singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = PrimaryColor,
-                        unfocusedBorderColor = Color(0xFFE5E7EB),
-                        focusedContainerColor = Color(0xFFF9FAFB),
-                        unfocusedContainerColor = Color(0xFFF9FAFB)
+                        unfocusedBorderColor = Color.DarkGray,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary
                     ),
                     shape = RoundedCornerShape(12.dp),
                     enabled = !isLoading && !isSuccess

@@ -1,13 +1,16 @@
 package com.siscontrol.mobile.data.remote.dto
 
+import com.google.gson.annotations.SerializedName
+
 /**
- * Data class que mapea la respuesta de login del servidor, 
- * extrayendo tanto el JWT como la información básica del usuario.
+ * Mapeo exacto de AuthResponseDTO del Backend.
  */
 data class LoginResponse(
-    val token: String,
-    val id: Long,
-    val username: String,
-    val fullName: String,
-    val role: String
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String,
+    @SerializedName(value = "id", alternate = ["userId"]) val id: Long?,
+    @SerializedName("username") val username: String?,
+    @SerializedName("fullName") val fullName: String?, // Ahora sí lo recibirá
+    @SerializedName("role") val role: String?,
+    @SerializedName("status") val status: String?
 )

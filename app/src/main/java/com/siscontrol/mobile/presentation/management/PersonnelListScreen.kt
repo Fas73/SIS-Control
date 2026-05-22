@@ -124,6 +124,9 @@ fun PersonnelListScreen(
                         modifier = Modifier.align(androidx.compose.ui.Alignment.Center)
                     )
                 }
+                // ... (mismos imports de arriba)
+
+// Dentro de PersonnelListScreen en el bloque de PersonnelUiState.Success:
                 is PersonnelUiState.Success -> {
                     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                         items(state.personnel) { user ->
@@ -138,21 +141,38 @@ fun PersonnelListScreen(
                                         modifier = Modifier.size(50.dp).background(com.siscontrol.mobile.presentation.theme.PrimaryColor, shape = androidx.compose.foundation.shape.CircleShape),
                                         contentAlignment = androidx.compose.ui.Alignment.Center
                                     ) {
-                                        Text(user.fullName.take(1).uppercase(), color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.titleLarge)
+                                        Text((user.fullName ?: "U").take(1).uppercase(), color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.titleLarge)
                                     }
                                     Spacer(modifier = Modifier.width(16.dp))
+
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(text = user.fullName, style = MaterialTheme.typography.titleMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                                        Text(text = user.role, color = com.siscontrol.mobile.presentation.theme.TextSecondary, style = MaterialTheme.typography.bodyMedium)
-                                        if (!user.installations.isNullOrEmpty()) {
-                                            Text(
-                                                text = "📍 ${user.installations.first().name}",
-                                                color = com.siscontrol.mobile.presentation.theme.TextSecondary,
-                                                style = MaterialTheme.typography.bodySmall
-                                            )
-                                        }
+                                        Text(
+                                            text = user.fullName ?: "Usuario",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "Rol: ${user.role ?: "Desconocido"}",
+                                            color = com.siscontrol.mobile.presentation.theme.TextSecondary,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        // CAMBIO AQUÍ: Eliminamos la referencia a installations.
+                                        // Mostramos el email o el username que sí vienen en tu DTO de Java.
+                                        Text(
+                                            text = user.email ?: "",
+                                            color = com.siscontrol.mobile.presentation.theme.TextSecondary,
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
                                     }
-                                    com.siscontrol.mobile.presentation.components.StatusBadge(status = com.siscontrol.mobile.presentation.components.BadgeStatus.ACTIVE)
+
+                                    // Mapeo del StatusBadge basado en el entero del Backend (1 = Activo, 0 = Inactivo)
+                                    val badgeStatus = if (user.status == 1) {
+                                        com.siscontrol.mobile.presentation.components.BadgeStatus.ACTIVE
+                                    } else {
+                                        com.siscontrol.mobile.presentation.components.BadgeStatus.INACTIVE
+                                    }
+
+                                    com.siscontrol.mobile.presentation.components.StatusBadge(status = badgeStatus)
                                 }
                             }
                         }
