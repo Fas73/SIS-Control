@@ -21,6 +21,8 @@
 *.log
 hs_err_pid*
 replay_pid*
+*errors*.txt
+
 
 # --- Mockups / Diseño ---
 # Bloquea toda la carpeta de assets si solo son mockups
