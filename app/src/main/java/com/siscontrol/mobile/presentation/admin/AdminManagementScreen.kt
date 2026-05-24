@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.scale
 import androidx.navigation.NavController
-import com.siscontrol.mobile.data.remote.dto.UserResponseDto
+import com.siscontrol.mobile.domain.model.User
 import com.siscontrol.mobile.presentation.Destinos
 import com.siscontrol.mobile.presentation.components.SISCard
 import com.siscontrol.mobile.presentation.theme.*
@@ -388,7 +388,7 @@ fun RoleSummaryCard(
 
 @Composable
 fun UserCard(
-    user: UserResponseDto,
+    user: User,
     onToggleStatus: () -> Unit,
     onRoleChange: (String) -> Unit,
     onEditClick: () -> Unit

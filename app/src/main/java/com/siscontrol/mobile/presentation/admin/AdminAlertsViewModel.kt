@@ -4,7 +4,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.siscontrol.mobile.data.remote.dto.IncidentDto
+import com.siscontrol.mobile.domain.model.Incident
 import com.siscontrol.mobile.domain.repository.IncidentRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -74,7 +74,7 @@ class AdminAlertsViewModel(
 }
 
 data class AdminAlertsState(
-    val alerts: List<IncidentDto> = emptyList(),
+    val alerts: List<Incident> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null
 )

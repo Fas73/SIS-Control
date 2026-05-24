@@ -22,7 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.siscontrol.mobile.data.remote.dto.CheckpointDto
+import com.siscontrol.mobile.domain.model.Checkpoint
 import com.siscontrol.mobile.presentation.theme.*
 import com.siscontrol.mobile.MainActivity
 import com.siscontrol.mobile.core.toTitleCase
@@ -47,7 +47,7 @@ fun GuardiaRondaActivaScreen(
     onFinishRound: () -> Unit,
     onReportIncident: () -> Unit,
     onPanic: () -> Unit,
-    onScanCheckpoint: (CheckpointDto, Int, Int) -> Unit = { _, _, _ -> }
+    onScanCheckpoint: (Checkpoint, Int, Int) -> Unit = { _, _, _ -> }
 ) {
     var showPanicDialog by rememberSaveable { mutableStateOf(false) }
     var showSkipDialog by remember { mutableStateOf(false) }

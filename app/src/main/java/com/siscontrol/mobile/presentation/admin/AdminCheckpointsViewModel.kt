@@ -5,15 +5,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.siscontrol.mobile.data.remote.dto.CheckpointDto
+import com.siscontrol.mobile.domain.model.Checkpoint
 import com.siscontrol.mobile.domain.usecase.GetCheckpointsUseCase
 import com.siscontrol.mobile.domain.usecase.GetInstallationsUseCase
 import kotlinx.coroutines.launch
 
 data class CheckpointsState(
     val isLoading: Boolean = false,
-    val checkpoints: List<CheckpointDto> = emptyList(),
-    val filteredCheckpoints: List<CheckpointDto> = emptyList(),
+    val checkpoints: List<Checkpoint> = emptyList(),
+    val filteredCheckpoints: List<Checkpoint> = emptyList(),
     val error: String? = null,
     val selectedInstallationName: String? = null
 )
@@ -55,7 +55,7 @@ class AdminCheckpointsViewModel(
 
     private suspend fun loadAllCheckpointsIteratively() {
         getInstallationsUseCase().onSuccess { installations ->
-            val allCheckpoints = mutableListOf<CheckpointDto>()
+            val allCheckpoints = mutableListOf<Checkpoint>()
 
             installations.forEach { inst ->
                 inst.id?.let { id ->

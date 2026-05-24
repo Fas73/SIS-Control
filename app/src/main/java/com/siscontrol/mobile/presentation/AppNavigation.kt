@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.navigation.navArgument
 import com.siscontrol.mobile.di.AppModule
-import com.siscontrol.mobile.data.remote.dto.CheckpointDto
+import com.siscontrol.mobile.domain.model.Checkpoint
 import com.siscontrol.mobile.presentation.guard.GuardRoundViewModel
 import com.siscontrol.mobile.presentation.login.ForgotPasswordScreen
 import com.siscontrol.mobile.presentation.login.LoginScreen

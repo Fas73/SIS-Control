@@ -5,7 +5,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.siscontrol.mobile.data.remote.dto.*
+import com.siscontrol.mobile.domain.model.*
 import com.siscontrol.mobile.domain.usecase.*
 import com.siscontrol.mobile.di.SessionManager
 import kotlinx.coroutines.launch
@@ -97,7 +97,7 @@ class AdminInstallationsViewModel(
                 _state.value = _state.value.copy(isLoading = false, error = "Sesión no válida")
                 return@launch
             }
-            val request = InstallationRequestDto(
+            val request = InstallationCreationParam(
                 name = name,
                 address = address,
                 clientName = clientName,
@@ -116,7 +116,7 @@ class AdminInstallationsViewModel(
         }
     }
 
-    fun updateInstallation(installation: InstallationDto) {
+    fun updateInstallation(installation: Installation) {
         viewModelScope.launch {
             _state.value = _state.value.copy(isDetailLoading = true, error = null)
             val editorId = getEditorId()
@@ -154,13 +154,13 @@ class AdminInstallationsViewModel(
         viewModelScope.launch {
             _state.value = _state.value.copy(isDetailLoading = true)
             val editorId = getEditorId()
-            val request = CheckpointRequestDto(
+            val request = CheckpointCreationParam(
                 name = name,
                 executionOrder = executionOrder,
                 nfcTagCode = nfcCode,
                 locationDescription = desc,
                 instruction = instruction,
-                installation = InstallationIdRequest(id = installationId)
+                installationId = installationId
             )
             createCheckpointUseCase(editorId, request)
                 .onSuccess {
@@ -173,14 +173,14 @@ class AdminInstallationsViewModel(
         }
     }
 
-    fun updateCheckpoint(checkpoint: CheckpointDto, installationId: Long) {
+    fun updateCheckpoint(checkpoint: Checkpoint, installationId: Long) {
         viewModelScope.launch {
             _state.value = _state.value.copy(isDetailLoading = true)
             val editorId = getEditorId()
             
             // Aseguramos que incluya el objeto installation para cumplir con el contrato del backend
             val request = checkpoint.copy(
-                installation = InstallationIdRequest(id = installationId)
+                installationId = installationId
             )
             
             updateCheckpointUseCase(checkpoint.id ?: 0L, editorId, request)
@@ -232,11 +232,11 @@ class AdminInstallationsViewModel(
 }
 
 data class InstallationsState(
-    val installations: List<InstallationDto> = emptyList(),
+    val installations: List<Installation> = emptyList(),
     val checkpointCounts: Map<Long, Int> = emptyMap(),
     val isLoading: Boolean = false,
     val error: String? = null,
     val isCreateSuccess: Boolean = false,
     val isDetailLoading: Boolean = false,
-    val currentInstallationCheckpoints: List<CheckpointDto> = emptyList()
+    val currentInstallationCheckpoints: List<Checkpoint> = emptyList()
 )

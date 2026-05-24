@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.siscontrol.mobile.data.remote.dto.IncidentDto
+import com.siscontrol.mobile.domain.model.Incident
 import com.siscontrol.mobile.presentation.theme.*
 import com.siscontrol.mobile.core.formatDateToDisplay
 import java.time.LocalDateTime
@@ -37,7 +37,7 @@ fun AdminIncidentLogScreen(
     val state by viewModel.state
     var selectedTab by rememberSaveable { mutableIntStateOf(0) } // 0: Día, 1: Semana, 2: Mes
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    var selectedIncident by remember { mutableStateOf<IncidentDto?>(null) }
+    var selectedIncident by remember { mutableStateOf<Incident?>(null) }
 
     val filteredIncidents = remember(state.allIncidents, selectedTab, searchQuery) {
         val now = LocalDateTime.now()
@@ -167,7 +167,7 @@ fun AdminIncidentLogScreen(
 }
 
 @Composable
-fun IncidentLogCard(incident: IncidentDto, onClick: () -> Unit) {
+fun IncidentLogCard(incident: Incident, onClick: () -> Unit) {
     val isPanic = incident.severity.uppercase() == "ALTA" || incident.title.contains("PÁNICO", ignoreCase = true)
     
     Card(
@@ -204,7 +204,7 @@ fun IncidentLogCard(incident: IncidentDto, onClick: () -> Unit) {
 }
 
 @Composable
-fun IncidentDetailDialog(incident: IncidentDto, onDismiss: () -> Unit) {
+fun IncidentDetailDialog(incident: Incident, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {

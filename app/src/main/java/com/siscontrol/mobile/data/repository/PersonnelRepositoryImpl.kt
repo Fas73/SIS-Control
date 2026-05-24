@@ -1,45 +1,56 @@
 package com.siscontrol.mobile.data.repository
 
 import com.siscontrol.mobile.data.remote.PersonnelApiService
-import com.siscontrol.mobile.data.remote.dto.UserRequestDto
-import com.siscontrol.mobile.data.remote.dto.UserResponseDto
+import com.siscontrol.mobile.data.mapper.toDomain
+import com.siscontrol.mobile.data.mapper.toDto
+import com.siscontrol.mobile.domain.model.User
+import com.siscontrol.mobile.domain.model.UserCreationParam
 import com.siscontrol.mobile.domain.repository.PersonnelRepository
 
+/**
+ * Implementación del repositorio de gestión de personal.
+ * Realiza las llamadas de red mediante [PersonnelApiService] y traduce los
+ * DTOs de red a entidades de dominio puro utilizando funciones de mapeo.
+ */
 class PersonnelRepositoryImpl(
     private val apiService: PersonnelApiService
 ) : PersonnelRepository {
 
-    override suspend fun getPersonnel(): Result<List<UserResponseDto>> {
+    override suspend fun getPersonnel(): Result<List<User>> {
         return try {
             val response = apiService.getPersonnel()
-            Result.success(response)
+            // Convertimos la lista de DTOs de respuesta a entidades de dominio User
+            Result.success(response.map { it.toDomain() })
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    override suspend fun getUserById(id: Long): Result<UserResponseDto> {
+    override suspend fun getUserById(id: Long): Result<User> {
         return try {
             val response = apiService.getUserById(id)
-            Result.success(response)
+            // Convertimos el DTO a entidad de dominio User
+            Result.success(response.toDomain())
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    override suspend fun createPersonnel(creatorId: Long, request: UserRequestDto): Result<UserResponseDto> {
+    override suspend fun createPersonnel(creatorId: Long, request: UserCreationParam): Result<User> {
         return try {
-            val response = apiService.createPersonnel(creatorId, request)
-            Result.success(response)
+            // Mapeamos los parámetros de dominio al DTO de request esperado por la API
+            val response = apiService.createPersonnel(creatorId, request.toDto())
+            Result.success(response.toDomain())
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    override suspend fun updatePersonnel(id: Long, editorId: Long, request: UserRequestDto): Result<UserResponseDto> {
+    override suspend fun updatePersonnel(id: Long, editorId: Long, request: UserCreationParam): Result<User> {
         return try {
-            val response = apiService.updatePersonnel(id, editorId, request)
-            Result.success(response)
+            // Mapeamos los parámetros de dominio al DTO de request esperado por la API
+            val response = apiService.updatePersonnel(id, editorId, request.toDto())
+            Result.success(response.toDomain())
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -49,8 +60,6 @@ class PersonnelRepositoryImpl(
         return try {
             val response = apiService.toggleUserStatus(id, editorId)
             if (response.isSuccessful && response.body() != null) {
-                // El backend devuelve UserResponseDTO, pero en toggle-status solemos extraer el status
-                // Ajustado para manejar Map si es lo que devuelve el body según la interfaz
                 val statusValue = (response.body()!!["status"] as? Number)?.toInt() ?: 0
                 Result.success(statusValue)
             } else {
@@ -61,3 +70,4 @@ class PersonnelRepositoryImpl(
         }
     }
 }
+

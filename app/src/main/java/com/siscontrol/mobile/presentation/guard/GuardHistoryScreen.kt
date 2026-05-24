@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.siscontrol.mobile.data.remote.dto.RoundHistoryItemDto
+import com.siscontrol.mobile.domain.model.GuardRoundHistory
 import com.siscontrol.mobile.presentation.components.SISBadge
 import com.siscontrol.mobile.presentation.components.SISTopBar
 import com.siscontrol.mobile.presentation.theme.*
@@ -92,13 +92,13 @@ fun GuardHistoryScreen(
                     val history = state.history
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         HistorySummaryCard(modifier = Modifier.weight(1f), value = history?.total?.toString() ?: "0", label = "Total", valueColor = TextPrimary)
-                        HistorySummaryCard(modifier = Modifier.weight(1f), value = history?.completas?.toString() ?: "0", label = "Completas", valueColor = SuccessColor)
-                        HistorySummaryCard(modifier = Modifier.weight(1f), value = history?.porcentajeExito ?: "0%", label = "Éxito", valueColor = TextPrimary)
+                        HistorySummaryCard(modifier = Modifier.weight(1f), value = history?.completed?.toString() ?: "0", label = "Completas", valueColor = SuccessColor)
+                        HistorySummaryCard(modifier = Modifier.weight(1f), value = history?.successRate ?: "0%", label = "Éxito", valueColor = TextPrimary)
                     }
                 }
 
                 // History list
-                val rondas = state.history?.rondas ?: emptyList()
+                val rondas = state.history?.rounds ?: emptyList()
                 if (rondas.isEmpty() && !state.isLoading) {
                     item {
                         Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {

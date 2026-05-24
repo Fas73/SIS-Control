@@ -9,9 +9,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.siscontrol.mobile.data.remote.dto.CheckpointRequestDto
-import com.siscontrol.mobile.data.remote.dto.InstallationDto
-import com.siscontrol.mobile.data.remote.dto.InstallationIdRequest
+import com.siscontrol.mobile.domain.model.CheckpointCreationParam
+import com.siscontrol.mobile.domain.model.Installation
+
 import com.siscontrol.mobile.domain.usecase.CreateCheckpointUseCase
 import com.siscontrol.mobile.domain.usecase.GetInstallationsUseCase
 import com.siscontrol.mobile.di.SessionManager
@@ -29,8 +29,8 @@ class CheckpointViewModel(
     private val _uiState = MutableStateFlow<CheckpointUiState>(CheckpointUiState.Idle)
     val uiState: StateFlow<CheckpointUiState> = _uiState
 
-    private val _installations = MutableStateFlow<List<InstallationDto>>(emptyList())
-    val installations: StateFlow<List<InstallationDto>> = _installations
+    private val _installations = MutableStateFlow<List<Installation>>(emptyList())
+    val installations: StateFlow<List<Installation>> = _installations
 
     init {
         loadInstallations()
@@ -55,13 +55,13 @@ class CheckpointViewModel(
                 return@launch
             }
             
-            val request = CheckpointRequestDto(
+            val request = CheckpointCreationParam(
                 name = name,
                 executionOrder = 1,
                 nfcTagCode = tagCode,
                 locationDescription = description,
                 instruction = null,
-                installation = InstallationIdRequest(id = installationId)
+                installationId = installationId
             )
 
             createCheckpointUseCase(editorId, request).fold(

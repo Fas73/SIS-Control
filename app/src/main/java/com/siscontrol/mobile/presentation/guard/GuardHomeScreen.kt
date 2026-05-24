@@ -40,10 +40,10 @@ fun GuardHomeScreen(
     val formattedName = userName.toTitleCase()
     
     val estadoActual = (navState as? GuardNavigationState.Idle)?.estado
-    val isShiftActive = estadoActual?.jornadaActiva == true
+    val isShiftActive = estadoActual?.isShiftActive == true
     
-    val activeInstallation = estadoActual?.jornada?.installation?.clientName 
-        ?: estadoActual?.jornada?.installation?.name 
+    val activeInstallation = estadoActual?.shift?.installation?.clientName 
+        ?: estadoActual?.shift?.installation?.name 
         ?: "Sede no seleccionada"
 
     // Refrescar estado CADA VEZ que la pantalla sea visible (Silent para evitar pestañeo)
@@ -177,7 +177,7 @@ fun GuardHomeScreen(
                                     val route = com.siscontrol.mobile.presentation.Destinos.guardStartRoundRoute(token, role)
                                     onNavigate(route)
                                 } else {
-                                    val instId = estadoActual?.jornada?.installation?.id ?: 0L
+                                    val instId = estadoActual?.shift?.installation?.id ?: 0L
                                     instViewModel.startNewRound(instId) { rId, iId, iName ->
                                         val route = com.siscontrol.mobile.presentation.Destinos.guardRondaRoute(token, role, rId, iId, iName)
                                         onNavigate(route)

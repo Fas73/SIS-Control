@@ -282,7 +282,7 @@ fun ProfileItemRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label:
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditProfileDialogPolished(user: com.siscontrol.mobile.data.remote.dto.UserResponseDto, onDismiss: () -> Unit, onConfirm: (String, String, String) -> Unit, isSaving: Boolean) {
+fun EditProfileDialogPolished(user: com.siscontrol.mobile.domain.model.User, onDismiss: () -> Unit, onConfirm: (String, String, String) -> Unit, isSaving: Boolean) {
     var fullName by remember { mutableStateOf(user.fullName ?: "") }
     var username by remember { mutableStateOf(user.username ?: "") }
     var phoneDigits by remember { mutableStateOf(user.phoneNumber.toPhoneDigits()) }

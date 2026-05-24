@@ -113,11 +113,11 @@ fun AdminAlertsScreen(
                     
                     // Diagnóstico visual si los campos vienen vacíos
                     val userName = if (!alert.username.isNullOrBlank()) alert.username 
-                                  else if (alert.roundExecution?.worker?.fullName != null) alert.roundExecution.worker.fullName
+                                  
                                   else "Guardia #${alert.roundExecutionId ?: "N/A"}"
                     
                     val locationName = if (!alert.clientName.isNullOrBlank()) alert.clientName
-                                      else if (alert.roundExecution?.installation?.clientName != null) alert.roundExecution.installation.clientName
+                                      
                                       else "Sede #${alert.roundExecutionId ?: "N/A"}"
                     
                     val fullLocation = if (alert.checkpointName != null && alert.checkpointName != "N/A") {

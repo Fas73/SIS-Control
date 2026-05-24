@@ -4,7 +4,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.siscontrol.mobile.data.remote.dto.CheckpointDto
+import com.siscontrol.mobile.domain.model.Checkpoint
 import com.siscontrol.mobile.di.SessionManager
 import com.siscontrol.mobile.domain.usecase.*
 import com.siscontrol.mobile.core.FirebaseStorageManager
@@ -49,7 +49,7 @@ class GuardRoundViewModel(
     private fun fetchExecutedCheckpoints(roundId: Long) {
         viewModelScope.launch {
             getRoundDetailUseCase(roundId).onSuccess { detail ->
-                val validScans = detail.escaneos?.filter { it.checkpoint?.id != null } ?: emptyList()
+                val validScans = detail.scans?.filter { it.checkpoint?.id != null } ?: emptyList()
                 val executedMap = validScans.associate { (it.checkpoint?.id ?: 0L) to (it.scannedAt ?: "S/H") }
                 
                 _state.value = _state.value.copy(
@@ -61,7 +61,7 @@ class GuardRoundViewModel(
         }
     }
 
-    fun scanNfcTag(roundId: Long, tagId: String, onVerificationSuccess: (CheckpointDto) -> Unit) {
+    fun scanNfcTag(roundId: Long, tagId: String, onVerificationSuccess: (Checkpoint) -> Unit) {
         val nextCheckpoint = getNextCheckpoint()
         if (nextCheckpoint == null) {
             _state.value = _state.value.copy(error = "No hay más puntos por escanear")
@@ -168,7 +168,7 @@ class GuardRoundViewModel(
         }
     }
 
-    private fun getNextCheckpoint(): CheckpointDto? {
+    private fun getNextCheckpoint(): Checkpoint? {
         return _state.value.checkpoints
             .sortedBy { it.executionOrder }
             .firstOrNull { it.id !in _state.value.executedCheckpointIds }
@@ -183,12 +183,12 @@ class GuardRoundViewModel(
 data class GuardRoundState(
     val isLoading: Boolean = false,
     val isLoadingCheckpoints: Boolean = false,
-    val checkpoints: List<CheckpointDto> = emptyList(),
+    val checkpoints: List<Checkpoint> = emptyList(),
     val executedCheckpointIds: Set<Long> = emptySet(),
     val scanTimes: Map<Long, String> = emptyMap(),
     val distanceTravelled: Int = 0,
     val startTime: Long = System.currentTimeMillis(),
-    val lastScannedCheckpoint: CheckpointDto? = null,
+    val lastScannedCheckpoint: Checkpoint? = null,
     val successMessage: String? = null,
     val error: String? = null
 )

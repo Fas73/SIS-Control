@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.siscontrol.mobile.data.remote.dto.CheckpointDto
+import com.siscontrol.mobile.domain.model.Checkpoint
 import com.siscontrol.mobile.presentation.Destinos
 import com.siscontrol.mobile.presentation.theme.*
 import com.siscontrol.mobile.core.toTitleCase
@@ -131,7 +131,7 @@ fun InstallationDetailScreen(
                                                     clientName = clientName,
                                                     latitude = latitude.toDoubleOrNull() ?: 0.0,
                                                     longitude = longitude.toDoubleOrNull() ?: 0.0,
-                                                    radiusInMeters = radius.toDoubleOrNull()
+                                                    radiusInMeters = radius.toDoubleOrNull() ?: 100.0
                                                 )
                                             )
                                             isEditMode = false
@@ -383,11 +383,11 @@ fun DetailFieldPolished(
 
 @Composable
 fun CheckpointCardPolished(
-    checkpoint: CheckpointDto,
+    checkpoint: Checkpoint,
     installationActive: Boolean,
-    allCheckpoints: List<CheckpointDto>,
+    allCheckpoints: List<Checkpoint>,
     selectedTab: Int,
-    onUpdate: (CheckpointDto) -> Unit,
+    onUpdate: (Checkpoint) -> Unit,
     onToggleStatus: () -> Unit
 ) {
     var isEditing by remember(checkpoint.id, selectedTab) { mutableStateOf(false) }

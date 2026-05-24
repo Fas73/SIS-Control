@@ -4,7 +4,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.siscontrol.mobile.data.remote.dto.UserResponseDto
+import com.siscontrol.mobile.domain.model.User
 import com.siscontrol.mobile.domain.usecase.GetPersonnelUseCase
 import com.siscontrol.mobile.domain.usecase.ToggleUserStatusUseCase
 import com.siscontrol.mobile.di.SessionManager
@@ -68,7 +68,7 @@ class SupervisorGuardsViewModel(
 }
 
 data class SupervisorGuardsState(
-    val guards: List<UserResponseDto> = emptyList(),
+    val guards: List<User> = emptyList(),
     val isLoading: Boolean = false,
     val isActionLoading: Boolean = false,
     val error: String? = null

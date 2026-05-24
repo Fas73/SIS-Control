@@ -14,7 +14,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.siscontrol.mobile.data.remote.dto.UserResponseDto
+import com.siscontrol.mobile.domain.model.User
 import com.siscontrol.mobile.di.AppModule
 import com.siscontrol.mobile.domain.usecase.GetPersonnelUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,7 +67,7 @@ private class PersonnelViewModelFactory : ViewModelProvider.Factory {
 
 sealed class PersonnelUiState {
     object Loading : PersonnelUiState()
-    data class Success(val personnel: List<UserResponseDto>) : PersonnelUiState()
+    data class Success(val personnel: List<User>) : PersonnelUiState()
     data class Error(val message: String) : PersonnelUiState()
 }
 

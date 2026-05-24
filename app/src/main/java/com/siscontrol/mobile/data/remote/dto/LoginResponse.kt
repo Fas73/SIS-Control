@@ -12,5 +12,6 @@ data class LoginResponse(
     @SerializedName("username") val username: String?,
     @SerializedName("fullName") val fullName: String?, // Ahora sí lo recibirá
     @SerializedName("role") val role: String?,
-    @SerializedName("status") val status: String?
+    @SerializedName("status") val status: String?,
+    @SerializedName("token") val token: String?
 )

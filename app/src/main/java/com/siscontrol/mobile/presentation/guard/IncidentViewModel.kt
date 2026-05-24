@@ -4,7 +4,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.siscontrol.mobile.data.remote.dto.IncidentDto
+import com.siscontrol.mobile.domain.model.Incident
 import com.siscontrol.mobile.domain.usecase.ReportIncidentUseCase
 import com.siscontrol.mobile.core.FirebaseStorageManager
 import kotlinx.coroutines.launch
@@ -43,12 +43,19 @@ class IncidentViewModel(
                     }
             }
 
-            val incident = IncidentDto(
+            val incident = Incident(
+                id = null,
+                createdAt = null,
+                status = null,
+                username = null,
+                clientName = null,
+                checkpointName = null,
+                executionOrder = null,
+                roundExecutionId = roundExecutionId,
                 title = title,
                 description = description,
                 severity = severity,
                 type = type,
-                roundExecutionId = roundExecutionId,
                 imageUrl = remoteUrl
             )
 

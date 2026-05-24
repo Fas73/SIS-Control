@@ -5,8 +5,8 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.siscontrol.mobile.data.remote.dto.UserRequestDto
-import com.siscontrol.mobile.data.remote.dto.UserResponseDto
+import com.siscontrol.mobile.domain.model.UserCreationParam
+import com.siscontrol.mobile.domain.model.User
 import com.siscontrol.mobile.domain.usecase.*
 import com.siscontrol.mobile.di.SessionManager
 import kotlinx.coroutines.launch
@@ -23,8 +23,8 @@ class AdminManagementViewModel(
     val state: State<AdminManagementState> = _state
     
     // Estado para edición individual
-    private val _editingUser = mutableStateOf<UserResponseDto?>(null)
-    val editingUser: State<UserResponseDto?> = _editingUser
+    private val _editingUser = mutableStateOf<User?>(null)
+    val editingUser: State<User?> = _editingUser
 
     init {
         loadUsers()
@@ -85,7 +85,7 @@ class AdminManagementViewModel(
         }
     }
 
-    fun updateUser(userId: Long, request: UserRequestDto, onSuccess: () -> Unit) {
+    fun updateUser(userId: Long, request: UserCreationParam, onSuccess: () -> Unit) {
         viewModelScope.launch {
             _state.value = _state.value.copy(isActionLoading = true, error = null)
             val editorId = getEditorId()
@@ -105,14 +105,14 @@ class AdminManagementViewModel(
         }
     }
 
-    fun updateUserRole(user: UserResponseDto, newRole: String) {
+    fun updateUserRole(user: User, newRole: String) {
         viewModelScope.launch {
             Log.d("AdminVM", "Cambiando rol de ${user.username} (ID: ${user.id}) a $newRole")
             _state.value = _state.value.copy(isActionLoading = true, error = null)
             val editorId = getEditorId()
             Log.d("AdminVM", "Editor ID (el que realiza el cambio): $editorId")
 
-            val request = UserRequestDto(
+            val request = UserCreationParam(
                 rut = (user.rut ?: "11111111-1").replace(".", ""), // Quitamos puntos si existen
                 username = user.username ?: "",
                 email = user.email ?: "",
@@ -148,7 +148,7 @@ class AdminManagementViewModel(
 }
 
 data class AdminManagementState(
-    val users: List<UserResponseDto> = emptyList(),
+    val users: List<User> = emptyList(),
     val isLoading: Boolean = false,
     val isActionLoading: Boolean = false,
     val error: String? = null

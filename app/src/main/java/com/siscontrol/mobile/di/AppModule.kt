@@ -35,7 +35,8 @@ object AppModule {
     // Ejemplo: "http://192.168.1.15:8080/"
     // private const val BASE_URL = "http://10.0.2.2:8080/"
     //private const val BASE_URL = "http://192.168.100.147:8080/"
-    private const val BASE_URL = "http://10.148.98.46:8080/"
+    //private const val BASE_URL = "http://192.168.1.104:8080/"
+    private const val BASE_URL = "http://10.0.2.2:8080/"
     private lateinit var sessionManager: SessionManager
     private lateinit var database: com.siscontrol.mobile.data.local.AppDatabase
 

@@ -4,7 +4,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.siscontrol.mobile.data.remote.dto.IncidentDto
+import com.siscontrol.mobile.domain.model.Incident
 import com.siscontrol.mobile.domain.repository.IncidentRepository
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -43,7 +43,7 @@ class AdminIncidentLogViewModel(
 }
 
 data class AdminIncidentLogState(
-    val allIncidents: List<IncidentDto> = emptyList(),
+    val allIncidents: List<Incident> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )

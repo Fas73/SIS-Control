@@ -5,8 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.siscontrol.mobile.data.remote.dto.CheckpointRequestDto
-import com.siscontrol.mobile.data.remote.dto.InstallationIdRequest
+import com.siscontrol.mobile.domain.model.CheckpointCreationParam
+
 import com.siscontrol.mobile.domain.usecase.CreateCheckpointUseCase
 import com.siscontrol.mobile.di.SessionManager
 import kotlinx.coroutines.launch
@@ -39,13 +39,13 @@ class CreateCheckpointViewModel(
                 return@launch
             }
 
-            val request = CheckpointRequestDto(
+            val request = CheckpointCreationParam(
                 name = name,
                 executionOrder = 1,
                 nfcTagCode = nfcCode,
                 locationDescription = desc,
                 instruction = null,
-                installation = InstallationIdRequest(id = installationId)
+                installationId = installationId
             )
 
             createCheckpointUseCase(editorId, request)

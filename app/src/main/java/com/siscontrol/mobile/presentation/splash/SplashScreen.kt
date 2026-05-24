@@ -105,7 +105,7 @@ fun SplashScreen(
             )
 
             Spacer(modifier = Modifier.height(28.dp))
-
+/*
             // ── Nombre de la App ────────────────────────────────────────────
             Text(
                 text = "SIS-Control",
@@ -123,7 +123,7 @@ fun SplashScreen(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Normal
             )
-
+*/
             Spacer(modifier = Modifier.height(48.dp))
 
             // ── Barra de progreso simulada ──────────────────────────────────

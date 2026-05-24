@@ -3,19 +3,23 @@ package com.siscontrol.mobile.data.repository
 import com.siscontrol.mobile.data.remote.RoundApiService
 import com.siscontrol.mobile.data.remote.dto.EndRoundRequest
 import com.siscontrol.mobile.data.remote.dto.IdRequest
-import com.siscontrol.mobile.data.remote.dto.RoundResponseDto
 import com.siscontrol.mobile.data.remote.dto.ScanCheckpointRequest
+import com.siscontrol.mobile.data.mapper.toDomain
+import com.siscontrol.mobile.data.mapper.toDto
+import com.siscontrol.mobile.domain.model.GuardCurrentState
+import com.siscontrol.mobile.domain.model.Round
+import com.siscontrol.mobile.domain.model.RoundDetail
 import com.siscontrol.mobile.domain.repository.RoundRepository
 
 class RoundRepositoryImpl(
     private val api: RoundApiService
 ) : RoundRepository {
 
-    override suspend fun getCurrentState(userId: Long): Result<com.siscontrol.mobile.data.remote.dto.CurrentStateResponseDto> {
+    override suspend fun getCurrentState(userId: Long): Result<GuardCurrentState> {
         return try {
             val response = api.getCurrentState(userId)
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                Result.success(response.body()!!.toDomain())
             } else {
                 Result.failure(Exception("Error al obtener estado actual: ${response.code()}"))
             }
@@ -24,14 +28,25 @@ class RoundRepositoryImpl(
         }
     }
 
-    override suspend fun getAllRounds(): Result<List<RoundResponseDto>> {
+    override suspend fun getAllRounds(): Result<List<Round>> {
         return try {
             val response = api.getAllRounds()
-            Result.success(response)
+
+            if (response.isSuccessful) {
+                // Extraemos el cuerpo (la lista de DTOs).
+                // Si el cuerpo es nulo, usamos una lista vacía.
+                val roundsDto = response.body() ?: emptyList()
+
+                // Ahora sí podemos usar .map sobre la lista
+                Result.success(roundsDto.map { it.toDomain() })
+            } else {
+                Result.failure(Exception("Error al obtener rondas: ${response.code()}"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
+
 
     override suspend fun startRound(userId: Long, installationId: Long): Result<Long> {
         return try {
@@ -72,10 +87,10 @@ class RoundRepositoryImpl(
         }
     }
 
-    override suspend fun getRoundDetail(roundId: Long): Result<com.siscontrol.mobile.data.remote.dto.RoundDetailResponseDto> {
+    override suspend fun getRoundDetail(roundId: Long): Result<RoundDetail> {
         return try {
             val response = api.getRoundDetail(roundId)
-            Result.success(response)
+            Result.success(response.toDomain())
         } catch (e: Exception) {
             Result.failure(e)
         }

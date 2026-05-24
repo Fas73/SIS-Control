@@ -18,9 +18,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.siscontrol.mobile.data.remote.dto.InstallationDto
-import com.siscontrol.mobile.data.remote.dto.UserRequestDto
-import com.siscontrol.mobile.data.remote.dto.UserResponseDto
+import com.siscontrol.mobile.domain.model.Installation
+import com.siscontrol.mobile.domain.model.UserCreationParam
+import com.siscontrol.mobile.domain.model.User
 import com.siscontrol.mobile.domain.usecase.CreatePersonnelUseCase
 import com.siscontrol.mobile.domain.usecase.GetInstallationsUseCase
 import com.siscontrol.mobile.di.SessionManager
@@ -36,7 +36,7 @@ import kotlinx.coroutines.launch
 sealed class CreatePersonnelUiState {
     object Idle : CreatePersonnelUiState()
     object Loading : CreatePersonnelUiState()
-    data class Success(val user: UserResponseDto) : CreatePersonnelUiState()
+    data class Success(val user: User) : CreatePersonnelUiState()
     data class Error(val message: String) : CreatePersonnelUiState()
 }
 
@@ -54,10 +54,10 @@ class CreatePersonnelViewModel(
     private val _createState = MutableStateFlow<CreatePersonnelUiState>(CreatePersonnelUiState.Idle)
     val createState: StateFlow<CreatePersonnelUiState> = _createState
 
-    private val _installations = MutableStateFlow<List<InstallationDto>>(emptyList())
-    val installations: StateFlow<List<InstallationDto>> = _installations
+    private val _installations = MutableStateFlow<List<Installation>>(emptyList())
+    val installations: StateFlow<List<Installation>> = _installations
 
-    private val _existingUsers = MutableStateFlow<List<UserResponseDto>>(emptyList())
+    private val _existingUsers = MutableStateFlow<List<User>>(emptyList())
 
     init {
         cargarDatosPrevios()
@@ -96,7 +96,7 @@ class CreatePersonnelViewModel(
             val first4Rut = if (rutDigits.length >= 4) rutDigits.take(4) else rutDigits
             val generatedUsername = "${firstName}_$first4Rut"
 
-            val request = UserRequestDto(
+            val request = UserCreationParam(
                 rut = rut,
                 username = generatedUsername,
                 email = email,

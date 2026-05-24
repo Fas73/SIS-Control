@@ -1,0 +1,225 @@
+﻿Reusing configuration cache.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:processDebugGoogleServices UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:kaptGenerateStubsDebugKotlin UP-TO-DATE
+> Task :app:kaptDebugKotlin UP-TO-DATE
+
+> Task :app:compileDebugKotlin
+./gradlew : e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mob
+ile/data/mapper/UserMapper.kt:58:9 Cannot find a parameter with this name: actual
+En línea: 1 Carácter: 1
++ ./gradlew app:compileDebugKotlin 2>&1 | Out-File -Encoding utf8 error ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (e: file:///C:/U...is name: actual:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/data/map
+per/UserMapper.kt:59:9 Cannot find a parameter with this name: nueva
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/data/map
+per/UserMapper.kt:59:9 No value passed for parameter 'currentPassword'
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/data/map
+per/UserMapper.kt:59:9 No value passed for parameter 'newPassword'
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/data/rep
+ository/IncidentRepositoryImpl.kt:8:29 Unresolved reference: IncidentApiService
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/data/rep
+ository/IncidentRepositoryImpl.kt:9:5 Unresolved reference: IncidentRepository
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/data/rep
+ository/IncidentRepositoryImpl.kt:11:5 'saveIncident' overrides nothing
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/data/rep
+ository/IncidentRepositoryImpl.kt:24:5 'getAllIncidents' overrides nothing
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/data/rep
+ository/IncidentRepositoryImpl.kt:27:43 Unresolved reference: it
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/data/rep
+ository/IncidentRepositoryImpl.kt:33:5 'triggerPanic' overrides nothing
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/data/rep
+ository/ReportRepositoryImpl.kt:12:22 Unresolved reference: ReportApiService
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/di/AppMo
+dule.kt:164:63 Type mismatch: inferred type is IncidentRepositoryImpl but IncidentRepository was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/di/AppMo
+dule.kt:165:59 Type mismatch: inferred type is IncidentRepositoryImpl but IncidentRepository was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/di/AppMo
+dule.kt:227:30 Type mismatch: inferred type is IncidentRepositoryImpl but IncidentRepository was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/di/AppMo
+dule.kt:230:35 Type mismatch: inferred type is IncidentRepositoryImpl but IncidentRepository was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/admin/AdminAlertsViewModel.kt:43:34 Type mismatch: inferred type is List<Incident> but List<IncidentDto> was 
+expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/admin/AdminAlertsViewModel.kt:61:67 Type mismatch: inferred type is List<Incident> but List<IncidentDto> was 
+expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/admin/AdminCheckpointsViewModel.kt:43:39 Type mismatch: inferred type is List<Checkpoint> but List<CheckpointDto> 
+was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/admin/AdminCheckpointsViewModel.kt:44:47 Type mismatch: inferred type is List<Checkpoint> but List<CheckpointDto> 
+was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/admin/AdminCheckpointsViewModel.kt:63:47 Type mismatch: inferred type is List<Checkpoint> but 
+Collection<CheckpointDto> was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/admin/AdminHomeViewModel.kt:47:47 Unresolved reference: progreso
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/admin/AdminInstallationsViewModel.kt:38:41 Type mismatch: inferred type is List<Installation> but 
+List<InstallationDto> was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/admin/AdminInstallationsViewModel.kt:74:58 Type mismatch: inferred type is List<Checkpoint> but 
+List<CheckpointDto> was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/admin/AdminInstallationsViewModel.kt:108:49 Type mismatch: inferred type is InstallationRequestDto but 
+InstallationCreationParam was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/admin/AdminInstallationsViewModel.kt:124:53 Type mismatch: inferred type is InstallationDto but Installation was 
+expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/admin/AdminInstallationsViewModel.kt:165:47 Type mismatch: inferred type is CheckpointRequestDto but 
+CheckpointCreationParam was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/admin/AdminInstallationsViewModel.kt:186:68 Type mismatch: inferred type is CheckpointDto but Checkpoint was 
+expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/admin/AdminManagementViewModel.kt:40:33 Type mismatch: inferred type is List<User> but List<UserResponseDto> was 
+expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/admin/AdminManagementViewModel.kt:59:42 Type mismatch: inferred type is User but UserResponseDto? was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/admin/AdminManagementViewModel.kt:93:54 Type mismatch: inferred type is UserRequestDto but UserCreationParam was 
+expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/admin/AdminManagementViewModel.kt:125:61 Type mismatch: inferred type is UserRequestDto but UserCreationParam was 
+expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/admin/log/AdminIncidentLogViewModel.kt:31:40 Type mismatch: inferred type is List<Incident> but List<IncidentDto> 
+was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardHistoryViewModel.kt:34:35 Type mismatch: inferred type is GuardRoundHistory but 
+GuardRoundHistoryResponse? was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardHomeViewModel.kt:53:38 Unresolved reference: jornadaActiva
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardHomeViewModel.kt:53:68 Unresolved reference: jornada
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardHomeViewModel.kt:54:49 Unresolved reference: jornada
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardHomeViewModel.kt:56:42 Unresolved reference: rondaActiva
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardHomeViewModel.kt:56:70 Unresolved reference: ronda
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardHomeViewModel.kt:57:73 Unresolved reference: ronda
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardHomeViewModel.kt:63:34 Unresolved reference: rondaActiva
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardHomeViewModel.kt:63:62 Unresolved reference: ronda
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardHomeViewModel.kt:64:45 Unresolved reference: jornada
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardHomeViewModel.kt:68:48 Unresolved reference: ronda
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardHomeViewModel.kt:76:73 Type mismatch: inferred type is GuardCurrentState but CurrentStateResponseDto? 
+was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardInstallationsViewModel.kt:43:50 Unresolved reference: jornadaActiva
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardInstallationsViewModel.kt:44:50 Unresolved reference: rondaActiva
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardInstallationsViewModel.kt:45:57 Unresolved reference: jornada
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardInstallationsViewModel.kt:46:59 Unresolved reference: jornada
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardInstallationsViewModel.kt:47:50 Unresolved reference: ronda
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardInstallationsViewModel.kt:54:74 Type mismatch: inferred type is List<Installation> but 
+List<InstallationDto> was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardInstallationsViewModel.kt:89:32 Type mismatch: inferred type is AttendanceRequest but AttendanceParam 
+was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardInstallationsViewModel.kt:192:33 Type mismatch: inferred type is AttendanceRequest but AttendanceParam 
+was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardRoundViewModel.kt:32:39 Type mismatch: inferred type is List<Checkpoint> but List<CheckpointDto> was 
+expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardRoundViewModel.kt:52:41 Unresolved reference: escaneos
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardRoundViewModel.kt:52:60 Unresolved reference: it
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardRoundViewModel.kt:52:91 Not enough information to infer type variable T
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardRoundViewModel.kt:53:59 Unresolved reference: it
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardRoundViewModel.kt:53:88 Unresolved reference: it
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/GuardRoundViewModel.kt:56:71 Unresolved reference: it
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/guard/IncidentViewModel.kt:55:35 Type mismatch: inferred type is IncidentDto but Incident was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/management/AddCheckpointScreen.kt:42:40 Type mismatch: inferred type is List<Installation> but 
+List<InstallationDto> was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/management/AddCheckpointScreen.kt:67:47 Type mismatch: inferred type is CheckpointRequestDto but 
+CheckpointCreationParam was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/management/CreateCheckpointViewModel.kt:51:47 Type mismatch: inferred type is CheckpointRequestDto but 
+CheckpointCreationParam was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/management/CreatePersonnelScreen.kt:68:74 Type mismatch: inferred type is List<Installation> but 
+List<InstallationDto> was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/management/CreatePersonnelScreen.kt:69:70 Type mismatch: inferred type is List<User> but List<UserResponseDto> 
+was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/management/CreatePersonnelScreen.kt:109:47 Type mismatch: inferred type is UserRequestDto but UserCreationParam 
+was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/management/CreatePersonnelScreen.kt:111:73 Type mismatch: inferred type is User but UserResponseDto was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/management/PersonnelListScreen.kt:44:63 Type mismatch: inferred type is List<User> but List<UserResponseDto> was 
+expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/profile/ProfileViewModel.kt:43:32 Type mismatch: inferred type is User but UserResponseDto? was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/profile/ProfileViewModel.kt:90:53 Type mismatch: inferred type is ProfileUpdateRequest but ProfileUpdateParam was 
+expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/profile/ProfileViewModel.kt:110:61 Type mismatch: inferred type is User but UserResponseDto? was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/profile/ProfileViewModel.kt:130:52 Type mismatch: inferred type is ChangePasswordRequest but ChangePasswordParam 
+was expected
+e: file:///C:/Users/dell/Documents/SIS_Control_Proyecto_v3/SIS-Control/app/src/main/java/com/siscontrol/mobile/presenta
+tion/supervisor/SupervisorGuardsViewModel.kt:33:34 Type mismatch: inferred type is List<User> but 
+List<UserResponseDto> was expected
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugKotlin'.
+> A failure occurred while executing 
+org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 27s
+
+> Task :app:compileDebugKotlin FAILED
+17 actionable tasks: 2 executed, 15 up-to-date
+Configuration cache entry reused.

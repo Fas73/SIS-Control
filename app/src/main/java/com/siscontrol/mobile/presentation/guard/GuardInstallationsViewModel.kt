@@ -6,10 +6,10 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.siscontrol.mobile.data.remote.dto.InstallationDto
+import com.siscontrol.mobile.domain.model.Installation
 import com.siscontrol.mobile.di.SessionManager
 import com.siscontrol.mobile.domain.usecase.*
-import com.siscontrol.mobile.data.remote.dto.AttendanceRequest
+import com.siscontrol.mobile.domain.model.AttendanceParam
 import kotlinx.coroutines.launch
 
 class GuardInstallationsViewModel(
@@ -40,11 +40,11 @@ class GuardInstallationsViewModel(
                 if (userId > 0) {
                     getCurrentGuardStateUseCase(userId).onSuccess { data ->
                         _state.value = _state.value.copy(
-                            isShiftActive = data.jornadaActiva ?: false,
-                            isRoundActive = data.rondaActiva ?: false,
-                            activeInstallationId = data.jornada?.installation?.id ?: 0L,
-                            activeInstallationName = data.jornada?.installation?.name ?: "",
-                            activeRoundId = data.ronda?.id ?: 0L
+                            isShiftActive = data.isShiftActive ?: false,
+                            isRoundActive = data.isRoundActive ?: false,
+                            activeInstallationId = data.shift?.installation?.id ?: 0L,
+                            activeInstallationName = data.shift?.installation?.name ?: "",
+                            activeRoundId = data.round?.id ?: 0L
                         )
                     }
                 }
@@ -85,7 +85,7 @@ class GuardInstallationsViewModel(
                 val lat = selectedInst?.latitude ?: 0.0
                 val lon = selectedInst?.longitude ?: 0.0
 
-                val request = AttendanceRequest(userId, installationId, lat, lon)
+                val request = AttendanceParam(userId, installationId, lat, lon)
                 checkInUseCase(request)
                     .onSuccess {
                         sessionManager.saveActiveInstallation(installationId, installationName)
@@ -182,7 +182,7 @@ class GuardInstallationsViewModel(
                 val lat = selectedInst?.latitude ?: 0.0
                 val lon = selectedInst?.longitude ?: 0.0
 
-                val request = AttendanceRequest(
+                val request = AttendanceParam(
                     userId = userId,
                     installationId = installationId,
                     latitude = lat,
@@ -215,7 +215,7 @@ class GuardInstallationsViewModel(
 }
 
 data class GuardInstallationsState(
-    val installations: List<InstallationDto> = emptyList(),
+    val installations: List<Installation> = emptyList(),
     val isLoading: Boolean = false,
     val isActionLoading: Boolean = false,
     val isShiftActive: Boolean = false,

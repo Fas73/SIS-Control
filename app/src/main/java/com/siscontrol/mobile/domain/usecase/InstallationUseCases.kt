@@ -1,13 +1,13 @@
 package com.siscontrol.mobile.domain.usecase
 
-import com.siscontrol.mobile.data.remote.dto.InstallationDto
-import com.siscontrol.mobile.data.remote.dto.InstallationRequestDto
+import com.siscontrol.mobile.domain.model.Installation
+import com.siscontrol.mobile.domain.model.InstallationCreationParam
 import com.siscontrol.mobile.domain.repository.InstallationRepository
 
 class GetInstallationsUseCase(
     private val repository: InstallationRepository
 ) {
-    suspend operator fun invoke(): Result<List<InstallationDto>> {
+    suspend operator fun invoke(): Result<List<Installation>> {
         return repository.getInstallations()
     }
 }
@@ -15,7 +15,7 @@ class GetInstallationsUseCase(
 class CreateInstallationUseCase(
     private val repository: InstallationRepository
 ) {
-    suspend operator fun invoke(editorId: Long, request: InstallationRequestDto): Result<Unit> {
+    suspend operator fun invoke(editorId: Long, request: InstallationCreationParam): Result<Unit> {
         return repository.createInstallation(editorId, request)
     }
 }
@@ -23,7 +23,7 @@ class CreateInstallationUseCase(
 class UpdateInstallationUseCase(
     private val repository: InstallationRepository
 ) {
-    suspend operator fun invoke(id: Long, editorId: Long, request: InstallationDto): Result<Unit> {
+    suspend operator fun invoke(id: Long, editorId: Long, request: Installation): Result<Unit> {
         return repository.updateInstallation(id, editorId, request)
     }
 }
@@ -35,3 +35,4 @@ class ToggleInstallationStatusUseCase(
         return repository.toggleInstallationStatus(id, editorId)
     }
 }
+

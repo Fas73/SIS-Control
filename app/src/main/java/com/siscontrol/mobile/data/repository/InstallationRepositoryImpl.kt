@@ -1,25 +1,34 @@
 package com.siscontrol.mobile.data.repository
 
 import com.siscontrol.mobile.data.remote.InstallationApiService
+import com.siscontrol.mobile.data.mapper.toDomain
+import com.siscontrol.mobile.data.mapper.toDto
+import com.siscontrol.mobile.domain.model.Installation
+import com.siscontrol.mobile.domain.model.InstallationCreationParam
+import com.siscontrol.mobile.domain.model.Checkpoint
+import com.siscontrol.mobile.domain.model.CheckpointCreationParam
 import com.siscontrol.mobile.domain.repository.InstallationRepository
-import com.siscontrol.mobile.data.remote.dto.*
 
+/**
+ * Implementación del repositorio de instalaciones.
+ * Convierte los DTOs de la capa de datos a entidades de dominio puras mediante los mapeadores.
+ */
 class InstallationRepositoryImpl(
     private val apiService: InstallationApiService
 ) : InstallationRepository {
 
-    override suspend fun getInstallations(): Result<List<InstallationDto>> {
+    override suspend fun getInstallations(): Result<List<Installation>> {
         return try {
             val response = apiService.getInstallations()
-            Result.success(response)
+            Result.success(response.map { it.toDomain() })
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    override suspend fun createInstallation(editorId: Long, request: InstallationRequestDto): Result<Unit> {
+    override suspend fun createInstallation(editorId: Long, request: InstallationCreationParam): Result<Unit> {
         return try {
-            val response = apiService.createInstallation(editorId, request)
+            val response = apiService.createInstallation(editorId, request.toDto())
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
@@ -30,9 +39,9 @@ class InstallationRepositoryImpl(
         }
     }
 
-    override suspend fun updateInstallation(id: Long, editorId: Long, request: InstallationDto): Result<Unit> {
+    override suspend fun updateInstallation(id: Long, editorId: Long, request: Installation): Result<Unit> {
         return try {
-            val response = apiService.updateInstallation(id, editorId, request)
+            val response = apiService.updateInstallation(id, editorId, request.toDto())
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
@@ -57,18 +66,18 @@ class InstallationRepositoryImpl(
         }
     }
 
-    override suspend fun getCheckpoints(installationId: Long): Result<List<CheckpointDto>> {
+    override suspend fun getCheckpoints(installationId: Long): Result<List<Checkpoint>> {
         return try {
             val response = apiService.getCheckpoints(installationId)
-            Result.success(response)
+            Result.success(response.map { it.toDomain() })
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    override suspend fun createCheckpoint(editorId: Long, request: CheckpointRequestDto): Result<Unit> {
+    override suspend fun createCheckpoint(editorId: Long, request: CheckpointCreationParam): Result<Unit> {
         return try {
-            val response = apiService.createCheckpoint(editorId, request)
+            val response = apiService.createCheckpoint(editorId, request.toDto())
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
@@ -79,37 +88,29 @@ class InstallationRepositoryImpl(
         }
     }
 
-    override suspend fun updateCheckpoint(id: Long, editorId: Long, request: CheckpointDto): Result<Unit> {
+    override suspend fun updateCheckpoint(id: Long, editorId: Long, request: Checkpoint): Result<Unit> {
         return try {
-            android.util.Log.d("SIS_CONTROL_REPO", "PUT Checkpoint ID: $id, Editor: $editorId, Body: $request")
-            val response = apiService.updateCheckpoint(id, editorId, request)
+            val response = apiService.updateCheckpoint(id, editorId, request.toDto())
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
-                android.util.Log.e("SIS_CONTROL_REPO", "Update failed: ${response.code()} - ${response.errorBody()?.string()}")
                 Result.failure(Exception("Error al actualizar checkpoint: ${response.code()}"))
             }
         } catch (e: Exception) {
-            android.util.Log.e("SIS_CONTROL_REPO", "Update exception", e)
             Result.failure(e)
         }
     }
 
     override suspend fun toggleCheckpointStatus(id: Long, editorId: Long): Result<Int> {
         return try {
-            android.util.Log.d("SIS_CONTROL_REPO", "Toggle Checkpoint ID: $id, Editor: $editorId")
             val response = apiService.toggleCheckpointStatus(id, editorId)
             if (response.isSuccessful && response.body() != null) {
-                val body = response.body()!!
-                android.util.Log.d("SIS_CONTROL_REPO", "Toggle success body: $body")
-                val statusValue = (body["status"] as? Number)?.toInt() ?: 0
+                val statusValue = (response.body()!!["status"] as? Number)?.toInt() ?: 0
                 Result.success(statusValue)
             } else {
-                android.util.Log.e("SIS_CONTROL_REPO", "Toggle failed code: ${response.code()} error: ${response.errorBody()?.string()}")
                 Result.failure(Exception("Error al alternar estado del checkpoint: ${response.code()}"))
             }
         } catch (e: Exception) {
-            android.util.Log.e("SIS_CONTROL_REPO", "Toggle exception", e)
             Result.failure(e)
         }
     }

@@ -30,7 +30,7 @@ class AuthRepositoryImpl(
                     }
 
                     val result = LoginResult(
-                        token    = "SESSION_ACTIVE",
+                        token    = body.token ?: "",
                         role     = body.role ?: "USER",
                         fullName = body.fullName ?: body.username ?: "Usuario",
                         username = body.username ?: "",

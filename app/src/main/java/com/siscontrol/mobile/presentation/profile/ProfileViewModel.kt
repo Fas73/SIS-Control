@@ -4,10 +4,10 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.siscontrol.mobile.data.remote.dto.AttendanceRequest
-import com.siscontrol.mobile.data.remote.dto.ChangePasswordRequest
-import com.siscontrol.mobile.data.remote.dto.ProfileUpdateRequest
-import com.siscontrol.mobile.data.remote.dto.UserResponseDto
+import com.siscontrol.mobile.domain.model.AttendanceParam
+import com.siscontrol.mobile.domain.model.ChangePasswordParam
+import com.siscontrol.mobile.domain.model.ProfileUpdateParam
+import com.siscontrol.mobile.domain.model.User
 import com.siscontrol.mobile.domain.usecase.*
 import com.siscontrol.mobile.di.SessionManager
 import com.siscontrol.mobile.core.FirebaseStorageManager
@@ -80,11 +80,10 @@ class ProfileViewModel(
                     }
             }
 
-            val request = ProfileUpdateRequest(
+            val request = ProfileUpdateParam(
                 fullName = fullName,
                 username = username,
-                phoneNumber = phoneNumber,
-                imageUrl = remoteUrl
+                phoneNumber = phoneNumber
             )
 
             updateProfileDataUseCase(user.id ?: 0L, request)
@@ -122,7 +121,7 @@ class ProfileViewModel(
             val user = _state.value.user ?: return@launch
             _state.value = _state.value.copy(isActionLoading = true)
 
-            val request = ChangePasswordRequest(
+            val request = ChangePasswordParam(
                 currentPassword = currentPass,
                 newPassword = newPass
             )
@@ -141,7 +140,7 @@ class ProfileViewModel(
 }
 
 data class ProfileState(
-    val user: UserResponseDto? = null,
+    val user: User? = null,
     val isLoading: Boolean = false,
     val isActionLoading: Boolean = false,
     val error: String? = null

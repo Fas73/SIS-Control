@@ -1,5 +1,7 @@
 package com.siscontrol.mobile.data.remote.dto
 
+import com.google.gson.annotations.SerializedName
+
 /**
  * Data Transfer Object que representa un Usuario en el sistema móvil.
  * Sincronizado con UserResponseDTO.java del Backend.
@@ -12,7 +14,7 @@ data class UserResponseDto(
     val fullName: String? = "Usuario",
     val role: String? = "GUARD",
     val phoneNumber: String? = null,
-    val imageUrl: String? = null,
+    @SerializedName("profileImageUrl") val imageUrl: String? = null,
     val status: Int? = 1,
     val createdAt: String? = null
 )

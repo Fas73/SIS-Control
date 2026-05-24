@@ -1,18 +1,19 @@
 package com.siscontrol.mobile.data.repository
 
+import com.siscontrol.mobile.data.mapper.toDomain
+import com.siscontrol.mobile.data.mapper.toDto
+import com.siscontrol.mobile.domain.model.Incident
 import com.siscontrol.mobile.data.remote.IncidentApiService
-import com.siscontrol.mobile.data.remote.dto.IncidentDto
 import com.siscontrol.mobile.domain.repository.IncidentRepository
-
 class IncidentRepositoryImpl(
     private val apiService: IncidentApiService
 ) : IncidentRepository {
 
-    override suspend fun saveIncident(incident: IncidentDto): Result<IncidentDto> {
+    override suspend fun saveIncident(incident: Incident): Result<Incident> {
         return try {
-            val response = apiService.createIncident(incident)
+            val response = apiService.createIncident(incident.toDto())
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                Result.success(response.body()!!.toDomain())
             } else {
                 Result.failure(Exception("Error al guardar: ${response.code()}"))
             }
@@ -21,10 +22,10 @@ class IncidentRepositoryImpl(
         }
     }
 
-    override suspend fun getAllIncidents(): Result<List<IncidentDto>> {
+    override suspend fun getAllIncidents(): Result<List<Incident>> {
         return try {
             val response = apiService.getAllIncidents()
-            Result.success(response)
+            Result.success(response.map { it.toDomain() })
         } catch (e: Exception) {
             Result.failure(e)
         }

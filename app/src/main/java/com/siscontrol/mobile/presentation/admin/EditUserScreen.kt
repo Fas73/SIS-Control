@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.siscontrol.mobile.data.remote.dto.UserRequestDto
+import com.siscontrol.mobile.domain.model.UserCreationParam
 import com.siscontrol.mobile.presentation.theme.*
 import com.siscontrol.mobile.core.toPhoneDigits
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -161,7 +161,7 @@ fun EditUserScreen(
 
                 Button(
                     onClick = {
-                        val request = UserRequestDto(
+                        val request = UserCreationParam(
                             rut = (editingUser?.rut ?: "").replace(".", ""),
                             username = username,
                             email = email,

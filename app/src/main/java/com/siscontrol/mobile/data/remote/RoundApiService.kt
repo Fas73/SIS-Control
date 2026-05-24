@@ -10,7 +10,7 @@ interface RoundApiService {
     suspend fun getCurrentState(@Path("userId") userId: Long): Response<CurrentStateResponseDto>
 
     @GET("api/rondas/buscar")
-    suspend fun getAllRounds(): List<RoundResponseDto>
+    suspend fun getAllRounds(): Response<List<RoundResponseDto>>
 
     @POST("api/rondas/iniciar")
     suspend fun startRound(

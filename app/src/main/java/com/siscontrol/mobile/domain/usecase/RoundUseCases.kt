@@ -1,10 +1,11 @@
 package com.siscontrol.mobile.domain.usecase
 
-import com.siscontrol.mobile.data.remote.dto.RoundResponseDto
+import com.siscontrol.mobile.domain.model.Round
+import com.siscontrol.mobile.domain.model.RoundDetail
 import com.siscontrol.mobile.domain.repository.RoundRepository
 
 class GetAllRoundsUseCase(private val repository: RoundRepository) {
-    suspend operator fun invoke(): Result<List<RoundResponseDto>> = repository.getAllRounds()
+    suspend operator fun invoke(): Result<List<Round>> = repository.getAllRounds()
 }
 
 class StartRoundUseCase(private val repository: RoundRepository) {
@@ -20,5 +21,6 @@ class EndRoundUseCase(private val repository: RoundRepository) {
 }
 
 class GetRoundDetailUseCase(private val repository: RoundRepository) {
-    suspend operator fun invoke(roundId: Long) = repository.getRoundDetail(roundId)
+    suspend operator fun invoke(roundId: Long): Result<RoundDetail> = repository.getRoundDetail(roundId)
 }
+

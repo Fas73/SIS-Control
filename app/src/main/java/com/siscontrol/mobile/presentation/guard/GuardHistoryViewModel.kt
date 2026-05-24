@@ -4,7 +4,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.siscontrol.mobile.data.remote.dto.GuardRoundHistoryResponse
+import com.siscontrol.mobile.domain.model.GuardRoundHistory
 import com.siscontrol.mobile.di.SessionManager
 import com.siscontrol.mobile.domain.usecase.GetGuardRoundsHistoryUseCase
 import kotlinx.coroutines.launch
@@ -72,7 +72,7 @@ class GuardHistoryViewModel(
 }
 
 data class GuardHistoryState(
-    val history: GuardRoundHistoryResponse? = null,
+    val history: GuardRoundHistory? = null,
     val isLoading: Boolean = false,
     val error: String? = null
 )

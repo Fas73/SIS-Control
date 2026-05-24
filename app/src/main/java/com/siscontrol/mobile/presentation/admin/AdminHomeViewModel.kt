@@ -44,7 +44,7 @@ class AdminHomeViewModel(
                                 id = it.id,
                                 guardName = it.guardName,
                                 location = it.location,
-                                progress = it.progreso,
+                                progress = it.progress,
                                 progressText = it.statusDisplay,
                                 status = it.status
                             )

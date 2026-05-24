@@ -1,10 +1,10 @@
 package com.siscontrol.mobile.domain.usecase
 
-import com.siscontrol.mobile.data.remote.dto.CheckpointRequestDto
-import com.siscontrol.mobile.domain.repository.InstallationRepository // <-- CAMBIADO AQUÍ
+import com.siscontrol.mobile.domain.model.CheckpointCreationParam
+import com.siscontrol.mobile.domain.repository.InstallationRepository
 
 class CreateCheckpointUseCase(private val repository: InstallationRepository) {
-    suspend operator fun invoke(editorId: Long, request: CheckpointRequestDto): Result<Unit> {
+    suspend operator fun invoke(editorId: Long, request: CheckpointCreationParam): Result<Unit> {
         return repository.createCheckpoint(editorId, request)
     }
-}
+}
