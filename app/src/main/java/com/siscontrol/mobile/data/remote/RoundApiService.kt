@@ -28,7 +28,7 @@ interface RoundApiService {
     suspend fun getRoundDetail(@Path("id") id: Long): RoundDetailResponseDto
 
     @POST("api/rondas/escaneo")
-    suspend fun scanCheckpoint(@Body request: ScanCheckpointRequest): Response<Map<String, Any>>
+    suspend fun scanCheckpoint(@Body request: ScanCheckpointRequest): Response<ScanCheckpointResponseDto>
 
     @PUT("api/rondas/cancelar/{id}")
     suspend fun cancelRoundAdministratively(

@@ -44,6 +44,15 @@ data class ScanCheckpointRequest(
 data class IdRequest(val id: Long)
 
 /**
+ * DTO para la respuesta del escaneo de checkpoint.
+ * Permite capturar scannedAt oficial generado por el backend.
+ */
+data class ScanCheckpointResponseDto(
+    val mensaje: String? = null,
+    val escaneo: ChecklogDto? = null
+)
+
+/**
  * DTO para la respuesta envoltorio del inicio de ronda.
  */
 data class RoundStartResponseDto(

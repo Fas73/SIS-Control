@@ -96,7 +96,7 @@ class RoundRepositoryImpl(
         }
     }
 
-    override suspend fun scanCheckpoint(roundId: Long, checkpointId: Long, comment: String, status: Int, imageUrl: String?): Result<Unit> {
+    override suspend fun scanCheckpoint(roundId: Long, checkpointId: Long, comment: String, status: Int, imageUrl: String?): Result<String> {
         return try {
             val request = ScanCheckpointRequest(
                 roundExecution = IdRequest(roundId),
@@ -107,7 +107,9 @@ class RoundRepositoryImpl(
             )
             val response = api.scanCheckpoint(request)
             if (response.isSuccessful) {
-                Result.success(Unit)
+                // Extraer scannedAt oficial generado por el backend
+                val scannedAt = response.body()?.escaneo?.scannedAt ?: ""
+                Result.success(scannedAt)
             } else {
                 Result.failure(Exception("Error al escanear checkpoint: ${response.code()}"))
             }

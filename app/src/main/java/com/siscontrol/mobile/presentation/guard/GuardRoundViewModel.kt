@@ -76,10 +76,12 @@ class GuardRoundViewModel(
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)
             scanCheckpointUseCase(roundId, nextCheckpoint.id ?: 0L, "Escaneo NFC automático")
-                .onSuccess {
-                    val now = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                .onSuccess { scannedAtOficial ->
+                    // Usar el timestamp oficial generado por el backend.
+                    // Si el backend no devuelve scannedAt (caso excepcional), se marca como pendiente.
+                    val timeToShow = scannedAtOficial.ifBlank { "S/H" }
                     val newExecuted = _state.value.executedCheckpointIds + (nextCheckpoint.id ?: 0L)
-                    val newScanTimes = _state.value.scanTimes + ((nextCheckpoint.id ?: 0L) to now)
+                    val newScanTimes = _state.value.scanTimes + ((nextCheckpoint.id ?: 0L) to timeToShow)
 
                     _state.value = _state.value.copy(
                         executedCheckpointIds = newExecuted,
@@ -128,10 +130,11 @@ class GuardRoundViewModel(
             }
 
             scanCheckpointUseCase(roundId, nextCheckpoint.id ?: 0L, reason, status = 2, imageUrl = remoteUrl)
-                .onSuccess {
-                    val now = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                .onSuccess { scannedAtOficial ->
+                    // Usar el timestamp oficial generado por el backend.
+                    val timeToShow = scannedAtOficial.ifBlank { "S/H" }
                     val newExecuted = _state.value.executedCheckpointIds + (nextCheckpoint.id ?: 0L)
-                    val newScanTimes = _state.value.scanTimes + ((nextCheckpoint.id ?: 0L) to now)
+                    val newScanTimes = _state.value.scanTimes + ((nextCheckpoint.id ?: 0L) to timeToShow)
 
                     _state.value = _state.value.copy(
                         executedCheckpointIds = newExecuted,
