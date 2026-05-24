@@ -25,6 +25,10 @@ import com.siscontrol.mobile.presentation.theme.*
 import com.siscontrol.mobile.core.toTitleCase
 
 import com.siscontrol.mobile.core.formatDateToDisplay
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
+import com.siscontrol.mobile.di.AppModule
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +46,22 @@ fun AdminHomeScreen(
     var showCancelRoundDialog by remember { mutableStateOf<DashboardActiveRound?>(null) }
     var showCancelShiftDialog by remember { mutableStateOf<DashboardActiveShift?>(null) }
     var cancelReason by remember { mutableStateOf("") }
+    
+    val context = LocalContext.current
+
+    LaunchedEffect(state.csvDownloadUrl) {
+        state.csvDownloadUrl?.let { url ->
+            val fullUrl = AppModule.BASE_URL + url.removePrefix("/")
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(fullUrl))
+            // Para asegurar que puede encontrar un navegador o app que maneje CSV/URLs:
+            try {
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                // Si no hay app, no crasheará, idealmente mostrar un Toast
+            }
+            viewModel.resetCsvUrl()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -196,6 +216,22 @@ fun AdminHomeScreen(
                         modifier = Modifier.weight(1f),
                         onClick = { onNavigate(com.siscontrol.mobile.presentation.Destinos.adminIncidentLogRoute(token, role)) }
                     )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    QuickAccessButton(
+                        title = if (state.isCsvLoading) "Generando..." else "Reporte CSV",
+                        icon = Icons.Default.Download,
+                        containerColor = Color(0xFF0EA5E9).copy(alpha = 0.05f),
+                        contentColor = Color(0xFF0EA5E9),
+                        modifier = Modifier.weight(1f),
+                        onClick = { 
+                            if (!state.isCsvLoading) {
+                                viewModel.generateCsvReport() 
+                            }
+                        }
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
 

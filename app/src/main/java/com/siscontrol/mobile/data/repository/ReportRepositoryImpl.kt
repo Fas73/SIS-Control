@@ -8,6 +8,9 @@ import com.siscontrol.mobile.data.remote.dto.AdminDashboardResponse
 import com.siscontrol.mobile.data.remote.dto.GuardRoundHistoryResponse
 import com.siscontrol.mobile.domain.repository.ReportRepository
 import com.siscontrol.mobile.data.remote.ReportApiService
+import com.siscontrol.mobile.domain.model.CsvReportResponse
+import java.io.InputStream
+
 class ReportRepositoryImpl(
     private val api: ReportApiService
 ) : ReportRepository {
@@ -23,6 +26,23 @@ class ReportRepositoryImpl(
     override suspend fun getGuardRoundsHistory(guardId: Long, inicio: String?, fin: String?): Result<GuardRoundHistory> {
         return try {
             Result.success(api.getGuardRoundsHistory(guardId, inicio, fin).toDomain())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun generateCsvReport(): Result<CsvReportResponse> {
+        return try {
+            Result.success(api.generateCsvReport().toDomain())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun downloadCsvReport(fileName: String): Result<InputStream> {
+        return try {
+            val responseBody = api.downloadCsvReport(fileName)
+            Result.success(responseBody.byteStream())
         } catch (e: Exception) {
             Result.failure(e)
         }

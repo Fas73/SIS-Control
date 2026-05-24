@@ -5,11 +5,21 @@ import com.siscontrol.mobile.data.remote.dto.DashboardActiveRoundDto
 import com.siscontrol.mobile.data.remote.dto.DashboardActiveShiftDto
 import com.siscontrol.mobile.data.remote.dto.GuardRoundHistoryResponse
 import com.siscontrol.mobile.data.remote.dto.RoundHistoryItemDto
+import com.siscontrol.mobile.data.remote.dto.CsvReportResponseDto
 import com.siscontrol.mobile.domain.model.AdminDashboard
 import com.siscontrol.mobile.domain.model.DashboardActiveRound
 import com.siscontrol.mobile.domain.model.DashboardActiveShift
 import com.siscontrol.mobile.domain.model.GuardRoundHistory
 import com.siscontrol.mobile.domain.model.RoundHistoryItem
+import com.siscontrol.mobile.domain.model.CsvReportResponse
+
+fun CsvReportResponseDto.toDomain(): CsvReportResponse {
+    return CsvReportResponse(
+        fileName = this.fileName,
+        downloadUrl = this.downloadUrl,
+        rows = this.rows
+    )
+}
 
 fun DashboardActiveRoundDto.toDomain(): DashboardActiveRound {
     return DashboardActiveRound(

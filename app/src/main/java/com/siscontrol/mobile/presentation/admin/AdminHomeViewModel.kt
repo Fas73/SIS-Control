@@ -11,6 +11,7 @@ class AdminHomeViewModel(
     private val getAdminDashboardUseCase: GetAdminDashboardUseCase,
     private val cancelRoundUseCase: CancelRoundUseCase,
     private val cancelShiftUseCase: CancelShiftUseCase,
+    private val generateCsvReportUseCase: GenerateCsvReportUseCase,
     private val sessionManager: com.siscontrol.mobile.di.SessionManager
 ) : ViewModel() {
 
@@ -99,6 +100,30 @@ class AdminHomeViewModel(
         }
     }
     
+    fun generateCsvReport() {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isCsvLoading = true, error = null, csvDownloadUrl = null)
+            generateCsvReportUseCase()
+                .onSuccess { report ->
+                    _state.value = _state.value.copy(
+                        isCsvLoading = false,
+                        csvDownloadUrl = report.downloadUrl,
+                        successMessage = "Reporte generado. Filas: ${report.rows}"
+                    )
+                }
+                .onFailure { e ->
+                    _state.value = _state.value.copy(
+                        isCsvLoading = false,
+                        error = "Error al generar CSV: ${com.siscontrol.mobile.core.ErrorUtils.parse(e)}"
+                    )
+                }
+        }
+    }
+
+    fun resetCsvUrl() {
+        _state.value = _state.value.copy(csvDownloadUrl = null)
+    }
+    
     fun resetMessages() {
         _state.value = _state.value.copy(error = null, successMessage = null)
     }
@@ -106,7 +131,9 @@ class AdminHomeViewModel(
 
 data class AdminHomeState(
     val isLoading: Boolean = false,
+    val isCsvLoading: Boolean = false,
     val successMessage: String? = null,
+    val csvDownloadUrl: String? = null,
     val totalGuards: Int = 0,
     val activeShifts: Int = 0,
     val totalRoundsToday: Int = 0,

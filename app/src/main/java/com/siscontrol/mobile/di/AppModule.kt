@@ -33,10 +33,10 @@ object AppModule {
 
     // CAMBIA ESTA IP por la de tu Mac (puedes verla en Ajustes -> Red -> Wi-Fi)
     // Ejemplo: "http://192.168.1.15:8080/"
-    // private const val BASE_URL = "http://10.0.2.2:8080/"
-    //private const val BASE_URL = "http://192.168.100.147:8080/"
-    //private const val BASE_URL = "http://192.168.1.104:8080/"
-    private const val BASE_URL = "http://10.0.2.2:8080/"
+    // const val BASE_URL = "http://10.0.2.2:8080/"
+    // const val BASE_URL = "http://192.168.100.147:8080/"
+    // const val BASE_URL = "http://192.168.1.104:8080/"
+    const val BASE_URL = "http://10.0.2.2:8080/"
     private lateinit var sessionManager: SessionManager
     private lateinit var database: com.siscontrol.mobile.data.local.AppDatabase
 
@@ -155,6 +155,7 @@ object AppModule {
     // Reports
     val getAdminDashboardUseCase by lazy { GetAdminDashboardUseCase(reportRepository) }
     val getGuardRoundsHistoryUseCase by lazy { GetGuardRoundsHistoryUseCase(reportRepository) }
+    val generateCsvReportUseCase by lazy { GenerateCsvReportUseCase(reportRepository) }
 
     // Profile
     val updateProfileDataUseCase by lazy { UpdateProfileDataUseCase(profileRepository) }
@@ -176,6 +177,7 @@ object AppModule {
             getAdminDashboardUseCase,
             cancelRoundUseCase,
             cancelShiftUseCase,
+            generateCsvReportUseCase,
             sessionManager
         )
 
