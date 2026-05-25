@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.siscontrol.mobile.presentation.admin.*
 import com.siscontrol.mobile.presentation.components.SISTopBar
+import com.siscontrol.mobile.presentation.components.SeverityPieChart
 import com.siscontrol.mobile.presentation.theme.*
 import com.siscontrol.mobile.core.toTitleCase
 import com.siscontrol.mobile.di.AppModule
@@ -51,7 +52,7 @@ fun SupervisorHomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundColor)
+            .background(Color.White)
             .padding(paddingValues)
     ) {
         SISTopBar(
@@ -157,6 +158,25 @@ fun SupervisorHomeScreen(
                             iconColor = DangerColor,
                             iconBg = Color.Transparent
                         )
+                    }
+
+                    if (state.totalIncidents > 0) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB)),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E7EB))
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text("Distribución por Gravedad", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                SeverityPieChart(
+                                    high = state.highSeverityCount,
+                                    medium = state.mediumSeverityCount,
+                                    low = state.lowSeverityCount
+                                )
+                            }
+                        }
                     }
                 }
             }

@@ -30,8 +30,18 @@ class GuardHistoryViewModel(
 
             getGuardRoundsHistoryUseCase(guardId, inicio, fin)
                 .onSuccess { response ->
+                    // Respetamos la trazabilidad absoluta del Backend consolidado por ID.
+                    val cleanRondas = response.rondas.distinctBy { it.id }
+
+                    // Recalculamos contadores locales para que la UI coincida con los datos del servidor
+                    val consolidatedHistory = response.copy(
+                        rondas = cleanRondas,
+                        total = cleanRondas.size,
+                        completas = cleanRondas.count { it.statusDisplay?.equals("Completada", ignoreCase = true) == true }
+                    )
+                    
                     _state.value = _state.value.copy(
-                        history = response,
+                        history = consolidatedHistory,
                         isLoading = false
                     )
                 }

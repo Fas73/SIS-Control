@@ -14,4 +14,9 @@ interface AuthApiService {
      */
     @POST("api/auth/login")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
+
+    @POST("api/auth/recuperar-acceso")
+    suspend fun solicitarRecuperacion(
+        @Body request: Map<String, String>
+    ): Response<Map<String, String>>
 }

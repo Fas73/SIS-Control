@@ -31,7 +31,6 @@ data class IncidentDto(
     @SerializedName("status")
     val status: Int? = 0,
 
-    // --- NUEVOS CAMPOS APLANADOS (Desde AlertNotificationDTO) ---
     @SerializedName("username")
     val username: String? = null,
 
@@ -41,13 +40,18 @@ data class IncidentDto(
     @SerializedName("checkpointName")
     val checkpointName: String? = null,
 
+    @SerializedName("checkpointOrder")
+    val checkpointOrder: Int? = null,
+
     @SerializedName("executionOrder")
     val executionOrder: Int? = null,
 
     @SerializedName("roundExecutionId")
     val roundExecutionId: Long? = null,
 
-    // Compatibilidad con objeto anidado (si el GET aún lo envía así)
+    @SerializedName("checklogId")
+    val checklogId: Long? = null,
+
     @SerializedName("roundExecution")
     val roundExecution: RoundResponseDto? = null
 )

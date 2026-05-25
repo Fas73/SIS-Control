@@ -100,6 +100,7 @@ dependencies {
 
     // Image Loading
     implementation("io.coil-kt:coil-compose:2.5.0")
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 
     // Room Database
     val room_version = "2.6.1"

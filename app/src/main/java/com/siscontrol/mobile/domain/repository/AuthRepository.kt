@@ -14,4 +14,9 @@ interface AuthRepository {
      * Retorna Result<LoginResult> con el token, rol y datos básicos del usuario en caso exitoso.
      */
     suspend fun login(username: String, password: String): Result<LoginResult>
+
+    /**
+     * Solicita la recuperación de acceso para el correo electrónico indicado.
+     */
+    suspend fun solicitarRecuperacion(email: String): Result<String>
 }

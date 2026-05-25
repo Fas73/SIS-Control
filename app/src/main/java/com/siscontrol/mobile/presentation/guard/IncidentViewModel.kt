@@ -17,6 +17,7 @@ class IncidentViewModel(
     val state: State<IncidentState> = _state
 
     fun reportIncident(
+        context: android.content.Context,
         title: String,
         description: String,
         severity: String,
@@ -30,9 +31,9 @@ class IncidentViewModel(
             
             var remoteUrl: String? = null
             
-            // Subir a Firebase si hay una imagen local
+            // Subir a Firebase con COMPRESIÓN OPTIMIZADA
             if (imageUri != null) {
-                FirebaseStorageManager.uploadImage(imageUri, "evidencias")
+                FirebaseStorageManager.uploadImage(context, imageUri, "evidencias")
                     .onSuccess { remoteUrl = it }
                     .onFailure { e ->
                         _state.value = _state.value.copy(

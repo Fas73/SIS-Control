@@ -8,7 +8,8 @@ import com.siscontrol.mobile.data.remote.dto.ScanCheckpointRequest
 import com.siscontrol.mobile.domain.repository.RoundRepository
 
 class RoundRepositoryImpl(
-    private val api: RoundApiService
+    private val api: RoundApiService,
+    private val sessionManager: com.siscontrol.mobile.di.SessionManager
 ) : RoundRepository {
 
     override suspend fun getCurrentState(userId: Long): Result<com.siscontrol.mobile.data.remote.dto.CurrentStateResponseDto> {
@@ -74,14 +75,15 @@ class RoundRepositoryImpl(
 
     override suspend fun getRoundDetail(roundId: Long): Result<com.siscontrol.mobile.data.remote.dto.RoundDetailResponseDto> {
         return try {
-            val response = api.getRoundDetail(roundId)
+            val currentUserId = sessionManager.getUserIdSync() ?: 0L
+            val response = api.getRoundDetail(roundId, currentUserId)
             Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    override suspend fun scanCheckpoint(roundId: Long, checkpointId: Long, comment: String, status: Int, imageUrl: String?): Result<Unit> {
+    override suspend fun scanCheckpoint(roundId: Long, checkpointId: Long, comment: String, status: Int, imageUrl: String?): Result<Long?> {
         return try {
             val request = ScanCheckpointRequest(
                 roundExecution = IdRequest(roundId),
@@ -91,8 +93,12 @@ class RoundRepositoryImpl(
                 imageUrl = imageUrl
             )
             val response = api.scanCheckpoint(request)
-            if (response.isSuccessful) {
-                Result.success(Unit)
+            if (response.isSuccessful && response.body() != null) {
+                // Extraemos el ID del escaneo/checklog de la respuesta del backend
+                val body = response.body()!!
+                val escaneoMap = body["escaneo"] as? Map<*, *>
+                val id = (escaneoMap?.get("id") as? Double)?.toLong()
+                Result.success(id)
             } else {
                 Result.failure(Exception("Error al escanear checkpoint: ${response.code()}"))
             }

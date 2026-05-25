@@ -5,6 +5,7 @@ import com.siscontrol.mobile.data.remote.*
 import com.siscontrol.mobile.data.repository.*
 import com.siscontrol.mobile.domain.usecase.*
 import com.siscontrol.mobile.presentation.login.LoginViewModel
+import com.siscontrol.mobile.presentation.login.ForgotPasswordViewModel
 import com.siscontrol.mobile.presentation.management.CreatePersonnelViewModel
 import com.siscontrol.mobile.presentation.admin.AdminInstallationsViewModel
 import com.siscontrol.mobile.presentation.admin.AdminManagementViewModel
@@ -34,8 +35,8 @@ object AppModule {
     // CAMBIA ESTA IP por la de tu Mac (puedes verla en Ajustes -> Red -> Wi-Fi)
     // Ejemplo: "http://192.168.1.15:8080/"
     // private const val BASE_URL = "http://10.0.2.2:8080/"
-    //private const val BASE_URL = "http://192.168.100.147:8080/"
-    private const val BASE_URL = "http://10.148.98.46:8080/"
+    //private const val BASE_URL = "http://192.168.100.185:8080/"
+     private const val BASE_URL = "http://10.148.98.46:8080/"
     private lateinit var sessionManager: SessionManager
     private lateinit var database: com.siscontrol.mobile.data.local.AppDatabase
 
@@ -110,7 +111,7 @@ object AppModule {
     private val personnelRepository by lazy { PersonnelRepositoryImpl(personnelApiService) }
     private val installationRepository by lazy { InstallationRepositoryImpl(installationApiService) }
     private val attendanceRepository by lazy { AttendanceRepositoryImpl(attendanceApiService) }
-    private val roundRepository by lazy { RoundRepositoryImpl(roundApiService) }
+    private val roundRepository by lazy { RoundRepositoryImpl(roundApiService, sessionManager) }
     private val reportRepository by lazy { ReportRepositoryImpl(reportApiService) }
     private val profileRepository by lazy { ProfileRepositoryImpl(profileApiService) }
     private val incidentRepository by lazy { IncidentRepositoryImpl(incidentApiService) }
@@ -158,6 +159,8 @@ object AppModule {
     // Profile
     val updateProfileDataUseCase by lazy { UpdateProfileDataUseCase(profileRepository) }
     val changeMyPasswordUseCase by lazy { ChangeMyPasswordUseCase(profileRepository) }
+    val updateProfileImageUseCase by lazy { UpdateProfileImageUseCase(profileRepository) }
+    val recoverAccessUseCase by lazy { RecoverAccessUseCase(authRepository) }
 
     // Incidents
     val reportIncidentUseCase by lazy { ReportIncidentUseCase(incidentRepository) }
@@ -170,11 +173,15 @@ object AppModule {
     fun provideLoginViewModel(): LoginViewModel =
         LoginViewModel(loginUseCase)
 
+    fun provideForgotPasswordViewModel(): ForgotPasswordViewModel =
+        ForgotPasswordViewModel(recoverAccessUseCase)
+
     fun provideAdminHomeViewModel(): AdminHomeViewModel =
         AdminHomeViewModel(
             getAdminDashboardUseCase,
             cancelRoundUseCase,
             cancelShiftUseCase,
+            incidentRepository,
             sessionManager
         )
 
@@ -216,6 +223,7 @@ object AppModule {
             checkOutUseCase = checkOutUseCase,
             updateProfileDataUseCase = updateProfileDataUseCase,
             changeMyPasswordUseCase = changeMyPasswordUseCase,
+            updateProfileImageUseCase = updateProfileImageUseCase,
             sessionManager = sessionManager
         )
 
@@ -252,6 +260,8 @@ object AppModule {
             getRoundDetailUseCase = getRoundDetailUseCase,
             scanCheckpointUseCase = scanCheckpointUseCase,
             triggerPanicUseCase = triggerPanicUseCase,
+            reportIncidentUseCase = reportIncidentUseCase,
+            getCurrentGuardStateUseCase = getCurrentGuardStateUseCase,
             sessionManager = sessionManager
         )
 

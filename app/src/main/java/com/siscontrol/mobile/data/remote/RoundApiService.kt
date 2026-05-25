@@ -25,7 +25,10 @@ interface RoundApiService {
     ): Response<RoundEndResponseDto>
 
     @GET("api/rondas/{id}")
-    suspend fun getRoundDetail(@Path("id") id: Long): RoundDetailResponseDto
+    suspend fun getRoundDetail(
+        @Path("id") id: Long,
+        @Query("requesterId") requesterId: Long
+    ): RoundDetailResponseDto
 
     @POST("api/rondas/escaneo")
     suspend fun scanCheckpoint(@Body request: ScanCheckpointRequest): Response<Map<String, Any>>

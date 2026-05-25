@@ -5,12 +5,15 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.siscontrol.mobile.data.local.dao.UserSessionDao
+import com.siscontrol.mobile.data.local.dao.DismissedAlertDao
 import com.siscontrol.mobile.data.local.entities.UserSessionEntity
+import com.siscontrol.mobile.data.local.entities.DismissedAlertEntity
 
-@Database(entities = [UserSessionEntity::class], version = 1, exportSchema = false)
+@Database(entities = [UserSessionEntity::class, DismissedAlertEntity::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun userSessionDao(): UserSessionDao
+    abstract fun dismissedAlertDao(): DismissedAlertDao
 
     companion object {
         @Volatile
@@ -22,7 +25,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "sis_control_db"
-                ).build()
+                )
+                .fallbackToDestructiveMigration() // Evita crashes al cambiar el esquema de la BD
+                .build()
                 INSTANCE = instance
                 instance
             }

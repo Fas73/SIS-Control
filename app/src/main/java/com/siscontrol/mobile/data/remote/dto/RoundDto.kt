@@ -1,17 +1,28 @@
 package com.siscontrol.mobile.data.remote.dto
 
+import com.google.gson.annotations.SerializedName
+
 /**
  * DTO para la respuesta de una ronda (coincide con tu tabla round_executions).
  */
 data class RoundResponseDto(
+    @SerializedName("id")
     val id: Long? = 0L,
+    @SerializedName("startTime")
     val startTime: String? = null,
+    @SerializedName("endTime")
     val endTime: String? = null,
+    @SerializedName("status")
     val status: String? = null,
+    @SerializedName("observations")
     val observations: String? = null,
+    @SerializedName("workerId")
     val workerId: Long? = null,
+    @SerializedName("worker")
     val worker: UserResponseDto? = null,
+    @SerializedName("installationId")
     val installationId: Long? = null,
+    @SerializedName("installation")
     val installation: InstallationDto? = null
 )
 
@@ -34,10 +45,16 @@ data class StartRoundRequest(
  * DTO para el escaneo de un checkpoint por NFC.
  */
 data class ScanCheckpointRequest(
+    @SerializedName("roundExecution")
     val roundExecution: IdRequest,
+    @SerializedName("checkpoint")
     val checkpoint: IdRequest,
+    @SerializedName("notes")
     val notes: String,
+    @SerializedName("status")
     val status: Int = 1, // 1: Físico, 2: Omitido
+    
+    @SerializedName("imageUrl")
     val imageUrl: String? = null
 )
 
@@ -71,18 +88,28 @@ data class CurrentStateResponseDto(
 )
 
 data class ShiftDto(
+    @SerializedName("id")
     val id: Long? = 0L,
+    @SerializedName("entryTime")
     val entryTime: String? = null,
+    @SerializedName("exitTime")
     val exitTime: String? = null,
+    @SerializedName("status")
     val status: String? = null,
+    @SerializedName("installation")
     val installation: InstallationDto? = null,
+    @SerializedName("worker")
     val worker: UserResponseDto? = null
 )
 
 data class ChecklogDto(
+    @SerializedName("id")
     val id: Long? = 0L,
+    @SerializedName("scannedAt")
     val scannedAt: String? = null,
+    @SerializedName("checkpoint")
     val checkpoint: CheckpointDto? = null,
+    @SerializedName("notes")
     val notes: String? = null
 )
 
@@ -90,7 +117,7 @@ data class ChecklogDto(
  * DTO para el detalle completo de una ronda.
  */
 data class RoundDetailResponseDto(
-    val ronda: RoundResponseDto? = null,
-    val escaneos: List<ChecklogDto>? = emptyList(),
-    val incidentes: List<Map<String, Any>>? = emptyList()
+    @SerializedName("ronda") val ronda: RoundResponseDto? = null,
+    @SerializedName("escaneos") val escaneos: List<ChecklogDto>? = emptyList(),
+    @SerializedName("incidentes") val incidentes: List<IncidentDto>? = emptyList()
 )

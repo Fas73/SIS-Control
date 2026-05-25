@@ -27,4 +27,13 @@ class ProfileRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    override suspend fun updateProfileImage(id: Long, imageUrl: String): Result<UserResponseDto> {
+        return try {
+            val response = apiService.updateProfileImage(id, imageUrl)
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

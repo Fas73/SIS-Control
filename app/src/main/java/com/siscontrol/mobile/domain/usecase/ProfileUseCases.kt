@@ -20,3 +20,11 @@ class ChangeMyPasswordUseCase(
         return repository.updatePassword(id, request)
     }
 }
+
+class UpdateProfileImageUseCase(
+    private val repository: ProfileRepository
+) {
+    suspend operator fun invoke(id: Long, imageUrl: String): Result<UserResponseDto> {
+        return repository.updateProfileImage(id, imageUrl)
+    }
+}

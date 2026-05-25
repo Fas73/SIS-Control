@@ -17,10 +17,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import com.siscontrol.mobile.data.remote.dto.IncidentDto
+import com.siscontrol.mobile.presentation.components.FullScreenImageDialog
 import com.siscontrol.mobile.presentation.theme.*
 import com.siscontrol.mobile.core.formatDateToDisplay
 import java.time.LocalDateTime
@@ -38,6 +42,7 @@ fun AdminIncidentLogScreen(
     var selectedTab by rememberSaveable { mutableIntStateOf(0) } // 0: Día, 1: Semana, 2: Mes
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var selectedIncident by remember { mutableStateOf<IncidentDto?>(null) }
+    var fullScreenImageUrl by remember { mutableStateOf<String?>(null) }
 
     val filteredIncidents = remember(state.allIncidents, selectedTab, searchQuery) {
         val now = LocalDateTime.now()
@@ -74,7 +79,7 @@ fun AdminIncidentLogScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundColor)
+            .background(Color.White)
             .padding(paddingValues)
     ) {
         // Custom Top Bar
@@ -160,8 +165,16 @@ fun AdminIncidentLogScreen(
     }
 
     if (selectedIncident != null) {
-        IncidentDetailDialog(selectedIncident!!) {
-            selectedIncident = null
+        IncidentDetailDialog(
+            incident = selectedIncident!!,
+            onDismiss = { selectedIncident = null },
+            onImageClick = { fullScreenImageUrl = it }
+        )
+    }
+
+    if (fullScreenImageUrl != null) {
+        FullScreenImageDialog(imageUrl = fullScreenImageUrl!!) {
+            fullScreenImageUrl = null
         }
     }
 }
@@ -179,7 +192,10 @@ fun IncidentLogCard(incident: IncidentDto, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, if(isPanic) DangerColor.copy(alpha = 0.5f) else Color(0xFFE5E7EB))
     ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.padding(16.dp), 
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -197,14 +213,37 @@ fun IncidentLogCard(incident: IncidentDto, onClick: () -> Unit) {
                 Text(incident.title.uppercase(), fontWeight = FontWeight.Bold, color = if(isPanic) DangerColor else TextPrimary, fontSize = 14.sp)
                 Text(incident.clientName ?: "Instalación General", color = TextSecondary, fontSize = 12.sp)
                 Text("Por: ${incident.username ?: "Guardia SIS"}", color = TextSecondary, fontSize = 12.sp)
+                
+                Text(
+                    text = incident.createdAt?.formatDateToDisplay() ?: "", 
+                    color = PrimaryColor, 
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
             }
-            Text(incident.createdAt?.take(10) ?: "", color = TextPlaceholder, fontSize = 11.sp)
+
+            if (!incident.imageUrl.isNullOrBlank()) {
+                Spacer(Modifier.width(8.dp))
+                AsyncImage(
+                    model = incident.imageUrl,
+                    contentDescription = "Miniatura",
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
         }
     }
 }
 
 @Composable
-fun IncidentDetailDialog(incident: IncidentDto, onDismiss: () -> Unit) {
+fun IncidentDetailDialog(
+    incident: IncidentDto, 
+    onImageClick: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
@@ -219,6 +258,12 @@ fun IncidentDetailDialog(incident: IncidentDto, onDismiss: () -> Unit) {
             LazyColumn(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 item {
                     DetailRow(Icons.Default.Business, "Instalación", incident.clientName ?: "General")
+                    
+                    if (incident.checkpointName != null && incident.checkpointName != "N/A") {
+                        val orderText = if (incident.checkpointOrder != null) "N°${incident.checkpointOrder} - " else ""
+                        DetailRow(Icons.Default.Place, "Punto Omitido", "$orderText${incident.checkpointName}")
+                    }
+
                     DetailRow(Icons.Default.Person, "Guardia", incident.username ?: "No registrado")
                     DetailRow(Icons.Default.Event, "Fecha y Hora", (incident.createdAt ?: "").formatDateToDisplay())
                     DetailRow(Icons.Default.PriorityHigh, "Gravedad", incident.severity)
@@ -227,11 +272,12 @@ fun IncidentDetailDialog(incident: IncidentDto, onDismiss: () -> Unit) {
                     Text("OBSERVACIONES / COMENTARIOS", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = TextSecondary)
                     Text(incident.description, color = TextPrimary, fontSize = 14.sp)
                     
-                    if (incident.imageUrl != null) {
+                    if (!incident.imageUrl.isNullOrBlank()) {
                         Spacer(Modifier.height(16.dp))
                         Text("EVIDENCIA FOTOGRÁFICA", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = TextSecondary)
                         Spacer(Modifier.height(8.dp))
                         Card(
+                            modifier = Modifier.clickable { onImageClick(incident.imageUrl) },
                             shape = RoundedCornerShape(12.dp),
                             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                         ) {
@@ -239,7 +285,7 @@ fun IncidentDetailDialog(incident: IncidentDto, onDismiss: () -> Unit) {
                                 model = incident.imageUrl,
                                 contentDescription = "Evidencia",
                                 modifier = Modifier.fillMaxWidth().height(200.dp),
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                contentScale = ContentScale.Crop
                             )
                         }
                     }

@@ -11,11 +11,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavOptionsBuilder
 import androidx.navigation.navArgument
 import com.siscontrol.mobile.di.AppModule
 import com.siscontrol.mobile.data.remote.dto.CheckpointDto
 import com.siscontrol.mobile.presentation.guard.GuardRoundViewModel
 import com.siscontrol.mobile.presentation.login.ForgotPasswordScreen
+import com.siscontrol.mobile.presentation.login.ForgotPasswordViewModel
 import com.siscontrol.mobile.presentation.login.LoginScreen
 import com.siscontrol.mobile.presentation.login.LoginViewModel
 import com.siscontrol.mobile.presentation.main.MainScreen
@@ -83,6 +86,7 @@ object Destinos {
     const val GUARD_START_ROUND = "guard_start_round/{token}/{role}"
     const val GUARD_RONDA = "guard_ronda/{token}/{role}/{roundId}/{installationId}/{installationName}"
     const val GUARD_HISTORY = "guard_history/{token}/{role}"
+    const val GUARD_ROUND_DETAIL = "guard_round_detail/{roundId}/{token}/{role}"
     const val GUARD_INCIDENT = "guard_incident/{token}/{role}"
     const val GUARD_NFC = "guard_nfc/{token}/{role}"
     const val GUARD_CHECKPOINT = "guard_checkpoint/{token}/{role}"
@@ -114,6 +118,8 @@ object Destinos {
     fun guardRondaRoute(token: String, role: String, roundId: Long, installationId: Long, installationName: String) = 
         "guard_ronda/${encode(token)}/${encode(role)}/$roundId/$installationId/${encode(installationName)}"
     fun guardHistoryRoute(token: String, role: String) = "guard_history/${encode(token)}/${encode(role)}"
+    fun guardRoundDetailRoute(roundId: Long, token: String, role: String) = 
+        "guard_round_detail/$roundId/${encode(token)}/${encode(role)}"
     fun guardIncidentRoute(token: String, role: String) = "guard_incident/${encode(token)}/${encode(role)}"
     fun guardNfcRoute(token: String, role: String) = "guard_nfc/${encode(token)}/${encode(role)}"
     fun guardCheckpointRoute(token: String, role: String) = "guard_checkpoint/${encode(token)}/${encode(role)}"
@@ -129,6 +135,11 @@ object Destinos {
 private class LoginViewModelFactory : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T = AppModule.provideLoginViewModel() as T
+}
+
+private class ForgotPasswordViewModelFactory : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T = AppModule.provideForgotPasswordViewModel() as T
 }
 
 private class AdminHomeViewModelFactory : ViewModelProvider.Factory {
@@ -270,7 +281,11 @@ fun AppNavigation() {
         }
 
         composable(Destinos.FORGOT_PASSWORD) {
-            ForgotPasswordScreen(onBack = { navController.popBackStack() }, onSendInstructions = {})
+            val forgotViewModel: ForgotPasswordViewModel = viewModel(factory = ForgotPasswordViewModelFactory())
+            ForgotPasswordScreen(
+                onBack = { navController.popBackStack() },
+                viewModel = forgotViewModel
+            )
         }
 
         composable(
@@ -626,7 +641,12 @@ fun AppNavigation() {
                 GuardStartRoundScreen(
                     paddingValues = padding,
                     viewModel = vm,
-                    onBack = { navController.popBackStack() },
+                    onBack = { 
+                        // Regresamos al Home de forma segura, limpiando el stack anterior.
+                        navController.navigate(Destinos.guardHomeRoute(token, role)) {
+                            popUpTo(Destinos.GUARD_HOME) { inclusive = true }
+                        }
+                    },
                     onStartRound = { rId: Long, iId: Long, iName: String -> 
                         navController.navigate(Destinos.guardRondaRoute(token, role, rId, iId, iName))
                     }
@@ -722,8 +742,34 @@ fun AppNavigation() {
             val vm: GuardHistoryViewModel = viewModel(factory = GuardHistoryViewModelFactory())
 
             MainScaffold(navController, role, token) { padding ->
-                GuardHistoryScreen(paddingValues = padding, viewModel = vm)
+                GuardHistoryScreen(
+                    paddingValues = padding, 
+                    viewModel = vm,
+                    onNavigateToDetail = { rId ->
+                        navController.navigate(Destinos.guardRoundDetailRoute(rId, token, role))
+                    }
+                )
             }
+        }
+
+        composable(
+            route = Destinos.GUARD_ROUND_DETAIL,
+            arguments = listOf(
+                navArgument("roundId") { type = NavType.LongType },
+                navArgument("token") { type = NavType.StringType },
+                navArgument("role") { type = NavType.StringType }
+            )
+        ) { backStack ->
+            val roundId = backStack.arguments?.getLong("roundId") ?: 0L
+            val token = java.net.URLDecoder.decode(backStack.arguments?.getString("token") ?: "", "UTF-8")
+            val role = java.net.URLDecoder.decode(backStack.arguments?.getString("role") ?: "", "UTF-8")
+            val vm: GuardRoundViewModel = viewModel(factory = GuardRoundViewModelFactory())
+
+            GuardRoundDetailScreen(
+                roundId = roundId,
+                viewModel = vm,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(Destinos.ADMIN_INCIDENT_LOG, arguments = listOf(
