@@ -2,6 +2,7 @@ package com.siscontrol.mobile.presentation.guard
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -25,13 +26,15 @@ import com.siscontrol.mobile.presentation.theme.*
 @Composable
 fun GuardHistoryScreen(
     paddingValues: PaddingValues,
-    viewModel: GuardHistoryViewModel
+    viewModel: GuardHistoryViewModel,
+    onNavigateToDetail: (Long) -> Unit
 ) {
     var selectedFilter by remember { mutableStateOf("Todas") }
     val filters = listOf("Todas", "Hoy", "Esta Semana", "Este Mes")
     val state by viewModel.state
 
-    LaunchedEffect(selectedFilter) {
+    // Forzamos la recarga al entrar a la pantalla (Unit) y al cambiar el filtro
+    LaunchedEffect(Unit, selectedFilter) {
         viewModel.loadHistory(selectedFilter)
     }
 
@@ -115,15 +118,24 @@ fun GuardHistoryScreen(
                             "Consultando..."
                         }
                         
+                        val shiftStart = formatTimeOnly(ronda.shiftStartTime)
+                        val shiftEnd = if (ronda.shiftEndTime != null) {
+                            if (ronda.shiftEndTime.contains(":")) formatTimeOnly(ronda.shiftEndTime) 
+                            else ronda.shiftEndTime 
+                        } else "En curso"
+                        
+                        val fullDateLabel = "${formatHistoryDate(ronda.startTime)} • ${formatTimeOnly(ronda.startTime)}"
+                        
                         HistoryItemCard(
                             location = ronda.installationName,
                             status = ronda.statusDisplay ?: "Incompleta",
-                            date = formatHistoryDate(ronda.startTime),
+                            date = fullDateLabel,
                             duration = "${ronda.durationMinutes} min",
                             points = displayPoints,
-                            shiftTime = "${formatTimeOnly(ronda.shiftStartTime)} - ${formatTimeOnly(ronda.shiftEndTime)}",
+                            shiftTime = "$shiftStart - $shiftEnd",
                             incidents = ronda.incidentCount,
-                            isSuccess = ronda.status == "FINALIZADA"
+                            isSuccess = ronda.statusDisplay?.equals("Completada", ignoreCase = true) == true,
+                            onClick = { onNavigateToDetail(ronda.id) }
                         )
                     }
                 }
@@ -186,10 +198,11 @@ fun HistoryItemCard(
     points: String,
     shiftTime: String,
     incidents: Int,
-    isSuccess: Boolean
+    isSuccess: Boolean,
+    onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
@@ -253,14 +266,25 @@ fun HistoryItemCard(
                             modifier = Modifier.size(14.dp)
                         )
                     }
-                    val incidentText = when (incidents) {
-                        0 -> "Sin incidentes"
-                        1 -> "1 incidente"
-                        else -> "$incidents incidentes"
+                    // Lógica visual para ignorar avisos informativos (como rondas completadas)
+                    // Si el backend envía el número real de la BD, aquí mostramos lo crítico
+                    val incidentText = when {
+                        incidents <= 0 -> "Sin incidentes"
+                        incidents == 1 -> "1 incidente crítico"
+                        else -> "$incidents incidentes registrados"
                     }
-                    Text(incidentText,
-                         fontSize = 11.sp, 
-                         color = if(incidents > 0) DangerColor else TextSecondary)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (incidents > 0) {
+                            Icon(Icons.Default.NotificationsActive, null, tint = DangerColor, modifier = Modifier.size(12.dp))
+                            Spacer(Modifier.width(4.dp))
+                        }
+                        Text(
+                            text = incidentText,
+                            fontSize = 11.sp, 
+                            fontWeight = if (incidents > 0) FontWeight.Bold else FontWeight.Normal,
+                            color = if(incidents > 0) DangerColor else TextSecondary
+                        )
+                    }
                 }
             }
         }

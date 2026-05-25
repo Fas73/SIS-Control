@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.siscontrol.mobile.presentation.components.SISBadge
 import com.siscontrol.mobile.presentation.components.SISTopBar
+import com.siscontrol.mobile.presentation.components.SeverityPieChart
 import com.siscontrol.mobile.presentation.theme.*
 import com.siscontrol.mobile.core.toTitleCase
 
@@ -46,7 +47,7 @@ fun AdminHomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundColor)
+            .background(Color.White)
             .padding(paddingValues)
     ) {
         SISTopBar(
@@ -148,6 +149,25 @@ fun AdminHomeScreen(
                             iconColor = DangerColor,
                             iconBg = Color.Transparent
                         )
+                    }
+                    
+                    if (state.totalIncidents > 0) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB)),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E7EB))
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text("Distribución por Gravedad", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                SeverityPieChart(
+                                    high = state.highSeverityCount,
+                                    medium = state.mediumSeverityCount,
+                                    low = state.lowSeverityCount
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -419,7 +439,8 @@ fun ActiveRoundCard(
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    SISBadge(status, containerColor = PrimaryColor.copy(alpha = 0.1f), contentColor = PrimaryColor)
+                    val cleanStatus = status.replace("_", " ")
+                    SISBadge(cleanStatus, containerColor = PrimaryColor.copy(alpha = 0.1f), contentColor = PrimaryColor)
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(onClick = onCancel, modifier = Modifier.size(32.dp)) {
                         Icon(Icons.Default.Cancel, contentDescription = "Cancelar Ronda", tint = DangerColor, modifier = Modifier.size(20.dp))

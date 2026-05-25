@@ -4,7 +4,6 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.siscontrol.mobile.data.remote.dto.AttendanceRequest
 import com.siscontrol.mobile.data.remote.dto.ChangePasswordRequest
 import com.siscontrol.mobile.data.remote.dto.ProfileUpdateRequest
 import com.siscontrol.mobile.data.remote.dto.UserResponseDto
@@ -18,6 +17,7 @@ class ProfileViewModel(
     private val checkOutUseCase: CheckOutUseCase,
     private val updateProfileDataUseCase: UpdateProfileDataUseCase,
     private val changeMyPasswordUseCase: ChangeMyPasswordUseCase,
+    private val updateProfileImageUseCase: UpdateProfileImageUseCase,
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
@@ -39,80 +39,93 @@ class ProfileViewModel(
             _state.value = _state.value.copy(isLoading = true, error = null)
             getUserByIdUseCase(userId)
                 .onSuccess { user ->
-                    _state.value = _state.value.copy(
-                        user = user,
-                        isLoading = false
-                    )
+                    _state.value = _state.value.copy(user = user, isLoading = false)
                 }
                 .onFailure { e ->
-                    _state.value = _state.value.copy(
-                        isLoading = false,
-                        error = e.message ?: "Error al cargar perfil"
-                    )
+                    _state.value = _state.value.copy(isLoading = false, error = e.message ?: "Error al cargar perfil")
                 }
         }
     }
 
-    fun logout(onSuccess: () -> Unit) {
-        viewModelScope.launch {
-            // Limpiamos los datos locales
-            sessionManager.clearActiveSession()
-            sessionManager.clearSession()
-            onSuccess()
-        }
-    }
-
-    fun updateProfile(fullName: String, username: String, phoneNumber: String, imageUri: android.net.Uri? = null, onResult: (Boolean, String) -> Unit) {
+    // CARGA INMEDIATA DE FOTO DE PERFIL
+    fun uploadProfilePicture(context: android.content.Context, uri: android.net.Uri, onResult: (Boolean, String) -> Unit) {
         viewModelScope.launch {
             val user = _state.value.user ?: return@launch
             _state.value = _state.value.copy(isActionLoading = true)
 
-            var remoteUrl = user.imageUrl
+            android.util.Log.d("PROFILE_VM", "Iniciando subida de imagen a Firebase: $uri")
             
-            // Si hay una nueva imagen, subirla a Firebase
-            if (imageUri != null) {
-                FirebaseStorageManager.uploadImage(imageUri, "perfiles")
-                    .onSuccess { remoteUrl = it }
-                    .onFailure { e ->
-                        _state.value = _state.value.copy(isActionLoading = false)
-                        onResult(false, "Error al subir foto: ${e.message}")
-                        return@launch
-                    }
-            }
+            FirebaseStorageManager.uploadImage(context, uri, "perfiles")
+                .onSuccess { remoteUrl ->
+                    android.util.Log.d("PROFILE_VM", "Firebase OK! Link obtenido: $remoteUrl")
+                    
+                    // Usamos el nuevo endpoint dedicado
+                    updateProfileImageUseCase(user.id ?: 0L, remoteUrl)
+                        .onSuccess { updatedUser ->
+                            android.util.Log.d("PROFILE_VM", "Backend OK! Nueva URL en perfil: ${updatedUser.imageUrl}")
+                            _state.value = _state.value.copy(user = updatedUser, isActionLoading = false)
+                            onResult(true, "Foto de perfil actualizada con éxito")
+                        }
+                        .onFailure { e ->
+                            android.util.Log.e("PROFILE_VM", "Backend FAIL: ${e.message}")
+                            _state.value = _state.value.copy(isActionLoading = false)
+                            onResult(false, "Error al registrar en servidor: ${e.message}")
+                        }
+                }
+                .onFailure { e ->
+                    android.util.Log.e("PROFILE_VM", "Firebase FAIL: ${e.message}")
+                    _state.value = _state.value.copy(isActionLoading = false)
+                    onResult(false, "Error en Firebase: ${e.message}")
+                }
+        }
+    }
+
+    // CARGA DE FOTO RECORTADA (Google Style)
+    fun uploadCroppedProfilePicture(bitmap: android.graphics.Bitmap, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            val user = _state.value.user ?: return@launch
+            _state.value = _state.value.copy(isActionLoading = true)
+
+            FirebaseStorageManager.uploadBitmap(bitmap, "perfiles")
+                .onSuccess { remoteUrl ->
+                    // Usamos el nuevo endpoint dedicado para actualizar solo la foto
+                    updateProfileImageUseCase(user.id ?: 0L, remoteUrl)
+                        .onSuccess { updatedUser ->
+                            _state.value = _state.value.copy(user = updatedUser, isActionLoading = false)
+                            onResult(true, "Foto de perfil actualizada")
+                        }
+                        .onFailure { e ->
+                            _state.value = _state.value.copy(isActionLoading = false)
+                            onResult(false, "Error al guardar en BD: ${e.message}")
+                        }
+                }
+                .onFailure { e ->
+                    _state.value = _state.value.copy(isActionLoading = false)
+                    onResult(false, "Error en Firebase: ${e.message}")
+                }
+        }
+    }
+
+    fun updateProfile(fullName: String, username: String, phoneNumber: String, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            val user = _state.value.user ?: return@launch
+            _state.value = _state.value.copy(isActionLoading = true)
 
             val request = ProfileUpdateRequest(
                 fullName = fullName,
                 username = username,
                 phoneNumber = phoneNumber,
-                imageUrl = remoteUrl
+                imageUrl = user.imageUrl
             )
 
             updateProfileDataUseCase(user.id ?: 0L, request)
                 .onSuccess { updatedUser ->
-                    // Actualizamos localmente
-                    sessionManager.saveSession(
-                        token = sessionManager.getTokenSync() ?: "",
-                        role = updatedUser.role ?: "GUARD",
-                        userId = updatedUser.id ?: 0L,
-                        fullName = updatedUser.fullName ?: "Usuario"
-                    )
-                    
-                    com.siscontrol.mobile.di.AppModule.getDatabase().userSessionDao().insertSession(
-                        com.siscontrol.mobile.data.local.entities.UserSessionEntity(
-                            id = updatedUser.id ?: 0L,
-                            username = updatedUser.username ?: "",
-                            fullName = updatedUser.fullName ?: "Usuario",
-                            role = updatedUser.role ?: "GUARD",
-                            status = updatedUser.status.toString()
-                        )
-                    )
-
                     _state.value = _state.value.copy(user = updatedUser, isActionLoading = false)
-                    onResult(true, "Perfil actualizado correctamente")
+                    onResult(true, "Perfil actualizado")
                 }
                 .onFailure { e ->
                     _state.value = _state.value.copy(isActionLoading = false)
-                    onResult(false, e.message ?: "Error al actualizar perfil")
+                    onResult(false, e.message ?: "Error al actualizar")
                 }
         }
     }
@@ -121,21 +134,23 @@ class ProfileViewModel(
         viewModelScope.launch {
             val user = _state.value.user ?: return@launch
             _state.value = _state.value.copy(isActionLoading = true)
-
-            val request = ChangePasswordRequest(
-                currentPassword = currentPass,
-                newPassword = newPass
-            )
-
-            changeMyPasswordUseCase(user.id ?: 0L, request)
+            changeMyPasswordUseCase(user.id ?: 0L, ChangePasswordRequest(currentPass, newPass))
                 .onSuccess {
                     _state.value = _state.value.copy(isActionLoading = false)
-                    onResult(true, "Contraseña actualizada correctamente")
+                    onResult(true, "Clave actualizada")
                 }
                 .onFailure { e ->
                     _state.value = _state.value.copy(isActionLoading = false)
-                    onResult(false, "La contraseña actual es incorrecta o hubo un error en el servidor")
+                    onResult(false, "Clave actual incorrecta")
                 }
+        }
+    }
+
+    fun logout(onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            sessionManager.clearActiveSession()
+            sessionManager.clearSession()
+            onSuccess()
         }
     }
 }

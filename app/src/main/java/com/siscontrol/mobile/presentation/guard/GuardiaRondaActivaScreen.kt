@@ -56,14 +56,12 @@ fun GuardiaRondaActivaScreen(
     
     val context = LocalContext.current
     
-    // GUARDAR URIS COMO STRING PARA EVITAR FALLOS DE CÁMARA
+    // PERSISTENCIA DE URIS COMO STRING
     var skipImageUriStr by rememberSaveable { mutableStateOf<String?>(null) }
     var tempCameraUriStr by rememberSaveable { mutableStateOf<String?>(null) }
 
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success && tempCameraUriStr != null) {
-            skipImageUriStr = tempCameraUriStr
-        }
+        if (success && tempCameraUriStr != null) skipImageUriStr = tempCameraUriStr
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -91,6 +89,9 @@ fun GuardiaRondaActivaScreen(
     }
 
     LaunchedEffect(Unit) {
+        val userId = viewModel.getUserIdSync() // Necesitamos este método en el VM o SessionManager accesible
+        viewModel.startRemoteMonitoring(userId)
+
         MainActivity.nfcTagFlow.collectLatest { tagId ->
             viewModel.scanNfcTag(roundId, tagId) { checkpoint ->
                 onScanCheckpoint(checkpoint, state.executedCheckpointIds.size, state.checkpoints.size)
@@ -122,7 +123,8 @@ fun GuardiaRondaActivaScreen(
                         textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
-                            focusedBorderColor = PrimaryColor, unfocusedBorderColor = Color.DarkGray
+                            focusedBorderColor = PrimaryColor, unfocusedBorderColor = Color.DarkGray,
+                            focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                         )
                     )
 
@@ -161,7 +163,7 @@ fun GuardiaRondaActivaScreen(
                 Button(
                     onClick = {
                         val uri = skipImageUriStr?.let { Uri.parse(it) }
-                        viewModel.skipCheckpoint(roundId, skipReason, uri) {
+                        viewModel.skipCheckpoint(context, roundId, skipReason, uri) {
                             showSkipDialog = false
                             skipReason = ""
                             skipImageUriStr = null
@@ -175,14 +177,14 @@ fun GuardiaRondaActivaScreen(
                     else Text("CONFIRMAR", fontWeight = FontWeight.ExtraBold)
                 }
             },
-            dismissButton = { TextButton(onClick = { showSkipDialog = false; skipReason = ""; skipImageUriStr = null }) { Text("CANCELAR", color = TextSecondary) } },
+            dismissButton = { TextButton(onClick = { showSkipDialog = false; skipReason = ""; skipImageUriStr = null }) { Text("CANCELAR", color = TextSecondary, fontWeight = FontWeight.Bold) } },
             containerColor = Color.White,
             shape = RoundedCornerShape(20.dp)
         )
     }
 
     Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-        Column(modifier = Modifier.fillMaxSize().background(BackgroundColor)) {
+        Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
             // Header
             Box(modifier = Modifier.fillMaxWidth().background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(PrimaryColor, PrimaryVariant))).statusBarsPadding().padding(horizontal = 16.dp, vertical = 18.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
@@ -196,7 +198,7 @@ fun GuardiaRondaActivaScreen(
                             Text(installationName, color = Color.White.copy(alpha = 0.9f), fontSize = 14.sp)
                         }
                     }
-                    Surface(color = SuccessColor, shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))) {
+                    Surface(color = SuccessColor, shape = RoundedCornerShape(20.dp)) {
                         Text("ACTIVA", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp))
                     }
                 }
@@ -212,110 +214,70 @@ fun GuardiaRondaActivaScreen(
 
             LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(16.dp, 20.dp, 16.dp, 140.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 item {
-                    // ── TARJETA SIGUIENTE PUNTO (VERDE VIBRANTE) ──
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (nextCheckpoint != null) SuccessColor else Color.White
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                        border = if (nextCheckpoint == null) androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E7EB)) else null
-                    ) {
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = if (nextCheckpoint != null) SuccessColor else Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
                         Column(modifier = Modifier.padding(20.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    if (nextCheckpoint != null) Icons.Default.Navigation else Icons.Default.CheckCircle, 
-                                    null, 
-                                    tint = if (nextCheckpoint != null) Color.White else PrimaryColor
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    if (nextCheckpoint != null) "SIGUIENTE DESTINO" else "RONDA COMPLETADA", 
-                                    color = if (nextCheckpoint != null) Color.White.copy(alpha = 0.8f) else TextSecondary, 
-                                    fontSize = 12.sp, 
-                                    fontWeight = FontWeight.ExtraBold, 
-                                    letterSpacing = 1.sp
-                                )
+                                Icon(if (nextCheckpoint != null) Icons.Default.Navigation else Icons.Default.CheckCircle, null, tint = if (nextCheckpoint != null) Color.White else PrimaryColor)
+                                Spacer(Modifier.width(8.dp)); Text(if (nextCheckpoint != null) "SIGUIENTE DESTINO" else "RONDA COMPLETADA", color = if (nextCheckpoint != null) Color.White.copy(alpha = 0.8f) else TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                nextCheckpoint?.name ?: "¡Todos los puntos verificados!", 
-                                color = if (nextCheckpoint != null) Color.White else TextPrimary, 
-                                fontSize = 22.sp, 
-                                fontWeight = FontWeight.Black
-                            )
-                            
+                            Spacer(modifier = Modifier.height(8.dp)); Text(nextCheckpoint?.name ?: "¡Buen trabajo!", color = if (nextCheckpoint != null) Color.White else TextPrimary, fontSize = 22.sp, fontWeight = FontWeight.Black)
                             if (nextCheckpoint != null) {
                                 Spacer(modifier = Modifier.height(16.dp))
-                                
-                                // INSTRUCCIÓN DE MARCADO NFC
-                                Surface(
-                                    color = Color.White.copy(alpha = 0.15f),
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(Icons.Default.Nfc, null, tint = Color.White, modifier = Modifier.size(20.dp))
-                                        Spacer(Modifier.width(12.dp))
-                                        Text(
-                                            "Acerque el teléfono al Tag NFC para marcar", 
-                                            color = Color.White, 
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
+                                Surface(color = Color.White.copy(alpha = 0.15f), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Nfc, null, tint = Color.White); Spacer(Modifier.width(12.dp)); Text("Acerque el teléfono al Tag NFC", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
-
                                 Spacer(modifier = Modifier.height(16.dp))
-                                
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    Button(
-                                        onClick = { showSkipDialog = true },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = SuccessColor),
-                                        modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Text("Omitir Punto", fontWeight = FontWeight.Bold)
-                                    }
-                                    Button(
-                                        onClick = onReportIncident,
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.25f), contentColor = Color.White),
-                                        modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(12.dp),
-                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))
-                                    ) {
-                                        Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(18.dp))
-                                        Spacer(Modifier.width(6.dp))
-                                        Text("Reportar", fontWeight = FontWeight.Bold)
-                                    }
+                                    Button(onClick = { showSkipDialog = true }, colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = SuccessColor), modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) { Text("Omitir Punto", fontWeight = FontWeight.Bold) }
+                                    Button(onClick = onReportIncident, colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.25f), contentColor = Color.White), modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) { Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Reportar", fontWeight = FontWeight.Bold) }
                                 }
                             }
                         }
                     }
                 }
-
-                items(state.checkpoints.sortedBy { it.executionOrder }) { checkpoint ->
-                    CheckpointListItem(number = checkpoint.executionOrder, title = (checkpoint.name ?: "Punto").toTitleCase(), time = if (checkpoint.id in state.executedCheckpointIds) formatTime(state.scanTimes[checkpoint.id]) else "Esperando...", isCompleted = checkpoint.id in state.executedCheckpointIds, isActive = checkpoint.id == nextCheckpoint?.id)
-                }
-
+                items(state.checkpoints.sortedBy { it.executionOrder }) { checkpoint -> CheckpointListItem(number = checkpoint.executionOrder, title = (checkpoint.name ?: "Punto").toTitleCase(), time = if (checkpoint.id in state.executedCheckpointIds) formatTime(state.scanTimes[checkpoint.id]) else "Esperando...", isCompleted = checkpoint.id in state.executedCheckpointIds, isActive = checkpoint.id == nextCheckpoint?.id) }
                 item {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text("OBSERVACIONES DE LA RONDA", fontWeight = FontWeight.ExtraBold, color = TextSecondary, fontSize = 12.sp)
+                    Spacer(modifier = Modifier.height(10.dp)); Text("OBSERVACIONES DE LA RONDA", fontWeight = FontWeight.ExtraBold, color = TextSecondary, fontSize = 12.sp)
                     OutlinedTextField(value = observations, onValueChange = { observations = it }, placeholder = { Text("Novedades...", color = TextPlaceholder) }, modifier = Modifier.fillMaxWidth().height(120.dp), shape = RoundedCornerShape(16.dp), textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedBorderColor = PrimaryColor, unfocusedBorderColor = Color.DarkGray, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White))
-                    Spacer(modifier = Modifier.height(20.dp))
-                    if (state.isLoading) CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally), color = PrimaryColor)
+                    Spacer(modifier = Modifier.height(20.dp)); if (state.isLoading) CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally), color = PrimaryColor)
                     else Button(onClick = { viewModel.endRound(roundId, observations, onFinishRound) }, modifier = Modifier.fillMaxWidth().height(58.dp), enabled = isAllCheckpointsDone, colors = ButtonDefaults.buttonColors(containerColor = SuccessColor), shape = RoundedCornerShape(16.dp)) { Text("FINALIZAR MI RONDA", fontWeight = FontWeight.Black) }
                 }
             }
         }
-        Button(onClick = { showPanicDialog = true }, modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp).fillMaxWidth().height(64.dp), colors = ButtonDefaults.buttonColors(containerColor = DangerColor), shape = RoundedCornerShape(16.dp)) {
-            Icon(Icons.Default.Warning, null, tint = Color.White); Spacer(Modifier.width(12.dp)); Text("BOTÓN DE PÁNICO", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
-        }
+        Button(onClick = { showPanicDialog = true }, modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp).fillMaxWidth().height(64.dp), colors = ButtonDefaults.buttonColors(containerColor = DangerColor), shape = RoundedCornerShape(16.dp)) { Icon(Icons.Default.Warning, null, tint = Color.White); Spacer(Modifier.width(12.dp)); Text("BOTÓN DE PÁNICO", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black) }
         SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.TopCenter))
+    }
+
+    // DIÁLOGO DE FINALIZACIÓN REMOTA (Administrador/Supervisor)
+    if (state.isTerminatedRemotely) {
+        AlertDialog(
+            onDismissRequest = { /* No permitir cerrar fuera de confirmar */ },
+            title = { 
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Info, null, tint = WarningColor)
+                    Spacer(Modifier.width(10.dp))
+                    Text("Aviso del Sistema", fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Text(
+                    text = state.terminationReason ?: "Tu sesión de ronda ha sido finalizada por el administrador.",
+                    color = TextPrimary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { onFinishRound() },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                ) {
+                    Text("ENTENDIDO", fontWeight = FontWeight.Black)
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(20.dp)
+        )
     }
 }
 

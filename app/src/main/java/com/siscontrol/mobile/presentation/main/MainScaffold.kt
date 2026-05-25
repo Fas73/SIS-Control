@@ -2,6 +2,7 @@ package com.siscontrol.mobile.presentation.main
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
@@ -127,7 +128,7 @@ fun getBottomNavItemsForRole(role: String, token: String): List<BottomNavItem> {
         )
         "GUARD", "GUARDIA" -> listOf(
             BottomNavItem("Inicio", Destinos.guardHomeRoute(token, role), Destinos.GUARD_HOME, Icons.Default.Home),
-            BottomNavItem("Ronda", Destinos.guardRondaRoute(token, role, 0L, 0L, "Instalación"), Destinos.GUARD_RONDA, Icons.Default.RadioButtonChecked),
+            BottomNavItem("Instalaciones", Destinos.guardRondaRoute(token, role, 0L, 0L, "Instalación"), Destinos.GUARD_RONDA, Icons.Default.Business),
             BottomNavItem("Historial", Destinos.guardHistoryRoute(token, role), Destinos.GUARD_HISTORY, Icons.Default.History),
             BottomNavItem("Perfil", Destinos.guardProfileRoute(token, role), Destinos.GUARD_PROFILE, Icons.Default.Person)
         )

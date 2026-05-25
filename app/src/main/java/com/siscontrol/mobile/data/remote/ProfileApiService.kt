@@ -17,5 +17,12 @@ interface ProfileApiService {
     suspend fun updatePassword(
         @Path("id") id: Long,
         @Body request: ChangePasswordRequest
-    ): Map<String, Any> // O el DTO que devuelva el backend tras éxito
+    ): Map<String, Any>
+
+    // Nuevo endpoint específico para la foto de perfil (Sincronizado con UserController.java del Backend)
+    @retrofit2.http.PATCH("api/usuarios/{id}/profile-image")
+    suspend fun updateProfileImage(
+        @Path("id") id: Long,
+        @retrofit2.http.Query("url") imageUrl: String
+    ): UserResponseDto
 }

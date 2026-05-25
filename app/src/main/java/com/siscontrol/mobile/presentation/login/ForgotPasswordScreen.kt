@@ -52,24 +52,19 @@ sealed interface ForgotPasswordUiState {
 /**
  * Pantalla de recuperación de contraseña (stateless).
  *
- * En esta iteración, el envío es simulado. Para conectar con el backend:
- * 1. Crear [ForgotPasswordViewModel] que exponga un [StateFlow<ForgotPasswordUiState>].
- * 2. Reemplazar [onSendInstructions] por viewModel.sendResetEmail(email).
- * 3. Observar el estado desde [AppNavigation] o elevar al ViewModel.
+ * Envía una solicitud de soporte al Administrador.
  *
  * @param onBack               Navega de vuelta al Login.
- * @param onSendInstructions   Callback con el email ingresado (simulado por ahora).
+ * @param viewModel            ViewModel para gestionar la lógica de envío.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForgotPasswordScreen(
     onBack: () -> Unit,
-    onSendInstructions: (email: String) -> Unit = {}
+    viewModel: ForgotPasswordViewModel
 ) {
     var email by rememberSaveable { mutableStateOf("") }
-
-    // Estado UI local — reemplazar con ViewModel cuando se conecte el backend
-    var uiState by remember { mutableStateOf<ForgotPasswordUiState>(ForgotPasswordUiState.Idle) }
+    val uiState by viewModel.uiState
 
     val isEmailValid = email.contains("@") && email.contains(".")
     val isLoading    = uiState is ForgotPasswordUiState.Loading
@@ -118,9 +113,9 @@ fun ForgotPasswordScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Email,
+                        imageVector = if (isSuccess) Icons.Default.CheckCircle else Icons.Default.Email,
                         contentDescription = null,
-                        tint = PrimaryColor,
+                        tint = if (isSuccess) SuccessColor else PrimaryColor,
                         modifier = Modifier.size(40.dp)
                     )
                 }
@@ -128,7 +123,7 @@ fun ForgotPasswordScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
-                    text = "¿Olvidaste tu contraseña?",
+                    text = if (isSuccess) "¡Solicitud Recibida!" else "¿Olvidaste tu contraseña?",
                     color = TextPrimary,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
@@ -138,7 +133,9 @@ fun ForgotPasswordScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Ingresa el correo de tu cuenta y te enviaremos\ninstrucciones para restablecerla.",
+                    text = if (isSuccess) 
+                        "Tu solicitud ha sido enviada al Administrador. Él se contactará contigo para entregarte una clave temporal."
+                        else "Ingresa el correo de tu cuenta y enviaremos una notificación al Administrador para ayudarte.",
                     color = TextSecondary,
                     fontSize = 14.sp,
                     textAlign = TextAlign.Center,
@@ -148,95 +145,63 @@ fun ForgotPasswordScreen(
                 Spacer(modifier = Modifier.height(36.dp))
 
                 // ── Campo de email ────────────────────────────────────────────
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it; uiState = ForgotPasswordUiState.Idle },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Correo electrónico", color = TextSecondary, fontWeight = FontWeight.Bold) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Email,
-                            contentDescription = null,
-                            tint = PrimaryColor
-                        )
-                    },
-                    singleLine = true,
-                    textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryColor,
-                        unfocusedBorderColor = Color.DarkGray,
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    enabled = !isLoading && !isSuccess
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // ── Botón principal ───────────────────────────────────────────
-                PrimaryButton(
-                    text = when {
-                        isLoading -> "Enviando..."
-                        isSuccess -> "¡Enviado!"
-                        else      -> "Enviar instrucciones"
-                    },
-                    onClick = {
-                        if (isEmailValid && !isLoading && !isSuccess) {
-                            // Simulación: marcar como éxito inmediatamente
-                            // TODO (producción): uiState = Loading → llamar ViewModel
-                            uiState = ForgotPasswordUiState.Success
-                            onSendInstructions(email)
-                        }
-                    },
-                    enabled = isEmailValid && !isLoading && !isSuccess
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // ── Mensaje de confirmación simulado ─────────────────────────
-                AnimatedVisibility(
-                    visible = isSuccess,
-                    enter = fadeIn() + slideInVertically(),
-                    exit  = fadeOut()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                SuccessColor.copy(alpha = 0.1f),
-                                RoundedCornerShape(12.dp)
+                if (!isSuccess) {
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { 
+                            email = it
+                            if (uiState is ForgotPasswordUiState.Error) viewModel.resetState() 
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Correo electrónico", color = TextSecondary, fontWeight = FontWeight.Bold) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Email,
+                                contentDescription = null,
+                                tint = PrimaryColor
                             )
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        },
+                        singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryColor,
+                            unfocusedBorderColor = Color.DarkGray,
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = !isLoading
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // ── Botón principal ───────────────────────────────────────────
+                    PrimaryButton(
+                        text = if (isLoading) "Enviando..." else "Solicitar Ayuda",
+                        onClick = {
+                            if (isEmailValid && !isLoading) {
+                                viewModel.enviarSolicitudSoporte(email)
+                            }
+                        },
+                        enabled = isEmailValid && !isLoading
+                    )
+                } else {
+                    Button(
+                        onClick = onBack,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SuccessColor)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = SuccessColor,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Column {
-                            Text(
-                                text = "Instrucciones enviadas",
-                                color = SuccessColor,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp
-                            )
-                            Text(
-                                text = "Revisa tu bandeja de entrada en $email",
-                                color = SuccessColor.copy(alpha = 0.8f),
-                                fontSize = 12.sp
-                            )
-                        }
+                        Text("VOLVER AL INICIO", fontWeight = FontWeight.Bold)
                     }
                 }
 
-                // ── Mensaje de error (futuro backend) ─────────────────────────
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // ── Mensaje de error ─────────────────────────────────────────
                 AnimatedVisibility(
                     visible = uiState is ForgotPasswordUiState.Error,
                     enter = fadeIn() + slideInVertically(),
@@ -246,24 +211,27 @@ fun ForgotPasswordScreen(
                         text = (uiState as? ForgotPasswordUiState.Error)?.message ?: "",
                         color = DangerColor,
                         fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(DangerColor.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                            .padding(12.dp)
+                            .background(DangerColor.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                            .padding(16.dp)
                     )
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // ── Volver al Login ───────────────────────────────────────────
-                TextButton(onClick = onBack) {
-                    Text(
-                        text = "← Volver al inicio de sesión",
-                        color = PrimaryColor,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                if (!isSuccess) {
+                    TextButton(onClick = onBack) {
+                        Text(
+                            text = "← Volver al inicio de sesión",
+                            color = PrimaryColor,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
         }

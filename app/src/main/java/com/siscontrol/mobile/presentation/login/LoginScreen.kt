@@ -76,8 +76,8 @@ fun LoginScreenContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundColor)
-            .imePadding() // Empuja el contenido hacia arriba cuando sale el teclado
+            .background(Color.White)
+            .imePadding()
     ) {
         Column(
             modifier = Modifier

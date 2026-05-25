@@ -7,4 +7,5 @@ import com.siscontrol.mobile.data.remote.dto.UserResponseDto
 interface ProfileRepository {
     suspend fun updateProfileData(id: Long, request: ProfileUpdateRequest): Result<UserResponseDto>
     suspend fun updatePassword(id: Long, request: ChangePasswordRequest): Result<Unit>
+    suspend fun updateProfileImage(id: Long, imageUrl: String): Result<UserResponseDto>
 }

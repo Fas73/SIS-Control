@@ -63,4 +63,28 @@ class AuthRepositoryImpl(
             Result.failure(Exception("Error inesperado: ${e.message}"))
         }
     }
+
+    override suspend fun solicitarRecuperacion(email: String): Result<String> {
+        return try {
+            val bodyRequest = mapOf("email" to email)
+            val response = apiService.solicitarRecuperacion(bodyRequest)
+            if (response.isSuccessful) {
+                val mensaje = response.body()?.get("mensaje") ?: "Solicitud enviada con éxito"
+                Result.success(mensaje)
+            } else {
+                val errorBody = response.errorBody()?.string() ?: ""
+                val cleanMessage = when {
+                    response.code() == 409 -> "Error de integridad: Revisa que la base de datos permita valores nulos en 'round_execution_id'."
+                    errorBody.contains("\"error\":\"") -> errorBody.substringAfter("\"error\":\"").substringBefore("\"")
+                    errorBody.contains("\"mensaje\":\"") -> errorBody.substringAfter("\"mensaje\":\"").substringBefore("\"")
+                    response.code() == 404 -> "El correo ingresado no está registrado."
+                    else -> "Error ${response.code()}: No se pudo procesar la solicitud."
+                }
+                
+                Result.failure(Exception(cleanMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
