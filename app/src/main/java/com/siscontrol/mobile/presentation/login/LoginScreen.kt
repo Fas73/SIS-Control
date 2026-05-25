@@ -99,15 +99,15 @@ fun LoginScreenContent(
             Spacer(modifier = Modifier.height(32.dp))
             
             Text(
-                "Bienvenido de vuelta", 
+                "¡Bienvenido!",
                 color = TextPrimary, 
                 fontSize = 26.sp, 
                 fontWeight = FontWeight.Bold
             )
             Text(
-                "Inicia sesión en tu cuenta para continuar", 
+                "Inicia sesión para continuar",
                 color = TextSecondary, 
-                fontSize = 15.sp,
+                fontSize = 12.sp,
                 modifier = Modifier.padding(top = 8.dp)
             )
             
@@ -181,7 +181,7 @@ fun LoginScreenContent(
                 Text(
                     text = "¿Olvidaste tu contraseña?",
                     color = PrimaryColor,
-                    fontSize = 14.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
                 )
             }

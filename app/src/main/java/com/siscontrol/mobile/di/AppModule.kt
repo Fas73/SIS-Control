@@ -29,14 +29,13 @@ import okhttp3.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
+import com.siscontrol.mobile.core.Config
+
 object AppModule {
 
-    // CAMBIA ESTA IP por la de tu Mac (puedes verla en Ajustes -> Red -> Wi-Fi)
-    // Ejemplo: "http://192.168.1.15:8080/"
-    // const val BASE_URL = "http://10.0.2.2:8080/"
-    // const val BASE_URL = "http://192.168.100.147:8080/"
-    // const val BASE_URL = "http://192.168.1.104:8080/"
-    const val BASE_URL = "http://10.0.2.2:8080/"
+    // CAMBIO AQUÍ: En lugar de un String fijo, usamos el de tu archivo Config
+    val BASE_URL = Config.BASE_URL
+
     private lateinit var sessionManager: SessionManager
     private lateinit var database: com.siscontrol.mobile.data.local.AppDatabase
 
@@ -47,6 +46,7 @@ object AppModule {
         sessionManager = SessionManager(context)
         database = com.siscontrol.mobile.data.local.AppDatabase.getDatabase(context)
     }
+
 
     fun getSessionManager() = sessionManager
     fun getDatabase() = database

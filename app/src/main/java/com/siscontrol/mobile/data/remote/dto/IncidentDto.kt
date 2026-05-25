@@ -49,5 +49,33 @@ data class IncidentDto(
 
     // Compatibilidad con objeto anidado (si el GET aún lo envía así)
     @SerializedName("roundExecution")
-    val roundExecution: RoundResponseDto? = null
+    val roundExecution: RoundResponseDto? = null,
+
+    // --- NUEVOS CAMPOS PARA ANALISIS IA GEMINI (MVP) ---
+    @SerializedName("descripcionOriginal")
+    val descripcionOriginal: String? = null,
+
+    @SerializedName("tipoIncidenteIA")
+    val tipoIncidenteIA: String? = null,
+
+    @SerializedName("prioridadIA")
+    val prioridadIA: String? = null,
+
+    @SerializedName("resumenIA")
+    val resumenIA: String? = null,
+
+    @SerializedName("accionSugeridaIA")
+    val accionSugeridaIA: String? = null,
+
+    @SerializedName("requiereAtencionInmediata")
+    val requiereAtencionInmediata: Boolean? = null,
+
+    @SerializedName("estadoAnalisisIA")
+    val estadoAnalisisIA: String? = null,
+
+    @SerializedName("fechaAnalisisIA")
+    val fechaAnalisisIA: String? = null,
+
+    @SerializedName("modeloIA")
+    val modeloIA: String? = null
 )

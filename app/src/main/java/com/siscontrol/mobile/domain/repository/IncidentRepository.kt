@@ -10,5 +10,6 @@ interface IncidentRepository {
     suspend fun saveIncident(incident: Incident): Result<Incident>
     suspend fun getAllIncidents(): Result<List<Incident>>
     suspend fun triggerPanic(roundId: Long, descripcion: String? = null): Result<Unit>
+    suspend fun analizarIA(id: Long): Result<Incident>
 }
 

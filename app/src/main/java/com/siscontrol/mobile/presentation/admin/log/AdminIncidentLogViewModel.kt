@@ -40,10 +40,38 @@ class AdminIncidentLogViewModel(
                 }
         }
     }
+
+    fun analizarIncidenteConIa(id: Long) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(iaLoadingIncidentId = id, iaError = null)
+            incidentRepository.analizarIA(id)
+                .onSuccess { updatedIncident ->
+                    val updatedList = _state.value.allIncidents.map { incident ->
+                        if (incident.id == id) updatedIncident else incident
+                    }
+                    _state.value = _state.value.copy(
+                        allIncidents = updatedList,
+                        iaLoadingIncidentId = null
+                    )
+                }
+                .onFailure { e ->
+                    _state.value = _state.value.copy(
+                        iaLoadingIncidentId = null,
+                        iaError = e.message ?: "Error al analizar con IA"
+                    )
+                }
+        }
+    }
+
+    fun clearIaError() {
+        _state.value = _state.value.copy(iaError = null)
+    }
 }
 
 data class AdminIncidentLogState(
     val allIncidents: List<Incident> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val iaLoadingIncidentId: Long? = null,
+    val iaError: String? = null
 )

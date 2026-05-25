@@ -99,7 +99,7 @@ fun SplashScreen(
                 painter = painterResource(id = R.drawable.logo_branding_sis_control),
                 contentDescription = "Logo SIS-Control",
                 modifier = Modifier
-                    .size(300.dp)
+                    .size(350.dp)
                     .scale(logoScale)
                     .clip(CircleShape)
             )

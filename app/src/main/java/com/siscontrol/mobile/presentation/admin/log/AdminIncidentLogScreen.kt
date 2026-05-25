@@ -2,6 +2,7 @@ package com.siscontrol.mobile.presentation.admin.log
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -37,7 +38,11 @@ fun AdminIncidentLogScreen(
     val state by viewModel.state
     var selectedTab by rememberSaveable { mutableIntStateOf(0) } // 0: Día, 1: Semana, 2: Mes
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    var selectedIncident by remember { mutableStateOf<Incident?>(null) }
+    var selectedIncidentId by remember { mutableStateOf<Long?>(null) }
+
+    val selectedIncident = remember(state.allIncidents, selectedIncidentId) {
+        state.allIncidents.find { it.id == selectedIncidentId }
+    }
 
     val filteredIncidents = remember(state.allIncidents, selectedTab, searchQuery) {
         val now = LocalDateTime.now()
@@ -152,7 +157,7 @@ fun AdminIncidentLogScreen(
 
                 items(filteredIncidents) { incident ->
                     IncidentLogCard(incident) {
-                        selectedIncident = incident
+                        selectedIncidentId = incident.id
                     }
                 }
             }
@@ -160,9 +165,16 @@ fun AdminIncidentLogScreen(
     }
 
     if (selectedIncident != null) {
-        IncidentDetailDialog(selectedIncident!!) {
-            selectedIncident = null
-        }
+        IncidentDetailDialog(
+            incident = selectedIncident,
+            iaLoadingIncidentId = state.iaLoadingIncidentId,
+            iaError = state.iaError,
+            onAnalyzeClick = { viewModel.analizarIncidenteConIa(selectedIncident.id ?: 0) },
+            onDismiss = {
+                viewModel.clearIaError()
+                selectedIncidentId = null
+            }
+        )
     }
 }
 
@@ -204,7 +216,13 @@ fun IncidentLogCard(incident: Incident, onClick: () -> Unit) {
 }
 
 @Composable
-fun IncidentDetailDialog(incident: Incident, onDismiss: () -> Unit) {
+fun IncidentDetailDialog(
+    incident: Incident,
+    iaLoadingIncidentId: Long?,
+    iaError: String?,
+    onAnalyzeClick: () -> Unit,
+    onDismiss: () -> Unit
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
@@ -222,11 +240,11 @@ fun IncidentDetailDialog(incident: Incident, onDismiss: () -> Unit) {
                     DetailRow(Icons.Default.Person, "Guardia", incident.username ?: "No registrado")
                     DetailRow(Icons.Default.Event, "Fecha y Hora", (incident.createdAt ?: "").formatDateToDisplay())
                     DetailRow(Icons.Default.PriorityHigh, "Gravedad", incident.severity)
-                    
+
                     Spacer(Modifier.height(8.dp))
                     Text("OBSERVACIONES / COMENTARIOS", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = TextSecondary)
                     Text(incident.description, color = TextPrimary, fontSize = 14.sp)
-                    
+
                     if (incident.imageUrl != null) {
                         Spacer(Modifier.height(16.dp))
                         Text("EVIDENCIA FOTOGRÁFICA", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = TextSecondary)
@@ -243,12 +261,183 @@ fun IncidentDetailDialog(incident: Incident, onDismiss: () -> Unit) {
                             )
                         }
                     }
+
+                    Spacer(Modifier.height(16.dp))
+                    AIAnalysisSection(
+                        incident = incident,
+                        isLoading = iaLoadingIncidentId == incident.id,
+                        error = if (iaLoadingIncidentId == null) iaError else null,
+                        onAnalyzeClick = onAnalyzeClick
+                    )
                 }
             }
         },
         containerColor = Color.White,
         shape = RoundedCornerShape(24.dp)
     )
+}
+
+@Composable
+fun AIAnalysisSection(
+    incident: Incident,
+    isLoading: Boolean,
+    error: String?,
+    onAnalyzeClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Encabezado IA
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = "Gemini AI",
+                    tint = Color(0xFF6366F1),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "ANÁLISIS GEMINI AI",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 13.sp,
+                    color = Color(0xFF4F46E5),
+                    letterSpacing = 0.5.sp
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            when {
+                isLoading -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(
+                            color = Color(0xFF4F46E5),
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = "Analizando novedad con Inteligencia Artificial...",
+                            fontSize = 12.sp,
+                            color = TextSecondary,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
+                incident.estadoAnalisisIA == "ANALIZADO" -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        // Badges de prioridad y atención
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val prioColor = when (incident.prioridadIA?.uppercase()) {
+                                "ALTA" -> DangerColor
+                                "MEDIA" -> Color(0xFFD97706)
+                                else -> Color(0xFF059669)
+                            }
+                            val prioBg = when (incident.prioridadIA?.uppercase()) {
+                                "ALTA" -> Color(0xFFFEF2F2)
+                                "MEDIA" -> Color(0xFFFFFBEB)
+                                else -> Color(0xFFECFDF5)
+                            }
+                            Surface(
+                                color = prioBg,
+                                shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, prioColor.copy(alpha = 0.3f))
+                            ) {
+                                Text(
+                                    text = "PRIORIDAD: ${incident.prioridadIA ?: "MEDIA"}",
+                                    color = prioColor,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                            if (incident.requiereAtencionInmediata == true) {
+                                Surface(
+                                    color = Color(0xFFFFF7ED),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFEA580C).copy(alpha = 0.3f))
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Icon(Icons.Default.Warning, null, tint = Color(0xFFEA580C), modifier = Modifier.size(12.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("CRÍTICO", color = Color(0xFFEA580C), fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                                    }
+                                }
+                            }
+                        }
+
+                        DetailItem("Clasificación de IA:", incident.tipoIncidenteIA ?: "No clasificado")
+
+                        Column {
+                            Text("RESUMEN DE SITUACIÓN", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = TextSecondary)
+                            Spacer(Modifier.height(2.dp))
+                            Text(incident.resumenIA ?: "", fontSize = 13.sp, color = TextPrimary, lineHeight = 18.sp)
+                        }
+
+                        Column {
+                            Text("ACCIÓN RECOMENDADA POR IA", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = TextSecondary)
+                            Spacer(Modifier.height(2.dp))
+                            Text(incident.accionSugeridaIA ?: "", fontSize = 13.sp, color = TextPrimary, lineHeight = 18.sp)
+                        }
+                    }
+                }
+                else -> {
+                    if (error != null) {
+                        Text(
+                            text = "⚠ Error: $error",
+                            color = DangerColor,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+                    Button(
+                        onClick = onAnalyzeClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4F46E5)),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = if (error != null) "REINTENTAR ANÁLISIS IA" else "GENERAR REPORTE IA",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DetailItem(label: String, value: String) {
+    Row {
+        Text(text = label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+        Spacer(Modifier.width(4.dp))
+        Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+    }
 }
 
 @Composable
@@ -262,3 +451,4 @@ fun DetailRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: Stri
         }
     }
 }
+

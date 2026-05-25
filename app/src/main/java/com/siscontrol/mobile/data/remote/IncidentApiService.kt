@@ -18,4 +18,7 @@ interface IncidentApiService {
         @Query("roundExecutionId") roundExecutionId: Long,
         @Query("descripcion") descripcion: String? = null
     ): Response<IncidentDto>
+
+    @POST("api/incidents/{id}/analizar-ia")
+    suspend fun analizarIA(@Path("id") id: Long): Response<IncidentDto>
 }

@@ -48,4 +48,17 @@ class IncidentRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    override suspend fun analizarIA(id: Long): Result<Incident> {
+        return try {
+            val response = apiService.analizarIA(id)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!.toDomain())
+            } else {
+                Result.failure(Exception("Error al analizar con IA: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

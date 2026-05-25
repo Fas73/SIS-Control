@@ -13,5 +13,14 @@ data class Incident(
     val clientName: String?,
     val checkpointName: String?,
     val executionOrder: Int?,
-    val roundExecutionId: Long?
+    val roundExecutionId: Long?,
+    val descripcionOriginal: String? = null,
+    val tipoIncidenteIA: String? = null,
+    val prioridadIA: String? = null,
+    val resumenIA: String? = null,
+    val accionSugeridaIA: String? = null,
+    val requiereAtencionInmediata: Boolean? = null,
+    val estadoAnalisisIA: String? = null,
+    val fechaAnalisisIA: String? = null,
+    val modeloIA: String? = null
 )

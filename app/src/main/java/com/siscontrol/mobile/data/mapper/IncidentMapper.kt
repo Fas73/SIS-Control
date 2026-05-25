@@ -17,7 +17,16 @@ fun IncidentDto.toDomain(): Incident {
         clientName = this.clientName,
         checkpointName = this.checkpointName,
         executionOrder = this.executionOrder,
-        roundExecutionId = this.roundExecutionId
+        roundExecutionId = this.roundExecutionId,
+        descripcionOriginal = this.descripcionOriginal,
+        tipoIncidenteIA = this.tipoIncidenteIA,
+        prioridadIA = this.prioridadIA,
+        resumenIA = this.resumenIA,
+        accionSugeridaIA = this.accionSugeridaIA,
+        requiereAtencionInmediata = this.requiereAtencionInmediata,
+        estadoAnalisisIA = this.estadoAnalisisIA,
+        fechaAnalisisIA = this.fechaAnalisisIA,
+        modeloIA = this.modeloIA
     )
 }
 
@@ -35,6 +44,15 @@ fun Incident.toDto(): IncidentDto {
         clientName = this.clientName,
         checkpointName = this.checkpointName,
         executionOrder = this.executionOrder,
-        roundExecutionId = this.roundExecutionId
+        roundExecutionId = this.roundExecutionId,
+        descripcionOriginal = this.descripcionOriginal,
+        tipoIncidenteIA = this.tipoIncidenteIA,
+        prioridadIA = this.prioridadIA,
+        resumenIA = this.resumenIA,
+        accionSugeridaIA = this.accionSugeridaIA,
+        requiereAtencionInmediata = this.requiereAtencionInmediata,
+        estadoAnalisisIA = this.estadoAnalisisIA,
+        fechaAnalisisIA = this.fechaAnalisisIA,
+        modeloIA = this.modeloIA
     )
 }
