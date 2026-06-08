@@ -1,10 +1,7 @@
 package com.siscontrol.mobile.data.repository
 
 import com.siscontrol.mobile.data.remote.RoundApiService
-import com.siscontrol.mobile.data.remote.dto.EndRoundRequest
-import com.siscontrol.mobile.data.remote.dto.IdRequest
-import com.siscontrol.mobile.data.remote.dto.RoundResponseDto
-import com.siscontrol.mobile.data.remote.dto.ScanCheckpointRequest
+import com.siscontrol.mobile.data.remote.dto.*
 import com.siscontrol.mobile.domain.repository.RoundRepository
 
 class RoundRepositoryImpl(
@@ -34,9 +31,9 @@ class RoundRepositoryImpl(
         }
     }
 
-    override suspend fun startRound(userId: Long, installationId: Long): Result<Long> {
+    override suspend fun startRound(userId: Long, installationId: Long, latitude: Double?, longitude: Double?): Result<Long> {
         return try {
-            val response = api.startRound(userId, installationId)
+            val response = api.startRound(userId, installationId, latitude, longitude)
             val body = response.body()
             if (response.isSuccessful && body != null) {
                 val roundId = body.ronda?.id ?: 0L
@@ -83,26 +80,59 @@ class RoundRepositoryImpl(
         }
     }
 
-    override suspend fun scanCheckpoint(roundId: Long, checkpointId: Long, comment: String, status: Int, imageUrl: String?): Result<Long?> {
+    override suspend fun scanCheckpoint(roundId: Long, checkpointId: Long, comment: String, status: Int, imageUrl: String?, scannedAt: String?, latitude: Double?, longitude: Double?): Result<Long?> {
         return try {
+            // 1. Formateo estricto de fecha yyyy-MM-dd'T'HH:mm:ss (El backend requiere segundos obligatorios)
+            val cleanScannedAt = try {
+                if (scannedAt != null) {
+                    val inputDate = scannedAt.substringBefore(".") // Quitar milisegundos si existen
+                    if (inputDate.count { it == ':' } == 1) {
+                        "$inputDate:00" // Añadir segundos si faltan (formato HH:mm -> HH:mm:ss)
+                    } else {
+                        inputDate
+                    }
+                } else {
+                    java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"))
+                }
+            } catch (e: Exception) {
+                scannedAt?.replace(" ", "T")
+            }
+
+            // 2. CONSTRUCCIÓN DEL DTO PLANO (Consistente con IncidentDto y pedido de Backend)
             val request = ScanCheckpointRequest(
-                roundExecution = IdRequest(roundId),
-                checkpoint = IdRequest(checkpointId),
-                notes = comment,
+                roundExecutionId = roundId,
+                checkpointId = checkpointId,
                 status = status,
-                imageUrl = imageUrl
+                notes = comment,
+                imageUrl = if (!imageUrl.isNullOrBlank()) {
+                    if (imageUrl.contains("firebasestorage")) {
+                        imageUrl.split("?").first() + "?alt=media"
+                    } else imageUrl
+                } else null,
+                latitude = latitude,
+                longitude = longitude,
+                scannedAt = cleanScannedAt
             )
+
+            // 3. LOGGING PARA DEPURACIÓN
+            val logGson = com.google.gson.GsonBuilder().disableHtmlEscaping().create()
+            val jsonBody = logGson.toJson(request)
+            android.util.Log.e("CRITICAL_FRONTEND", "🚀 ENVIANDO JSON (FORMATO PLANO - CONSISTENTE): $jsonBody")
+
             val response = api.scanCheckpoint(request)
             if (response.isSuccessful && response.body() != null) {
-                // Extraemos el ID del escaneo/checklog de la respuesta del backend
                 val body = response.body()!!
                 val escaneoMap = body["escaneo"] as? Map<*, *>
-                val id = (escaneoMap?.get("id") as? Double)?.toLong()
+                val id = (escaneoMap?.get("id") as? Number)?.toLong()
+                android.util.Log.d("CRITICAL_FRONTEND", "✅ ÉXITO EN MySQL")
                 Result.success(id)
             } else {
-                Result.failure(Exception("Error al escanear checkpoint: ${response.code()}"))
+                val errorBody = response.errorBody()?.string() ?: "Error ${response.code()}"
+                android.util.Log.e("CRITICAL_FRONTEND", "❌ RECHAZO: $errorBody")
+                Result.failure(Exception(errorBody))
             }
         } catch (e: Exception) {
+            android.util.Log.e("CRITICAL_FRONTEND", "❌ FALLA CRÍTICA: ${e.message}")
             Result.failure(e)
         }
     }

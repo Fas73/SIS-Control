@@ -61,5 +61,8 @@ data class UserRequestDto(
     val phoneNumber: String,
     
     @SerializedName("role")
-    val role: String
+    val role: String,
+    
+    @SerializedName("profileImageUrl")
+    val profileImageUrl: String? = null
 )

@@ -61,6 +61,12 @@ data class CheckpointDto(
     @SerializedName("status")
     val status: Int? = 1,
     
+    @SerializedName("requiresPhoto")
+    val requiresPhoto: Boolean = false,
+    
+    @SerializedName("referenceImageUrl")
+    val referenceImageUrl: String? = null,
+    
     @SerializedName("installation")
     val installation: InstallationIdRequest? = null
 )
@@ -111,5 +117,11 @@ data class CheckpointRequestDto(
     val installation: InstallationIdRequest? = null,
     
     @SerializedName("instruction")
-    val instruction: String? = null
+    val instruction: String? = null,
+    
+    @SerializedName("requiresPhoto")
+    val requiresPhoto: Boolean = false,
+    
+    @SerializedName("referenceImageUrl")
+    val referenceImageUrl: String? = null
 )

@@ -8,8 +8,8 @@ class GetAllRoundsUseCase(private val repository: RoundRepository) {
 }
 
 class StartRoundUseCase(private val repository: RoundRepository) {
-    suspend operator fun invoke(userId: Long, installationId: Long): Result<Long> {
-        return repository.startRound(userId, installationId)
+    suspend operator fun invoke(userId: Long, installationId: Long, latitude: Double? = null, longitude: Double? = null): Result<Long> {
+        return repository.startRound(userId, installationId, latitude, longitude)
     }
 }
 

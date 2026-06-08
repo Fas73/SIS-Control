@@ -16,38 +16,38 @@ object FirebaseStorageManager {
     private const val TAG = "FIREBASE_UPLOAD"
 
     /**
-     * Sube una imagen COMPRIMIDA a Firebase Storage y retorna la URL pública.
+     * Sube una imagen COMPRIMIDA a Firebase Storage con un TIEMPO LÍMITE de 20 segundos.
      */
     suspend fun uploadImage(context: Context, uri: Uri, folder: String): Result<String> {
         val appContext = context.applicationContext
         return try {
-            Log.d(TAG, "== FIREBASE UPLOAD START ==")
-            Log.d(TAG, "Carpeta: $folder")
-            Log.d(TAG, "URI local: $uri")
-            
-            val storageRef = FirebaseStorage.getInstance().reference
-            val fileName = UUID.randomUUID().toString() + ".jpg"
-            val fileRef = storageRef.child("$folder/$fileName")
+            kotlinx.coroutines.withTimeout(20000) { 
+                Log.d(TAG, "Iniciando subida a Firebase...")
+                
+                val storage = FirebaseStorage.getInstance("gs://vito-sis-control.firebasestorage.app")
+                val storageRef = storage.reference
+                
+                // --- NOMBRE ACORTADO: Tiempo Hex + 4 caracteres aleatorios ---
+                val shortId = java.lang.Long.toHexString(System.currentTimeMillis()) + 
+                              UUID.randomUUID().toString().take(4)
+                val fileName = "$shortId.jpg"
+                
+                val fileRef = storageRef.child("$folder/$fileName")
 
-            // 1. COMPRESIÓN SEGURA
-            Log.d(TAG, "Iniciando compresión...")
-            val compressedData = compressImage(appContext, uri)
-            Log.d(TAG, "Compresión OK: ${compressedData.size} bytes")
-
-            // 2. SUBIDA
-            Log.d(TAG, "Subiendo bytes a Firebase Storage...")
-            fileRef.putBytes(compressedData).await()
-            Log.d(TAG, "Subida OK")
-
-            // 3. OBTENER URL
-            val downloadUrl = fileRef.downloadUrl.await().toString()
-            Log.d(TAG, "Link público generado: $downloadUrl")
-            Log.d(TAG, "== FIREBASE UPLOAD SUCCESS ==")
-            
-            Result.success(downloadUrl)
+                val compressedData = compressImage(appContext, uri)
+                
+                Log.d(TAG, "Subiendo bytes (Nombre: $fileName)...")
+                fileRef.putBytes(compressedData).await()
+                
+                // --- LIMPIEZA DE URL: Eliminamos el token para acortar el texto ---
+                val rawUrl = fileRef.downloadUrl.await().toString()
+                val shortUrl = rawUrl.split("?").first() + "?alt=media"
+                
+                Log.d(TAG, "✅ URL Acortada: $shortUrl")
+                Result.success(shortUrl)
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "== FIREBASE UPLOAD ERROR ==")
-            Log.e(TAG, "Mensaje: ${e.message}", e)
+            Log.e(TAG, "❌ FALLA FIREBASE: ${e.localizedMessage}")
             Result.failure(e)
         }
     }
@@ -57,18 +57,55 @@ object FirebaseStorageManager {
      */
     suspend fun uploadBitmap(bitmap: Bitmap, folder: String): Result<String> {
         return try {
-            val storageRef = FirebaseStorage.getInstance().reference
-            val fileName = UUID.randomUUID().toString() + ".jpg"
-            val fileRef = storageRef.child("$folder/$fileName")
-
             val out = ByteArrayOutputStream()
             bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
             val data = out.toByteArray()
+            
+            // --- NOMBRE ACORTADO ---
+            val shortId = java.lang.Long.toHexString(System.currentTimeMillis()) + 
+                          UUID.randomUUID().toString().take(4)
+            val fileName = "$shortId.jpg"
+            
+            val storageRef = FirebaseStorage.getInstance().reference
+            val fileRef = storageRef.child("$folder/$fileName")
 
             fileRef.putBytes(data).await()
-            val downloadUrl = fileRef.downloadUrl.await().toString()
-            Result.success(downloadUrl)
+            
+            // --- LIMPIEZA DE URL ---
+            val rawUrl = fileRef.downloadUrl.await().toString()
+            val shortUrl = rawUrl.split("?").first() + "?alt=media"
+            Result.success(shortUrl)
         } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Sube un arreglo de BYTES directamente a Firebase.
+     * Esto ahorra mucho tiempo y memoria.
+     */
+    suspend fun uploadBytes(data: ByteArray, folder: String): Result<String> {
+        return try {
+            kotlinx.coroutines.withTimeout(20000) {
+                // --- NOMBRE ACORTADO ---
+                val shortId = java.lang.Long.toHexString(System.currentTimeMillis()) + 
+                              UUID.randomUUID().toString().take(4)
+                val fileName = "$shortId.jpg"
+                
+                val storage = FirebaseStorage.getInstance("gs://vito-sis-control.firebasestorage.app")
+                val fileRef = storage.reference.child("$folder/$fileName")
+
+                fileRef.putBytes(data).await()
+                
+                // --- LIMPIEZA DE URL ---
+                val rawUrl = fileRef.downloadUrl.await().toString()
+                val shortUrl = rawUrl.split("?").first() + "?alt=media"
+                
+                Log.d(TAG, "✅ URL Acortada: $shortUrl")
+                Result.success(shortUrl)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Falla subida bytes: ${e.message}")
             Result.failure(e)
         }
     }

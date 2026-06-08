@@ -1,5 +1,6 @@
 package com.siscontrol.mobile.presentation.admin
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,6 +23,16 @@ import com.siscontrol.mobile.data.remote.dto.CheckpointDto
 import com.siscontrol.mobile.presentation.Destinos
 import com.siscontrol.mobile.presentation.theme.*
 import com.siscontrol.mobile.core.toTitleCase
+
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,7 +69,24 @@ fun InstallationDetailScreen(
     var longitude by remember(installation) { mutableStateOf(installation.longitude?.toString() ?: "0.0") }
     var radius by remember(installation) { mutableStateOf(installation.radiusInMeters?.toString() ?: "100.0") }
 
+    var showMap by remember { mutableStateOf(false) }
+    var tempLatLng by remember { mutableStateOf<LatLng?>(null) }
+
     val isActive = (installation.status ?: 1) == 1
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // Observar errores y manejarlos con tiempo y limpieza
+    LaunchedEffect(state.error) {
+        if (state.error != null) {
+            snackbarHostState.showSnackbar(
+                message = state.error!!,
+                duration = SnackbarDuration.Short
+            )
+            // Después del tiempo o cierre, limpiar en el VM
+            viewModel.clearError()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -85,6 +113,35 @@ fun InstallationDetailScreen(
                 }
             }
         },
+        snackbarHost = { 
+            SnackbarHost(snackbarHostState) { data ->
+                Card(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth()
+                        .clickable { data.dismiss() }, // Cerrar al presionar
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFECACA))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Warning, contentDescription = null, tint = DangerColor)
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            text = data.visuals.message,
+                            color = Color(0xFF991B1B),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        },
         containerColor = BackgroundColor
     ) { padding ->
         LazyColumn(
@@ -94,6 +151,24 @@ fun InstallationDetailScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // MOSTRAR ERROR VISUAL SI EXISTE
+            if (state.error != null) {
+                item {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFECACA)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Error, null, tint = DangerColor)
+                            Spacer(Modifier.width(12.dp))
+                            Text(state.error!!, color = Color(0xFF991B1B), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+
             // Sección de Datos de Instalación
             item {
                 Card(
@@ -183,6 +258,23 @@ fun InstallationDetailScreen(
                                     DetailFieldPolished(label = "Longitud", value = longitude, enabled = true, icon = Icons.Default.MyLocation) { longitude = it }
                                 }
                             }
+                            
+                            // Botón Obtener Coordenadas (Bajo los campos)
+                            Button(
+                                onClick = { showMap = true },
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = SecondaryColor,
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp)
+                            ) {
+                                Icon(Icons.Default.Map, contentDescription = "Mapa", modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("📍 Obtener Coordenadas del Mapa", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            }
+                            
                             DetailFieldPolished(label = "Radio de Tolerancia (metros)", value = radius, enabled = true, icon = Icons.Default.RadioButtonChecked) { radius = it }
                             if ((radius.toDoubleOrNull() ?: 0.0) < 0.0) {
                                 Text("El radio no puede ser negativo", color = DangerColor, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
@@ -303,6 +395,83 @@ fun InstallationDetailScreen(
                                 viewModel.toggleCheckpointStatus(checkpoint.id ?: 0L, installationId)
                             }
                         )
+                    }
+                }
+            }
+        }
+    }
+
+    // Diálogo del Mapa
+    if (showMap) {
+        val cameraPositionState = rememberCameraPositionState {
+            val initialLat = latitude.toDoubleOrNull() ?: -33.4489
+            val initialLon = longitude.toDoubleOrNull() ?: -70.6693
+            position = CameraPosition.fromLatLngZoom(LatLng(initialLat, initialLon), 15f)
+        }
+
+        Dialog(
+            onDismissRequest = { showMap = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    GoogleMap(
+                        modifier = Modifier.fillMaxSize(),
+                        cameraPositionState = cameraPositionState,
+                        onMapClick = { latLng ->
+                            tempLatLng = latLng
+                        }
+                    ) {
+                        tempLatLng?.let {
+                            Marker(
+                                state = MarkerState(position = it),
+                                title = "Nueva Ubicación"
+                            )
+                        }
+                        if (tempLatLng == null && latitude.toDoubleOrNull() != null && longitude.toDoubleOrNull() != null) {
+                             Marker(
+                                state = MarkerState(position = LatLng(latitude.toDouble(), longitude.toDouble())),
+                                title = "Ubicación Actual"
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.White.copy(alpha = 0.9f))
+                            .statusBarsPadding()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            "Toca el mapa para fijar la ubicación",
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        IconButton(onClick = { showMap = false }) {
+                            Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = DangerColor)
+                        }
+                    }
+
+                    if (tempLatLng != null) {
+                        Button(
+                            onClick = {
+                                latitude = String.format(Locale.US, "%.6f", tempLatLng!!.latitude)
+                                longitude = String.format(Locale.US, "%.6f", tempLatLng!!.longitude)
+                                showMap = false
+                            },
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 16.dp, bottom = 48.dp)
+                                .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Confirmar Coordenadas", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
                     }
                 }
             }

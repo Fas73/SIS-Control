@@ -1,8 +1,8 @@
 package com.siscontrol.mobile.presentation.admin
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -16,6 +16,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.*
+import com.siscontrol.mobile.presentation.components.SISBadge
 import com.siscontrol.mobile.presentation.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,19 +29,61 @@ fun AdminMapScreen(
     viewModel: AdminMapViewModel
 ) {
     val state by viewModel.state
+    val context = androidx.compose.ui.platform.LocalContext.current
 
-    // Recargar datos cada vez que se entra o manualmente
+    // Posición inicial (Centro de Santiago de Chile como fallback)
+    val santiago = LatLng(-33.4489, -70.6693)
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(santiago, 12f)
+    }
+
+    // Recargar datos y activar audio al entrar
     LaunchedEffect(Unit) {
-        viewModel.loadMapData()
+        viewModel.loadMapData(context)
+        viewModel.startAutoRefresh(context)
+    }
+
+    // Centrado automático de cámara cuando se cargan guardias por primera vez
+    LaunchedEffect(state.activeGuards) {
+        if (state.activeGuards.isNotEmpty()) {
+            val firstGuard = state.activeGuards.first()
+            if (firstGuard.latitude != -33.4489) { // Solo si tiene coordenadas reales
+                cameraPositionState.animate(
+                    com.google.android.gms.maps.CameraUpdateFactory.newLatLngZoom(
+                        LatLng(firstGuard.latitude, firstGuard.longitude), 
+                        15f
+                    )
+                )
+            }
+        }
+    }
+
+    // Verificación de permisos de ubicación para evitar cierres (SecurityException)
+    val hasFineLocation = androidx.core.content.ContextCompat.checkSelfPermission(
+        context, android.Manifest.permission.ACCESS_FINE_LOCATION
+    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    
+    val hasCoarseLocation = androidx.core.content.ContextCompat.checkSelfPermission(
+        context, android.Manifest.permission.ACCESS_COARSE_LOCATION
+    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+    // Configuración del Mapa
+    var mapType by remember { mutableStateOf(MapType.NORMAL) }
+    val uiSettings by remember { mutableStateOf(MapUiSettings(myLocationButtonEnabled = hasFineLocation || hasCoarseLocation, zoomControlsEnabled = false)) }
+    val properties by remember(mapType, hasFineLocation, hasCoarseLocation) { 
+        mutableStateOf(MapProperties(
+            mapType = mapType, 
+            isMyLocationEnabled = hasFineLocation || hasCoarseLocation
+        )) 
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF1F5F9)) // Fondo gris muy claro
+            .background(Color.White)
             .padding(paddingValues)
     ) {
-        // Top Bar con Degradado y Refresh
+        // Header profesional con degradado
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -50,147 +96,155 @@ fun AdminMapScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "Mapa en Vivo",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                IconButton(onClick = { viewModel.loadMapData() }) {
-                    Icon(Icons.Default.Refresh, null, tint = Color.White)
+                Column {
+                    Text("Mapa en Vivo", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text("Monitoreo geográfico de personal", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                }
+                IconButton(onClick = { viewModel.loadMapData(context) }) {
+                    Icon(Icons.Default.Refresh, "Actualizar", tint = Color.White)
                 }
             }
         }
         
-        if (state.isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = PrimaryColor)
-            }
-        } else {
-            Box(modifier = Modifier.fillMaxSize()) {
-                // Contenedor del Mapa
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFFE0F2FE)) 
-                )
-
-                // Leyenda
-                Card(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .width(120.dp)
-                        .align(Alignment.TopEnd),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text("Leyenda", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        LegendItem("En ronda", PrimaryColor)
-                        LegendItem("Activo", SuccessColor)
-                    }
-                }
-
-                // Pins Dinámicos
+        Box(modifier = Modifier.fillMaxSize()) {
+            
+            // --- GOOGLE MAPS REAL ---
+            GoogleMap(
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = cameraPositionState,
+                uiSettings = uiSettings,
+                properties = properties
+            ) {
+                // Dibujar marcadores para cada guardia activo
                 state.activeGuards.forEach { guard ->
-                    // Calculamos una posición visual simulada basada en las coordenadas
-                    // Para un mapa real usaríamos Google Maps, pero aquí simulamos la dispersión
-                    val xOffset = ((guard.longitude % 0.01) * 2000).dp
-                    val yOffset = ((guard.latitude % 0.01) * 2000).dp
+                    val position = LatLng(guard.latitude, guard.longitude)
+                    val statusColor = if (guard.status == "En Ronda") 
+                        android.graphics.Color.parseColor("#1E3A8A") // PrimaryColor
+                        else android.graphics.Color.parseColor("#16A34A") // SuccessColor
 
-                    Column(
-                        modifier = Modifier.align(Alignment.Center).offset(x = xOffset, y = yOffset),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    Marker(
+                        state = MarkerState(position = position),
+                        icon = com.siscontrol.mobile.core.MapUtils.createCustomMarker(
+                            context, 
+                            guard.guardName, 
+                            statusColor
+                        ),
+                        title = guard.guardName,
+                        snippet = "${guard.status} en ${guard.installationName}"
+                    )
+                }
+            }
+
+            if (state.isLoading) {
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = PrimaryColor)
+                }
+            }
+
+            // Selector de tipo de mapa (Botón flotante)
+            FloatingActionButton(
+                onClick = { 
+                    mapType = if (mapType == MapType.NORMAL) MapType.SATELLITE else MapType.NORMAL 
+                },
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(16.dp),
+                containerColor = Color.White,
+                contentColor = PrimaryColor,
+                shape = CircleShape
+            ) {
+                Icon(if (mapType == MapType.NORMAL) Icons.Default.Layers else Icons.Default.Map, "Tipo de Mapa")
+            }
+
+            // Lista inferior de Guardias (Panel deslizable)
+            Card(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Personal en Terreno", fontWeight = FontWeight.Black, fontSize = 16.sp, color = TextPrimary)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 150.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Card(
-                            shape = RoundedCornerShape(8.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(guard.guardName, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                                Text(guard.installationName, fontSize = 9.sp, color = TextSecondary)
+                        if (state.activeGuards.isEmpty()) {
+                            item { Text("No hay actividad detectada.", color = TextSecondary, fontSize = 14.sp) }
+                        } else {
+                            items(state.activeGuards.size) { index ->
+                                val guard = state.activeGuards[index]
+                                GuardMapListItem(
+                                    name = guard.guardName, 
+                                    status = guard.status, 
+                                    statusColor = if (guard.status == "En Ronda") PrimaryColor else SuccessColor,
+                                    onClick = {
+                                        // Centrar cámara en el guardia seleccionado
+                                        cameraPositionState.position = CameraPosition.fromLatLngZoom(
+                                            LatLng(guard.latitude, guard.longitude), 
+                                            16f
+                                        )
+                                    }
+                                )
                             }
                         }
-                        MapPin(color = if (guard.status == "En Ronda") PrimaryColor else SuccessColor)
                     }
                 }
+            }
 
-                // Lista inferior de Guardias (Bottom Sheet)
-                Card(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Guardias en Vivo (${state.activeGuards.size})", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = TextPrimary)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            if (state.activeGuards.isEmpty()) {
-                                Text("No hay guardias activos en este momento.", color = TextSecondary, fontSize = 14.sp)
-                            } else {
-                                state.activeGuards.forEach { guard ->
-                                    GuardMapListItem(guard.guardName, guard.status, if (guard.status == "En Ronda") PrimaryColor else SuccessColor)
-                                }
-                            }
-                        }
-                    }
-                }
+            // Leyenda de estados
+            Column(
+                modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                MapBadge("EN RONDA", PrimaryColor)
+                MapBadge("ACTIVO", SuccessColor)
             }
         }
     }
 }
 
 @Composable
-fun MapPin(modifier: Modifier = Modifier, color: Color) {
-    Icon(
-        imageVector = Icons.Default.LocationOn,
-        contentDescription = null,
-        tint = color,
-        modifier = modifier.size(40.dp)
-    )
-}
-
-@Composable
-fun LegendItem(text: String, color: Color) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 6.dp)) {
-        Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
-        Spacer(modifier = Modifier.width(10.dp))
-        Text(text, fontSize = 13.sp, color = Color(0xFF475569), fontWeight = FontWeight.Medium)
+fun MapBadge(text: String, color: Color) {
+    Surface(
+        color = Color.White,
+        shape = RoundedCornerShape(8.dp),
+        shadowElevation = 2.dp
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+            Box(modifier = Modifier.size(8.dp).background(color, CircleShape))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(text, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+        }
     }
 }
 
 @Composable
-fun GuardMapListItem(name: String, status: String, statusColor: Color) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+fun GuardMapListItem(name: String, status: String, statusColor: Color, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        color = Color(0xFFF8FAFC),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.LocationOn, contentDescription = null, tint = statusColor, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(name, fontSize = 15.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
-        }
-        Surface(
-            color = statusColor.copy(alpha = 0.1f),
-            shape = RoundedCornerShape(12.dp)
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                status, 
-                color = statusColor, 
-                fontSize = 11.sp, 
-                fontWeight = FontWeight.Bold, 
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.size(32.dp).background(statusColor.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+                    Text(name.take(1).uppercase(), color = statusColor, fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(name, fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+            }
+            SISBadge(status, containerColor = statusColor.copy(alpha = 0.1f), contentColor = statusColor)
         }
     }
 }

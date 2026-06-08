@@ -1,6 +1,8 @@
 package com.siscontrol.mobile.presentation.management
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -112,6 +114,8 @@ fun AddCheckpointScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -128,7 +132,7 @@ fun AddCheckpointScreen(
                     onValueChange = {},
                     label = { Text("Instalación", color = TextPrimary, fontWeight = FontWeight.Bold) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedInst) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
                     textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = TextPrimary,

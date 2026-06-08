@@ -3,6 +3,7 @@ package com.siscontrol.mobile.presentation.main
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -104,7 +105,7 @@ fun MainScreen(
 
                 // Perfil / Logout (Todos los roles)
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.ExitToApp, contentDescription = "Salir") },
+                    icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Salir") },
                     label = { Text("Salir") },
                     selected = false,
                     onClick = onLogout,

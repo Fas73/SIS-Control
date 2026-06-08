@@ -1,12 +1,8 @@
 package com.siscontrol.mobile.data.remote
 
-import com.siscontrol.mobile.data.remote.dto.AttendanceRequest
-import com.siscontrol.mobile.data.remote.dto.AttendanceResponse
-import com.siscontrol.mobile.data.remote.dto.AttendanceWrapperResponse
+import com.siscontrol.mobile.data.remote.dto.*
 import retrofit2.Response
-import retrofit2.http.Body
-import retrofit2.http.GET
-import retrofit2.http.POST
+import retrofit2.http.*
 
 interface AttendanceApiService {
 
@@ -19,4 +15,9 @@ interface AttendanceApiService {
 
     @POST("api/asistencia/check-out")
     suspend fun checkOut(@Body request: AttendanceRequest): Response<AttendanceWrapperResponse>
+
+    @GET("api/asistencia/reporte-jornada/{shiftId}")
+    suspend fun getShiftReport(
+        @Path("shiftId") shiftId: Long
+    ): Response<ShiftReportDto>
 }

@@ -4,6 +4,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -20,18 +30,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import coil.compose.AsyncImage
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import com.siscontrol.mobile.data.remote.dto.IncidentDto
 import com.siscontrol.mobile.presentation.components.FullScreenImageDialog
+import com.siscontrol.mobile.presentation.components.ShimmerCardItem
+import com.siscontrol.mobile.presentation.components.EmptyState
 import com.siscontrol.mobile.presentation.theme.*
 import com.siscontrol.mobile.core.formatDateToDisplay
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun AdminIncidentLogScreen(
     paddingValues: PaddingValues,
@@ -43,9 +57,25 @@ fun AdminIncidentLogScreen(
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var selectedIncident by remember { mutableStateOf<IncidentDto?>(null) }
     var fullScreenImageUrl by remember { mutableStateOf<String?>(null) }
+    var isGeneratingPdf by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    var isRefreshing by remember { mutableStateOf(false) }
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = isRefreshing,
+        onRefresh = {
+            scope.launch {
+                isRefreshing = true
+                viewModel.loadIncidents()
+                delay(800)
+                isRefreshing = false
+            }
+        }
+    )
 
     val filteredIncidents = remember(state.allIncidents, selectedTab, searchQuery) {
         val now = LocalDateTime.now()
+        val today = now.toLocalDate()
         
         state.allIncidents.filter { incident ->
             val incidentDate = try {
@@ -60,7 +90,7 @@ fun AdminIncidentLogScreen(
 
             val isInTimeRange = if (incidentDate == null) false else {
                 when (selectedTab) {
-                    0 -> ChronoUnit.DAYS.between(incidentDate, now) == 0L
+                    0 -> incidentDate.toLocalDate().isEqual(today)
                     1 -> ChronoUnit.DAYS.between(incidentDate, now) <= 7L
                     2 -> ChronoUnit.DAYS.between(incidentDate, now) <= 30L
                     else -> true
@@ -79,7 +109,7 @@ fun AdminIncidentLogScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
             .padding(paddingValues)
     ) {
         // Custom Top Bar
@@ -98,6 +128,7 @@ fun AdminIncidentLogScreen(
                     Text("Bitácora de Incidentes", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Text("Historial de novedades y pánicos", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
                 }
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
 
@@ -110,10 +141,10 @@ fun AdminIncidentLogScreen(
                 placeholder = { Text("Buscar por instalación o guardia...", color = TextPlaceholder) },
                 leadingIcon = { Icon(Icons.Default.Search, null, tint = PrimaryColor) },
                 shape = RoundedCornerShape(12.dp),
-                textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold),
+                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                     focusedBorderColor = PrimaryColor,
                     unfocusedBorderColor = Color.DarkGray
                 )
@@ -123,10 +154,10 @@ fun AdminIncidentLogScreen(
         // Tabs
         TabRow(
             selectedTabIndex = selectedTab,
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             contentColor = PrimaryColor,
             indicator = { tabPositions ->
-                TabRowDefaults.Indicator(
+                TabRowDefaults.SecondaryIndicator(
                     Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
                     color = PrimaryColor
                 )
@@ -137,38 +168,85 @@ fun AdminIncidentLogScreen(
             Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("Mes") })
         }
 
-        if (state.isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = PrimaryColor)
-            }
-        } else {
+        Box(modifier = Modifier.fillMaxSize().pullRefresh(pullRefreshState)) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                if (filteredIncidents.isEmpty()) {
-                    item {
-                        Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                            Text("No se encontraron incidentes", color = TextSecondary)
+                if (state.isLoading && !isRefreshing) {
+                    items(5) {
+                        ShimmerCardItem()
+                    }
+                } else {
+                    if (filteredIncidents.isEmpty()) {
+                        item {
+                            EmptyState(
+                                title = "Sin Incidentes",
+                                description = "No hay novedades registradas en este periodo.",
+                                icon = Icons.Default.EventNote,
+                                modifier = Modifier.padding(top = 40.dp)
+                            )
+                        }
+                    }
+
+                    items(filteredIncidents, key = { it.id ?: it.hashCode() }) { incident ->
+                        Column {
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn() + slideInVertically(initialOffsetY = { 50 })
+                            ) {
+                                IncidentLogCard(incident) {
+                                    selectedIncident = incident
+                                }
+                            }
                         }
                     }
                 }
-
-                items(filteredIncidents) { incident ->
-                    IncidentLogCard(incident) {
-                        selectedIncident = incident
-                    }
-                }
             }
+
+            PullRefreshIndicator(
+                refreshing = isRefreshing,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter),
+                contentColor = PrimaryColor
+            )
         }
     }
 
     if (selectedIncident != null) {
+        val context = androidx.compose.ui.platform.LocalContext.current
         IncidentDetailDialog(
             incident = selectedIncident!!,
             onDismiss = { selectedIncident = null },
-            onImageClick = { fullScreenImageUrl = it }
+            onImageClick = { fullScreenImageUrl = it },
+            onDownloadPdf = { shiftId ->
+                selectedIncident = null // Cierra el cuadro flotante
+                isGeneratingPdf = true
+                viewModel.getShiftReportForAlert(shiftId) { report ->
+                    if (report != null) {
+                        scope.launch {
+                            try {
+                                val file = com.siscontrol.mobile.core.PdfManager.generateConsolidatedShiftReport(context, report)
+                                if (file != null) {
+                                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                                        context, "com.siscontrol.mobile.fileprovider", file
+                                    )
+                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                                        setDataAndType(uri, "application/pdf")
+                                        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(android.content.Intent.createChooser(intent, "Ver Reporte Final"))
+                                }
+                            } finally {
+                                isGeneratingPdf = false
+                            }
+                        }
+                    } else {
+                        isGeneratingPdf = false
+                    }
+                }
+            }
         )
     }
 
@@ -177,20 +255,51 @@ fun AdminIncidentLogScreen(
             fullScreenImageUrl = null
         }
     }
+
+    // OVERLAY DE CARGA PDF
+    if (isGeneratingPdf) {
+        Box(
+            modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator(color = PrimaryColor)
+                    Spacer(Modifier.height(16.dp))
+                    Text("Recuperando Auditoría...", fontWeight = FontWeight.Bold)
+                    Text("Ensamblando evidencias y análisis IA", fontSize = 11.sp, color = TextSecondary)
+                }
+            }
+        }
+    }
 }
 
 @Composable
 fun IncidentLogCard(incident: IncidentDto, onClick: () -> Unit) {
     val isPanic = incident.severity.uppercase() == "ALTA" || incident.title.contains("PÁNICO", ignoreCase = true)
+    val isSystemAlert = incident.title.contains("COMPLETADA", ignoreCase = true) || incident.title.contains("FINALIZADA", ignoreCase = true)
     
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSystemAlert) Color(0xFFF0FDF4) else Color.White
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, if(isPanic) DangerColor.copy(alpha = 0.5f) else Color(0xFFE5E7EB))
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp, 
+            if(isPanic) DangerColor.copy(alpha = 0.5f) 
+            else if(isSystemAlert) SuccessColor.copy(alpha = 0.3f)
+            else Color(0xFFE5E7EB)
+        )
     ) {
         Row(
             modifier = Modifier.padding(16.dp), 
@@ -199,19 +308,42 @@ fun IncidentLogCard(incident: IncidentDto, onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .background(if (isPanic) DangerColor.copy(alpha = 0.1f) else PrimaryColor.copy(alpha = 0.1f), androidx.compose.foundation.shape.CircleShape),
+                    .background(
+                        color = when {
+                            isPanic -> DangerColor.copy(alpha = 0.1f)
+                            isSystemAlert -> SuccessColor.copy(alpha = 0.1f)
+                            else -> PrimaryColor.copy(alpha = 0.1f)
+                        }, 
+                        shape = androidx.compose.foundation.shape.CircleShape
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    if (isPanic) Icons.Default.Warning else Icons.Default.Report,
-                    null,
-                    tint = if (isPanic) DangerColor else PrimaryColor
+                    imageVector = when {
+                        isPanic -> Icons.Default.Warning
+                        isSystemAlert -> Icons.Default.CheckCircle
+                        else -> Icons.Default.Report
+                    },
+                    contentDescription = null,
+                    tint = when {
+                        isPanic -> DangerColor
+                        isSystemAlert -> SuccessColor
+                        else -> PrimaryColor
+                    }
                 )
             }
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
+                // Ajuste según instrucción Backend: title para cabecera, checkpointName secundario
                 Text(incident.title.uppercase(), fontWeight = FontWeight.Bold, color = if(isPanic) DangerColor else TextPrimary, fontSize = 14.sp)
-                Text(incident.clientName ?: "Instalación General", color = TextSecondary, fontSize = 12.sp)
+                
+                val locationInfo = if (!incident.checkpointName.isNullOrBlank() && incident.checkpointName != "N/A") {
+                    "${incident.clientName ?: "Instalación"} • ${incident.checkpointName}"
+                } else {
+                    incident.clientName ?: "Instalación General"
+                }
+                
+                Text(locationInfo, color = TextSecondary, fontSize = 12.sp)
                 Text("Por: ${incident.username ?: "Guardia SIS"}", color = TextSecondary, fontSize = 12.sp)
                 
                 Text(
@@ -242,13 +374,39 @@ fun IncidentLogCard(incident: IncidentDto, onClick: () -> Unit) {
 fun IncidentDetailDialog(
     incident: IncidentDto, 
     onImageClick: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onDownloadPdf: ((Long) -> Unit)? = null
 ) {
+    val isShiftEnd = incident.title.contains("FINALIZADA", ignoreCase = true) || incident.title.contains("SALIDA", ignoreCase = true)
+    
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) {
-                Text("CERRAR")
+            if (isShiftEnd && incident.roundExecutionId != null && onDownloadPdf != null) {
+                Button(
+                    onClick = { onDownloadPdf(incident.roundExecutionId) },
+                    colors = ButtonDefaults.buttonColors(containerColor = SuccessColor),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.PictureAsPdf, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("VER INFORME FINAL", fontWeight = FontWeight.ExtraBold)
+                }
+            } else {
+                Button(
+                    onClick = onDismiss, 
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("CERRAR", fontWeight = FontWeight.Bold)
+                }
+            }
+        },
+        dismissButton = {
+            if (isShiftEnd && incident.roundExecutionId != null && onDownloadPdf != null) {
+                TextButton(onClick = onDismiss) {
+                    Text("CERRAR", color = TextSecondary, fontWeight = FontWeight.Bold)
+                }
             }
         },
         title = {
@@ -265,12 +423,35 @@ fun IncidentDetailDialog(
                     }
 
                     DetailRow(Icons.Default.Person, "Guardia", incident.username ?: "No registrado")
-                    DetailRow(Icons.Default.Event, "Fecha y Hora", (incident.createdAt ?: "").formatDateToDisplay())
+                    
+                    // Mostrar tiempos si es una Ronda o Jornada
+                    val startTime = incident.roundExecution?.startTime
+                    val endTime = incident.roundExecution?.endTime ?: incident.createdAt
+                    
+                    if (startTime != null) {
+                        DetailRow(Icons.Default.PlayArrow, "Hora Inicio", startTime.formatDateToDisplay())
+                        DetailRow(Icons.Default.Stop, "Hora Término", (endTime ?: "").formatDateToDisplay())
+                    } else {
+                        DetailRow(Icons.Default.Event, "Fecha y Hora", (incident.createdAt ?: "").formatDateToDisplay())
+                    }
+
                     DetailRow(Icons.Default.PriorityHigh, "Gravedad", incident.severity)
                     
                     Spacer(Modifier.height(8.dp))
                     Text("OBSERVACIONES / COMENTARIOS", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = TextSecondary)
-                    Text(incident.description, color = TextPrimary, fontSize = 14.sp)
+                    
+                    val displayDescription = when {
+                        incident.description.contains("[CANCELACIÓN ADMINISTRATIVA]") -> {
+                            val motivo = incident.description.substringAfter("[CANCELACIÓN ADMINISTRATIVA]").trim()
+                            "Jornada cerrada administrativamente por Jefatura.\nMotivo: ${motivo.ifBlank { "No especificado" }}"
+                        }
+                        incident.description.contains("[CIERRE AUTOMÁTICO]") -> {
+                            "Jornada finalizada automáticamente por el sistema (Cumplimiento de horario)."
+                        }
+                        else -> incident.description
+                    }
+
+                    Text(displayDescription, color = TextPrimary, fontSize = 14.sp)
                     
                     if (!incident.imageUrl.isNullOrBlank()) {
                         Spacer(Modifier.height(16.dp))

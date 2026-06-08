@@ -235,7 +235,34 @@ fun AppNavigation() {
         }
     }
 
-    NavHost(navController = navController, startDestination = Destinos.SPLASH) {
+    NavHost(
+        navController = navController, 
+        startDestination = Destinos.SPLASH,
+        enterTransition = {
+            androidx.compose.animation.slideInHorizontally(
+                initialOffsetX = { 300 },
+                animationSpec = androidx.compose.animation.core.tween(300)
+            ) + androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300))
+        },
+        exitTransition = {
+            androidx.compose.animation.slideOutHorizontally(
+                targetOffsetX = { -300 },
+                animationSpec = androidx.compose.animation.core.tween(300)
+            ) + androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(300))
+        },
+        popEnterTransition = {
+            androidx.compose.animation.slideInHorizontally(
+                initialOffsetX = { -300 },
+                animationSpec = androidx.compose.animation.core.tween(300)
+            ) + androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300))
+        },
+        popExitTransition = {
+            androidx.compose.animation.slideOutHorizontally(
+                targetOffsetX = { 300 },
+                animationSpec = androidx.compose.animation.core.tween(300)
+            ) + androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(300))
+        }
+    ) {
 
         composable(Destinos.SPLASH) {
             SplashScreen(onNavigateToLogin = {
@@ -543,7 +570,10 @@ fun AppNavigation() {
                 SupervisorGuardsScreen(
                     paddingValues = padding,
                     viewModel = vm,
-                    onCreateGuard = { navController.navigate(Destinos.createPersonnelRoute(token, role)) }
+                    onCreateGuard = { navController.navigate(Destinos.createPersonnelRoute(token, role)) },
+                    onEditGuard = { userId ->
+                        navController.navigate(Destinos.adminEditUserRoute(userId, token, role))
+                    }
                 )
             }
         }
@@ -679,7 +709,11 @@ fun AppNavigation() {
                     roundId = roundId,
                     installationName = installationName,
                     viewModel = vm,
-                    onFinishRound = { navController.popBackStack(Destinos.guardHomeRoute(token, role), false) },
+                    onFinishRound = { 
+                        navController.navigate(Destinos.guardHomeRoute(token, role)) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
                     onReportIncident = { navController.navigate("guard_incident_dynamic/$roundId") },
                     onPanic = { },
                     onScanCheckpoint = { checkpoint, scanned, total ->
@@ -854,7 +888,8 @@ fun AppNavigation() {
             MainScaffold(navController, role, token) {
                 GuardCheckpointConfirmScreen(
                     onContinue = {
-                        navController.popBackStack(Destinos.guardCheckpointRoute(token, role), inclusive = true)
+                        navController.popBackStack()
+                        navController.popBackStack()
                     }
                 )
             }

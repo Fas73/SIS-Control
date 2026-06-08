@@ -15,7 +15,8 @@ interface IncidentApiService {
     // Sincronizado con IncidentController.java (Backend)
     @POST("api/incidents/panico")
     suspend fun triggerPanic(
-        @Query("roundExecutionId") roundExecutionId: Long,
-        @Query("descripcion") descripcion: String? = null
+        @Query("roundExecutionId") roundExecutionId: Long?,
+        @Query("shiftId") shiftId: Long?,
+        @Query("descripcion") descripcion: String?
     ): Response<IncidentDto>
 }

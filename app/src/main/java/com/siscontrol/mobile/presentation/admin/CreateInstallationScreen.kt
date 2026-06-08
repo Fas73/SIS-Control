@@ -19,6 +19,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.*
+import java.util.Locale
 import com.siscontrol.mobile.presentation.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,7 +42,7 @@ fun CreateInstallationScreen(
     var clientName by rememberSaveable { mutableStateOf("") }
     var latitude by rememberSaveable { mutableStateOf("") }
     var longitude by rememberSaveable { mutableStateOf("") }
-    var radius by rememberSaveable { mutableStateOf("100.0") }
+    var radius by rememberSaveable { mutableStateOf("100") }
 
     // Validación: name, address, clientName, lat y lon son obligatorios y radio debe ser positivo
     val isFormValid = name.isNotBlank() && 
@@ -45,6 +51,10 @@ fun CreateInstallationScreen(
                      latitude.toDoubleOrNull() != null && 
                      longitude.toDoubleOrNull() != null &&
                      (radius.toDoubleOrNull() ?: -1.0) >= 0.0
+
+    // Estado para el diálogo del mapa
+    var showMap by rememberSaveable { mutableStateOf(false) }
+    var tempLatLng by remember { mutableStateOf<LatLng?>(null) }
 
     // Observamos si la creación fue exitosa para volver atrás
     LaunchedEffect(state.isCreateSuccess) {
@@ -104,7 +114,23 @@ fun CreateInstallationScreen(
                     }
                 }
                 
-                FormField(label = "Radio de Tolerancia (Metros)", value = radius, onValueChange = { radius = it }, placeholder = "Ej: 100.0", keyboardType = KeyboardType.Decimal)
+                // Botón Obtener Coordenadas (Bajo los campos)
+                Button(
+                    onClick = { showMap = true },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SecondaryColor,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp)
+                ) {
+                    Icon(Icons.Default.Map, contentDescription = "Mapa", modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("📍 Obtener Coordenadas del Mapa", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                }
+                
+                FormField(label = "Radio de Tolerancia (Metros)", value = radius, onValueChange = { radius = it }, placeholder = "Ej: 100", keyboardType = KeyboardType.Decimal)
                 if ((radius.toDoubleOrNull() ?: 0.0) < 0.0) {
                     Text("El radio no puede ser negativo", color = Color.Red, fontSize = 12.sp)
                 }
@@ -145,6 +171,81 @@ fun CreateInstallationScreen(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text("Cancelar")
+            }
+        }
+    }
+
+    // Diálogo del Mapa
+    if (showMap) {
+        Dialog(
+            onDismissRequest = { showMap = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false) // Pantalla completa
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = Color.White
+            ) {
+                val santiago = LatLng(-33.4489, -70.6693)
+                val cameraPositionState = rememberCameraPositionState {
+                    position = CameraPosition.fromLatLngZoom(santiago, 12f)
+                }
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                    GoogleMap(
+                        modifier = Modifier.fillMaxSize(),
+                        cameraPositionState = cameraPositionState,
+                        onMapClick = { latLng ->
+                            tempLatLng = latLng
+                        }
+                    ) {
+                        tempLatLng?.let {
+                            Marker(
+                                state = MarkerState(position = it),
+                                title = "Ubicación Seleccionada"
+                            )
+                        }
+                    }
+
+                    // Panel superior (Instrucciones y cerrar)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.White.copy(alpha = 0.9f))
+                            .statusBarsPadding()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            "Toca el mapa para fijar la ubicación",
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        IconButton(onClick = { showMap = false }) {
+                            Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = DangerColor)
+                        }
+                    }
+
+                    // Botón inferior para confirmar
+                    if (tempLatLng != null) {
+                        Button(
+                            onClick = {
+                                latitude = String.format(Locale.US, "%.6f", tempLatLng!!.latitude)
+                                longitude = String.format(Locale.US, "%.6f", tempLatLng!!.longitude)
+                                showMap = false
+                            },
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 16.dp, bottom = 48.dp)
+                                .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Confirmar Coordenadas", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+                    }
+                }
             }
         }
     }

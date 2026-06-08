@@ -42,23 +42,27 @@ data class StartRoundRequest(
 )
 
 /**
- * DTO para el escaneo de un checkpoint por NFC.
+ * DTO para el escaneo de un checkpoint por NFC u Omisión.
+ * Formato PLANO para coincidir con IncidentDto y especificación de Backend.
  */
 data class ScanCheckpointRequest(
-    @SerializedName("roundExecution")
-    val roundExecution: IdRequest,
-    @SerializedName("checkpoint")
-    val checkpoint: IdRequest,
+    @SerializedName("roundExecutionId")
+    val roundExecutionId: Long,
+    @SerializedName("checkpointId")
+    val checkpointId: Long,
+    @SerializedName("status")
+    val status: Int, // 1: Físico/NFC, 2: Omitido
     @SerializedName("notes")
     val notes: String,
-    @SerializedName("status")
-    val status: Int = 1, // 1: Físico, 2: Omitido
-    
     @SerializedName("imageUrl")
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    @SerializedName("latitude")
+    val latitude: Double? = null,
+    @SerializedName("longitude")
+    val longitude: Double? = null,
+    @SerializedName("scannedAt")
+    val scannedAt: String? = null
 )
-
-data class IdRequest(val id: Long)
 
 /**
  * DTO para la respuesta envoltorio del inicio de ronda.
@@ -84,6 +88,7 @@ data class CurrentStateResponseDto(
     val rondaActiva: Boolean? = false,
     val jornada: ShiftDto? = null,
     val ronda: RoundResponseDto? = null,
+    val user: UserResponseDto? = null, // Datos del usuario para validar selfie
     val escaneosCompletados: List<ChecklogDto>? = emptyList()
 )
 

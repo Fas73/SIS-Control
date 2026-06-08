@@ -14,6 +14,7 @@ class AdminHomeViewModel(
     private val getAdminDashboardUseCase: GetAdminDashboardUseCase,
     private val cancelRoundUseCase: CancelRoundUseCase,
     private val cancelShiftUseCase: CancelShiftUseCase,
+    private val getShiftReportUseCase: GetShiftReportUseCase,
     private val incidentRepository: IncidentRepository,
     private val sessionManager: SessionManager
 ) : ViewModel() {
@@ -32,11 +33,21 @@ class AdminHomeViewModel(
     private fun startRealTimeMonitoring() {
         if (isMonitoring) return
         isMonitoring = true
+        
+        // Polling para conteos generales
         viewModelScope.launch {
             while (isMonitoring) {
-                // Actualizar contadores y rondas cada 5 segundos
+                // Actualizar contadores y rondas cada 5 segundos (Polling reducido)
                 updateAlertCountAndRounds()
-                delay(5000)
+                delay(10000)
+            }
+        }
+
+        // WebSockets para alertas críticas instantáneas
+        viewModelScope.launch {
+            com.siscontrol.mobile.core.StompService.adminAlertFlow.collect {
+                // Forzar actualización apenas llegue algo por socket
+                updateAlertCountAndRounds()
             }
         }
     }
@@ -145,6 +156,27 @@ class AdminHomeViewModel(
                 }
                 .onFailure { e -> 
                     _state.value = _state.value.copy(isLoading = false, error = com.siscontrol.mobile.core.ErrorUtils.parse(e)) 
+                }
+        }
+    }
+
+    /**
+     * Obtiene el reporte consolidado de una jornada para su exportación a PDF.
+     */
+    fun getShiftReport(shiftId: Long, onResult: (com.siscontrol.mobile.data.remote.dto.ShiftReportDto?) -> Unit) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isLoading = true)
+            getShiftReportUseCase(shiftId)
+                .onSuccess { report ->
+                    _state.value = _state.value.copy(isLoading = false)
+                    onResult(report)
+                }
+                .onFailure { e ->
+                    _state.value = _state.value.copy(
+                        isLoading = false, 
+                        error = "Error al obtener reporte: ${e.message}"
+                    )
+                    onResult(null)
                 }
         }
     }

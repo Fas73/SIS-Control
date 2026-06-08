@@ -12,11 +12,15 @@ class IncidentRepositoryImpl(
         return try {
             val response = apiService.createIncident(incident)
             if (response.isSuccessful && response.body() != null) {
+                android.util.Log.d("INCIDENT_REPO", "✅ ÉXITO: Registro guardado en MySQL")
                 Result.success(response.body()!!)
             } else {
-                Result.failure(Exception("Error al guardar: ${response.code()}"))
+                val errorBody = response.errorBody()?.string() ?: "Sin detalle"
+                android.util.Log.e("INCIDENT_REPO", "❌ ERROR 400/500: $errorBody")
+                Result.failure(Exception("Servidor rechazó datos: $errorBody"))
             }
         } catch (e: Exception) {
+            android.util.Log.e("INCIDENT_REPO", "❌ CRASH CONEXIÓN: ${e.message}")
             Result.failure(e)
         }
     }
@@ -30,10 +34,10 @@ class IncidentRepositoryImpl(
         }
     }
 
-    override suspend fun triggerPanic(roundId: Long, descripcion: String?): Result<Unit> {
+    override suspend fun triggerPanic(roundId: Long?, shiftId: Long?, descripcion: String?): Result<Unit> {
         return try {
-            android.util.Log.d("PANIC_REPO", "Enviando pánico - RoundExecutionId: $roundId")
-            val response = apiService.triggerPanic(roundId, descripcion)
+            android.util.Log.d("PANIC_REPO", "Enviando pánico - RoundExecutionId: $roundId, ShiftId: $shiftId")
+            val response = apiService.triggerPanic(roundId, shiftId, descripcion)
             if (response.isSuccessful) {
                 android.util.Log.d("PANIC_REPO", "✅ Pánico enviado exitosamente")
                 Result.success(Unit)

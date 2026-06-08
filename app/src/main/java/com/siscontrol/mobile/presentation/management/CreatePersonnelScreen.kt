@@ -28,6 +28,21 @@ import com.siscontrol.mobile.presentation.theme.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import com.siscontrol.mobile.core.AIManager
+import com.siscontrol.mobile.core.CameraUtils
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import coil.compose.AsyncImage
 
 // ---------------------------------------------------------------------------
 // UI State
@@ -79,7 +94,9 @@ class CreatePersonnelViewModel(
         email: String,
         fullName: String,
         phoneNumber: String,
-        role: String
+        role: String,
+        profileImageUri: Uri?,
+        context: Context
     ) {
         viewModelScope.launch {
             _createState.value = CreatePersonnelUiState.Loading
@@ -88,6 +105,16 @@ class CreatePersonnelViewModel(
             if (creatorId <= 0L) {
                 _createState.value = CreatePersonnelUiState.Error("No se pudo identificar al administrador actual.")
                 return@launch
+            }
+
+            var remoteUrl: String? = null
+            if (profileImageUri != null) {
+                val uploadResult = com.siscontrol.mobile.core.FirebaseStorageManager.uploadImage(context, profileImageUri, "perfiles")
+                uploadResult.onSuccess { remoteUrl = it }
+                    .onFailure {
+                        _createState.value = CreatePersonnelUiState.Error("Falla al subir la selfie a la nube.")
+                        return@launch
+                    }
             }
 
             // Auto-generar username: nombre + _ + primeros 4 digitos del rut
@@ -103,7 +130,8 @@ class CreatePersonnelViewModel(
                 fullName = fullName,
                 password = "pass123", // Password estática solicitada
                 phoneNumber = phoneNumber,
-                role = role
+                role = role,
+                profileImageUrl = remoteUrl
             )
 
             createPersonnelUseCase(creatorId, request).fold(
@@ -148,6 +176,41 @@ fun CreatePersonnelScreen(
     var fullName     by remember { mutableStateOf("") }
     var phoneDigits  by remember { mutableStateOf("") }
     
+    // Estados para la Selfie e IA
+    var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
+    var selfieError by remember { mutableStateOf<String?>(null) }
+    var isValidatingSelfie by remember { mutableStateOf(false) }
+    
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success && tempCameraUri != null) {
+            isValidatingSelfie = true
+            selfieError = null
+            scope.launch {
+                val (isValid, error) = AIManager.validateSelfie(context, tempCameraUri!!)
+                if (isValid) {
+                    capturedImageUri = tempCameraUri
+                } else {
+                    selfieError = error
+                    capturedImageUri = null
+                }
+                isValidatingSelfie = false
+            }
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) {
+            CameraUtils.createTempImageUri(context)?.let { uri ->
+                tempCameraUri = uri
+                cameraLauncher.launch(uri)
+            }
+        }
+    }
+
     val rolesMapping = mapOf(
         "Administrador" to "ADMIN",
         "Supervisor" to "SUPERVISOR",
@@ -178,6 +241,7 @@ fun CreatePersonnelScreen(
             && email.isNotBlank()
             && fullName.isNotBlank()
             && phoneDigits.length == 9
+            && !isValidatingSelfie
 
     Scaffold(
         modifier = Modifier.imePadding(),
@@ -244,7 +308,7 @@ fun CreatePersonnelScreen(
                                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedRoleMenu)
                                         }
                                     },
-                                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
                                     shape = RoundedCornerShape(12.dp),
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedBorderColor = PrimaryColor,
@@ -275,6 +339,52 @@ fun CreatePersonnelScreen(
 
                         HorizontalDivider(color = Color(0xFFF3F4F6), modifier = Modifier.padding(vertical = 4.dp))
                         
+                        // SECCIÓN DE SELFIE CON IA
+                        Text("Identidad Visual (Selfie)", fontWeight = FontWeight.Bold, color = PrimaryColor, fontSize = 16.sp)
+                        
+                        Box(
+                            modifier = Modifier
+                                .size(120.dp)
+                                .align(Alignment.CenterHorizontally)
+                                .clip(CircleShape)
+                                .background(Color(0xFFF3F4F6))
+                                .border(2.dp, if(selfieError != null) DangerColor else PrimaryColor.copy(alpha = 0.3f), CircleShape)
+                                .clickable {
+                                    val hasPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                                    if (hasPermission) {
+                                        CameraUtils.createTempImageUri(context)?.let { uri -> tempCameraUri = uri; cameraLauncher.launch(uri) }
+                                    } else {
+                                        permissionLauncher.launch(Manifest.permission.CAMERA)
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isValidatingSelfie) {
+                                CircularProgressIndicator(color = PrimaryColor, modifier = Modifier.size(30.dp))
+                            } else if (capturedImageUri != null) {
+                                AsyncImage(
+                                    model = capturedImageUri,
+                                    contentDescription = "Selfie",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
+                            } else {
+                                Icon(Icons.Default.CameraAlt, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(40.dp))
+                            }
+                        }
+                        
+                        selfieError?.let {
+                            Text(it, color = DangerColor, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                        }
+                        
+                        if (capturedImageUri == null && selfieError == null) {
+                            Text("Capturar selfie ahora (opcional para el Administrador)", fontSize = 11.sp, color = TextSecondary, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                        } else if (capturedImageUri != null) {
+                            Text("✅ Rostro validado correctamente", fontSize = 11.sp, color = SuccessColor, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                        }
+
+                        HorizontalDivider(color = Color(0xFFF3F4F6), modifier = Modifier.padding(vertical = 4.dp))
+
                         Text("Información Personal", fontWeight = FontWeight.Bold, color = PrimaryColor, fontSize = 16.sp)
 
                         val rutDuplicado = viewModel.isRutTaken(rut)
@@ -319,7 +429,7 @@ fun CreatePersonnelScreen(
                             icon = Icons.Default.Phone
                         )
 
-                        // --- NUEVO: Visualización y validación de username sugerido ---
+                        // --- Visualización y validación de username sugerido ---
                         val suggestedUsername = remember(fullName, rut) {
                             if (fullName.isNotBlank() && rut.isNotBlank()) {
                                 val first = fullName.trim().split(" ").firstOrNull()?.lowercase() ?: "user"
@@ -401,7 +511,9 @@ fun CreatePersonnelScreen(
                                 email = email,
                                 fullName = fullName,
                                 phoneNumber = "+56$phoneDigits",
-                                role = roleToSend
+                                role = roleToSend,
+                                profileImageUri = capturedImageUri,
+                                context = context
                             ) 
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),

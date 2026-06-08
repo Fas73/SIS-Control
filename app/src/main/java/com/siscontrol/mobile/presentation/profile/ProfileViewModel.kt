@@ -56,23 +56,23 @@ class ProfileViewModel(
             android.util.Log.d("PROFILE_VM", "Iniciando subida de imagen a Firebase: $uri")
             
             FirebaseStorageManager.uploadImage(context, uri, "perfiles")
-                .onSuccess { remoteUrl ->
+                .onSuccess { remoteUrl: String ->
                     android.util.Log.d("PROFILE_VM", "Firebase OK! Link obtenido: $remoteUrl")
                     
                     // Usamos el nuevo endpoint dedicado
                     updateProfileImageUseCase(user.id ?: 0L, remoteUrl)
-                        .onSuccess { updatedUser ->
+                        .onSuccess { updatedUser: UserResponseDto ->
                             android.util.Log.d("PROFILE_VM", "Backend OK! Nueva URL en perfil: ${updatedUser.imageUrl}")
                             _state.value = _state.value.copy(user = updatedUser, isActionLoading = false)
                             onResult(true, "Foto de perfil actualizada con éxito")
                         }
-                        .onFailure { e ->
+                        .onFailure { e: Throwable ->
                             android.util.Log.e("PROFILE_VM", "Backend FAIL: ${e.message}")
                             _state.value = _state.value.copy(isActionLoading = false)
                             onResult(false, "Error al registrar en servidor: ${e.message}")
                         }
                 }
-                .onFailure { e ->
+                .onFailure { e: Throwable ->
                     android.util.Log.e("PROFILE_VM", "Firebase FAIL: ${e.message}")
                     _state.value = _state.value.copy(isActionLoading = false)
                     onResult(false, "Error en Firebase: ${e.message}")
@@ -87,19 +87,19 @@ class ProfileViewModel(
             _state.value = _state.value.copy(isActionLoading = true)
 
             FirebaseStorageManager.uploadBitmap(bitmap, "perfiles")
-                .onSuccess { remoteUrl ->
+                .onSuccess { remoteUrl: String ->
                     // Usamos el nuevo endpoint dedicado para actualizar solo la foto
                     updateProfileImageUseCase(user.id ?: 0L, remoteUrl)
-                        .onSuccess { updatedUser ->
+                        .onSuccess { updatedUser: UserResponseDto ->
                             _state.value = _state.value.copy(user = updatedUser, isActionLoading = false)
                             onResult(true, "Foto de perfil actualizada")
                         }
-                        .onFailure { e ->
+                        .onFailure { e: Throwable ->
                             _state.value = _state.value.copy(isActionLoading = false)
                             onResult(false, "Error al guardar en BD: ${e.message}")
                         }
                 }
-                .onFailure { e ->
+                .onFailure { e: Throwable ->
                     _state.value = _state.value.copy(isActionLoading = false)
                     onResult(false, "Error en Firebase: ${e.message}")
                 }
@@ -119,11 +119,11 @@ class ProfileViewModel(
             )
 
             updateProfileDataUseCase(user.id ?: 0L, request)
-                .onSuccess { updatedUser ->
+                .onSuccess { updatedUser: UserResponseDto ->
                     _state.value = _state.value.copy(user = updatedUser, isActionLoading = false)
                     onResult(true, "Perfil actualizado")
                 }
-                .onFailure { e ->
+                .onFailure { e: Throwable ->
                     _state.value = _state.value.copy(isActionLoading = false)
                     onResult(false, e.message ?: "Error al actualizar")
                 }
@@ -135,11 +135,11 @@ class ProfileViewModel(
             val user = _state.value.user ?: return@launch
             _state.value = _state.value.copy(isActionLoading = true)
             changeMyPasswordUseCase(user.id ?: 0L, ChangePasswordRequest(currentPass, newPass))
-                .onSuccess {
+                .onSuccess { _: Unit ->
                     _state.value = _state.value.copy(isActionLoading = false)
                     onResult(true, "Clave actualizada")
                 }
-                .onFailure { e ->
+                .onFailure { e: Throwable ->
                     _state.value = _state.value.copy(isActionLoading = false)
                     onResult(false, "Clave actual incorrecta")
                 }

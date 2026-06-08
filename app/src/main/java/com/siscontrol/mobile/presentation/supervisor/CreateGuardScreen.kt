@@ -42,6 +42,7 @@ fun CreateGuardScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundColor)
+            .imePadding()
     ) {
         // Top App Bar
         Box(

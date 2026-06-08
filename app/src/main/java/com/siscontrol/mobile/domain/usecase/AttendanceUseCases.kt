@@ -19,3 +19,9 @@ class CheckOutUseCase(private val repository: AttendanceRepository) {
         return repository.checkOut(request)
     }
 }
+
+class GetShiftReportUseCase(private val repository: AttendanceRepository) {
+    suspend operator fun invoke(shiftId: Long): Result<com.siscontrol.mobile.data.remote.dto.ShiftReportDto> {
+        return repository.getShiftReport(shiftId)
+    }
+}

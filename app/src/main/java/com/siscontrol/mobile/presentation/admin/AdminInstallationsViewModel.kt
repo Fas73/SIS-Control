@@ -152,15 +152,16 @@ class AdminInstallationsViewModel(
 
     fun createCheckpoint(installationId: Long, name: String, executionOrder: Int, nfcCode: String, desc: String, instruction: String) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isDetailLoading = true)
+            _state.value = _state.value.copy(isDetailLoading = true, error = null)
             val editorId = getEditorId()
             val request = CheckpointRequestDto(
                 name = name,
                 executionOrder = executionOrder,
-                nfcTagCode = nfcCode,
+                nfcTagCode = nfcCode.trim().uppercase(), // Limpiamos el código
                 locationDescription = desc,
                 instruction = instruction,
-                installation = InstallationIdRequest(id = installationId)
+                installation = InstallationIdRequest(id = installationId),
+                requiresPhoto = false // Valor por defecto para evitar error 1364
             )
             createCheckpointUseCase(editorId, request)
                 .onSuccess {
@@ -168,18 +169,28 @@ class AdminInstallationsViewModel(
                     loadCheckpointCount(installationId)
                 }
                 .onFailure { e ->
-                    _state.value = _state.value.copy(isDetailLoading = false, error = e.message)
+                    val errorMsg = e.message ?: ""
+                    val friendlyError = if (errorMsg.contains("409") || 
+                        errorMsg.contains("NFC", ignoreCase = true) || 
+                        errorMsg.contains("registrado", ignoreCase = true)) {
+                        "⚠️ Este N° de NFC ya está registrado en otro lugar, por favor utilice uno distinto."
+                    } else if (errorMsg.contains("400")) {
+                        "⚠️ Error de datos: Verifique que todos los campos sean correctos."
+                    } else {
+                        "Error al crear: $errorMsg"
+                    }
+                    _state.value = _state.value.copy(isDetailLoading = false, error = friendlyError)
                 }
         }
     }
 
     fun updateCheckpoint(checkpoint: CheckpointDto, installationId: Long) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isDetailLoading = true)
+            _state.value = _state.value.copy(isDetailLoading = true, error = null)
             val editorId = getEditorId()
             
-            // Aseguramos que incluya el objeto installation para cumplir con el contrato del backend
             val request = checkpoint.copy(
+                nfcTagCode = checkpoint.nfcTagCode?.trim()?.uppercase() ?: "",
                 installation = InstallationIdRequest(id = installationId)
             )
             
@@ -188,7 +199,17 @@ class AdminInstallationsViewModel(
                     loadCheckpointsForInstallation(installationId)
                 }
                 .onFailure { e ->
-                    _state.value = _state.value.copy(isDetailLoading = false, error = e.message)
+                    val errorMsg = e.message ?: ""
+                    val friendlyError = if (errorMsg.contains("409") || 
+                        errorMsg.contains("NFC", ignoreCase = true) || 
+                        errorMsg.contains("registrado", ignoreCase = true)) {
+                        "⚠️ Este N° de NFC ya está registrado en otro lugar, por favor utilice uno distinto."
+                    } else if (errorMsg.contains("400")) {
+                        "⚠️ Error de datos: Verifique que el NFC no esté duplicado en otra empresa."
+                    } else {
+                        "Error al actualizar: $errorMsg"
+                    }
+                    _state.value = _state.value.copy(isDetailLoading = false, error = friendlyError)
                 }
         }
     }
@@ -228,6 +249,10 @@ class AdminInstallationsViewModel(
 
     fun resetCreateState() {
         _state.value = _state.value.copy(isCreateSuccess = false, error = null)
+    }
+
+    fun clearError() {
+        _state.value = _state.value.copy(error = null)
     }
 }
 
