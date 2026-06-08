@@ -221,6 +221,25 @@ fun GuardProfileScreen(
                     OutlinedButton(onClick = { showPasswordDialog = true }, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(16.dp), border = androidx.compose.foundation.BorderStroke(1.5.dp, PrimaryColor.copy(alpha = 0.3f))) {
                         Text("CAMBIAR CONTRASEÑA", color = PrimaryColor, fontWeight = FontWeight.Bold)
                     }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    val versionName = remember {
+                        try {
+                            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                            packageInfo.versionName ?: "Desconocida"
+                        } catch (e: Exception) {
+                            "Desconocida"
+                        }
+                    }
+                    Text(
+                        text = "Versión $versionName",
+                        color = TextSecondary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                    
                     Spacer(modifier = Modifier.height(40.dp))
                 }
             }
