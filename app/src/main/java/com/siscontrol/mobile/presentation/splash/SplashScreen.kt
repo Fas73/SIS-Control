@@ -106,7 +106,7 @@ fun SplashScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // ── Nombre de la App ────────────────────────────────────────────
+            /* ── Nombre de la App ────────────────────────────────────────────
             Text(
                 text = "SIS-Control",
                 color = TextPrimary,
@@ -125,7 +125,7 @@ fun SplashScreen(
             )
 
             Spacer(modifier = Modifier.height(48.dp))
-
+*/
             // ── Barra de progreso simulada ──────────────────────────────────
             LinearProgressIndicator(
                 progress = { progressAnim.value },

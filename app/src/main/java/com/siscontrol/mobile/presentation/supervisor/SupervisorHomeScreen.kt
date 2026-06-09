@@ -40,6 +40,7 @@ fun SupervisorHomeScreen(
     val viewModel: AdminHomeViewModel = viewModel(factory = SupervisorHomeViewModelFactory())
     val state by viewModel.state
     val formattedName = userName.toTitleCase()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     var showCancelRoundDialog by remember { mutableStateOf<DashboardActiveRound?>(null) }
     var showCancelShiftDialog by remember { mutableStateOf<DashboardActiveShift?>(null) }
@@ -257,7 +258,26 @@ fun SupervisorHomeScreen(
                     guardName = shift.guardName,
                     location = shift.location,
                     entryTime = shift.entryTime,
-                    onCancel = { showCancelShiftDialog = shift }
+                    onCancel = { showCancelShiftDialog = shift },
+                    onDownloadPdf = {
+                        val file = com.siscontrol.mobile.core.PdfManager.generateShiftReport(
+                            context = context,
+                            workerName = shift.guardName,
+                            entry = shift.entryTime,
+                            exit = null,
+                            location = shift.location
+                        )
+                        if (file != null) {
+                            val uri = androidx.core.content.FileProvider.getUriForFile(
+                                context, "${context.packageName}.fileprovider", file
+                            )
+                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                                setDataAndType(uri, "application/pdf")
+                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(intent, "Ver Jornada"))
+                        }
+                    }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }

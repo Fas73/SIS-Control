@@ -48,7 +48,10 @@ data class DashboardActiveShiftDto(
     @SerializedName("id") val id: Long,
     @SerializedName("guardName") val guardName: String,
     @SerializedName("location") val location: String,
-    @SerializedName("entryTime") val entryTime: String
+    @SerializedName("entryTime") val entryTime: String,
+    @SerializedName("onRound") val isOnRound: Boolean = false,
+    @SerializedName("latitude") val latitude: Double? = null,
+    @SerializedName("longitude") val longitude: Double? = null
 )
 
 data class GuardRoundHistoryResponse(

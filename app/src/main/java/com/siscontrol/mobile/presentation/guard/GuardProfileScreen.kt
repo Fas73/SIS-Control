@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -83,14 +84,14 @@ fun GuardProfileScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color.White
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(bottom = paddingValues.calculateBottomPadding())
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             // Header
             Box(
@@ -107,7 +108,7 @@ fun GuardProfileScreen(
                 ) {
                     Text("Mi Perfil", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     IconButton(onClick = { showLogoutDialog = true }) {
-                        Icon(Icons.Default.Logout, "Salir", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.Logout, "Salir", tint = Color.White)
                     }
                 }
             }
@@ -116,6 +117,28 @@ fun GuardProfileScreen(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PrimaryColor) }
             } else {
                 val user = state.user
+                
+                // --- AVISO DE ENROLAMIENTO PENDIENTE ---
+                if (user?.imageUrl == null) {
+                    Surface(
+                        color = DangerColor.copy(alpha = 0.1f),
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, DangerColor.copy(alpha = 0.3f))
+                    ) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Error, null, tint = DangerColor)
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                "Enrolamiento Pendiente: Debes capturar tu selfie de identidad para poder operar en el sistema.",
+                                color = DangerColor,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
                 Column(
                     modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -175,13 +198,13 @@ fun GuardProfileScreen(
                     
                     Spacer(modifier = Modifier.height(20.dp))
                     
-                    Text(user?.fullName?.toTitleCase() ?: "Usuario SIS", fontSize = 24.sp, fontWeight = FontWeight.Black, color = TextPrimary)
+                    Text(user?.fullName?.toTitleCase() ?: "Usuario SIS", fontSize = 24.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onBackground)
                     Spacer(modifier = Modifier.height(8.dp))
                     SISBadge(if(user?.role?.contains("ADMIN") == true) "Administrador" else "Guardia SIS", containerColor = PrimaryColor.copy(alpha = 0.1f), contentColor = PrimaryColor)
                     
                     Spacer(modifier = Modifier.height(30.dp))
                     
-                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF3F4F6))) {
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF3F4F6).copy(alpha = 0.1f))) {
                         Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                             Text("Información de la Cuenta", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryColor, letterSpacing = 1.sp)
                             ProfileItemRow(Icons.Default.Email, "Email", user?.email ?: "N/A", PrimaryVariant)
@@ -198,6 +221,25 @@ fun GuardProfileScreen(
                     OutlinedButton(onClick = { showPasswordDialog = true }, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(16.dp), border = androidx.compose.foundation.BorderStroke(1.5.dp, PrimaryColor.copy(alpha = 0.3f))) {
                         Text("CAMBIAR CONTRASEÑA", color = PrimaryColor, fontWeight = FontWeight.Bold)
                     }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    val versionName = remember {
+                        try {
+                            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                            packageInfo.versionName ?: "Desconocida"
+                        } catch (e: Exception) {
+                            "Desconocida"
+                        }
+                    }
+                    Text(
+                        text = "Versión $versionName",
+                        color = TextSecondary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                    
                     Spacer(modifier = Modifier.height(40.dp))
                 }
             }

@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.CircleShape
 import coil.compose.AsyncImage
 import com.siscontrol.mobile.core.CameraUtils
+import com.siscontrol.mobile.core.ImageUtils
 import com.siscontrol.mobile.presentation.theme.*
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -53,11 +54,25 @@ fun GuardReportIncidentScreen(
 
     // LANZADORES
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success && tempCameraUriStr != null) capturedImageUriStr = tempCameraUriStr
+        if (success && tempCameraUriStr != null) {
+            val uri = Uri.parse(tempCameraUriStr)
+            capturedImageUriStr = uri.toString()
+            
+            // IA en acción: Analizamos la foto (el ViewModel se encargará del watermark al guardar)
+            viewModel.analyzeImageWithAI(context, uri) { suggestion ->
+                if (title.isBlank()) title = suggestion
+            }
+        }
     }
 
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) capturedImageUriStr = uri.toString()
+        if (uri != null) {
+            capturedImageUriStr = uri.toString()
+            // IA en acción: Analizamos la foto elegida de la galería
+            viewModel.analyzeImageWithAI(context, uri) { suggestion ->
+                if (title.isBlank()) title = suggestion
+            }
+        }
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -76,7 +91,7 @@ fun GuardReportIncidentScreen(
     var expandedSeverity by remember { mutableStateOf(false) }
     var expandedType by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
+    Column(modifier = Modifier.fillMaxSize().background(Color.White).imePadding()) {
         Box(modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(PrimaryColor, PrimaryVariant))).statusBarsPadding().padding(horizontal = 16.dp, vertical = 20.dp)) {
             Column {
                 Text("Reportar Incidente", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
@@ -98,7 +113,7 @@ fun GuardReportIncidentScreen(
                         Column {
                             Text("Categoría", style = MaterialTheme.typography.labelMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
                             ExposedDropdownMenuBox(expanded = expandedType, onExpandedChange = { expandedType = !expandedType }) {
-                                OutlinedTextField(value = type, onValueChange = {}, readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedType) }, modifier = Modifier.menuAnchor().fillMaxWidth(), shape = RoundedCornerShape(12.dp), leadingIcon = { Icon(Icons.Default.Category, null, tint = PrimaryColor) }, textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedBorderColor = PrimaryColor, unfocusedBorderColor = Color.DarkGray, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White))
+                                OutlinedTextField(value = type, onValueChange = {}, readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedType) }, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(), shape = RoundedCornerShape(12.dp), leadingIcon = { Icon(Icons.Default.Category, null, tint = PrimaryColor) }, textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.Bold), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedBorderColor = PrimaryColor, unfocusedBorderColor = Color.DarkGray, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White))
                                 ExposedDropdownMenu(expanded = expandedType, onDismissRequest = { expandedType = false }) {
                                     typeOptions.forEach { option -> DropdownMenuItem(text = { Text(option) }, onClick = { type = option; expandedType = false }) }
                                 }
@@ -108,7 +123,7 @@ fun GuardReportIncidentScreen(
                         Column {
                             Text("Severidad", style = MaterialTheme.typography.labelMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
                             ExposedDropdownMenuBox(expanded = expandedSeverity, onExpandedChange = { expandedSeverity = !expandedSeverity }) {
-                                OutlinedTextField(value = severity, onValueChange = {}, readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSeverity) }, modifier = Modifier.menuAnchor().fillMaxWidth(), shape = RoundedCornerShape(12.dp), leadingIcon = { Icon(Icons.Default.PriorityHigh, null, tint = if (severity == "ALTA") DangerColor else PrimaryColor) }, textStyle = LocalTextStyle.current.copy(color = if (severity == "ALTA") DangerColor else TextPrimary, fontWeight = FontWeight.Bold), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = if (severity == "ALTA") DangerColor else TextPrimary, unfocusedTextColor = if (severity == "ALTA") DangerColor else TextPrimary, focusedBorderColor = if (severity == "ALTA") DangerColor else PrimaryColor, unfocusedBorderColor = Color.DarkGray, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White))
+                                OutlinedTextField(value = severity, onValueChange = {}, readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSeverity) }, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(), shape = RoundedCornerShape(12.dp), leadingIcon = { Icon(Icons.Default.PriorityHigh, null, tint = if (severity == "ALTA") DangerColor else PrimaryColor) }, textStyle = LocalTextStyle.current.copy(color = if (severity == "ALTA") DangerColor else TextPrimary, fontWeight = FontWeight.Bold), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = if (severity == "ALTA") DangerColor else TextPrimary, unfocusedTextColor = if (severity == "ALTA") DangerColor else TextPrimary, focusedBorderColor = if (severity == "ALTA") DangerColor else PrimaryColor, unfocusedBorderColor = Color.DarkGray, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White))
                                 ExposedDropdownMenu(expanded = expandedSeverity, onDismissRequest = { expandedSeverity = false }) {
                                     severityOptions.forEach { option -> DropdownMenuItem(text = { Text(option) }, onClick = { severity = option; expandedSeverity = false }) }
                                 }
@@ -136,8 +151,58 @@ fun GuardReportIncidentScreen(
                         }
 
                         Column {
-                            Text("Descripción detallada", style = MaterialTheme.typography.labelMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
-                            OutlinedTextField(value = description, onValueChange = { description = it }, placeholder = { Text("Describa lo sucedido...", color = TextPlaceholder) }, modifier = Modifier.fillMaxWidth().height(120.dp), shape = RoundedCornerShape(12.dp), textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.SemiBold), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedBorderColor = PrimaryColor, unfocusedBorderColor = Color.DarkGray, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("Descripción detallada", style = MaterialTheme.typography.labelMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                                
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    // BOTÓN DE VOZ (Speech-to-Text)
+                                    val speechLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                                        if (result.resultCode == android.app.Activity.RESULT_OK) {
+                                            val data = result.data
+                                            val results = data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)
+                                            val spokenText = results?.get(0) ?: ""
+                                            if (spokenText.isNotBlank()) {
+                                                description = if (description.isBlank()) spokenText else "$description. $spokenText"
+                                            }
+                                        }
+                                    }
+
+                                    IconButton(
+                                        onClick = {
+                                            val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                                putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                                putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "es-CL")
+                                                putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Hable ahora para dictar el reporte...")
+                                            }
+                                            try {
+                                                speechLauncher.launch(intent)
+                                            } catch (e: Exception) {
+                                                // Manejar si no hay motor de voz
+                                            }
+                                        },
+                                        modifier = Modifier.size(32.dp).background(PrimaryVariant.copy(alpha = 0.1f), CircleShape)
+                                    ) {
+                                        Icon(Icons.Default.Mic, "Dictar", tint = PrimaryVariant, modifier = Modifier.size(18.dp))
+                                    }
+
+                                    // BOTÓN DE IA: Visible y Tangible
+                                    AssistChip(
+                                        onClick = { 
+                                            viewModel.improveReportWithAI(description, capturedImageUriStr != null) { improved ->
+                                                description = improved
+                                            }
+                                        },
+                                        label = { Text("Redacción IA", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                        leadingIcon = { Icon(Icons.Default.AutoAwesome, "IA", modifier = Modifier.size(16.dp), tint = PrimaryVariant) },
+                                        colors = AssistChipDefaults.assistChipColors(
+                                            containerColor = PrimaryColor.copy(alpha = 0.05f),
+                                            labelColor = PrimaryColor
+                                        ),
+                                        border = AssistChipDefaults.assistChipBorder(borderColor = PrimaryColor.copy(alpha = 0.2f), enabled = true)
+                                    )
+                                }
+                            }
+                            OutlinedTextField(value = description, onValueChange = { description = it }, placeholder = { Text("Describa lo sucedido...", color = TextPlaceholder) }, modifier = Modifier.fillMaxWidth().height(140.dp), shape = RoundedCornerShape(12.dp), textStyle = LocalTextStyle.current.copy(color = TextPrimary, fontWeight = FontWeight.SemiBold), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedBorderColor = PrimaryColor, unfocusedBorderColor = Color.DarkGray, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White))
                         }
                     }
                 }

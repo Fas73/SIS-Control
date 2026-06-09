@@ -72,7 +72,8 @@ class InstallationRepositoryImpl(
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
-                Result.failure(Exception("Error al crear checkpoint: ${response.code()}"))
+                val errorBody = response.errorBody()?.string() ?: "Error ${response.code()}"
+                Result.failure(Exception(errorBody))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -86,8 +87,9 @@ class InstallationRepositoryImpl(
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
-                android.util.Log.e("SIS_CONTROL_REPO", "Update failed: ${response.code()} - ${response.errorBody()?.string()}")
-                Result.failure(Exception("Error al actualizar checkpoint: ${response.code()}"))
+                val errorBody = response.errorBody()?.string() ?: "Error ${response.code()}"
+                android.util.Log.e("SIS_CONTROL_REPO", "Update failed: ${response.code()} - $errorBody")
+                Result.failure(Exception(errorBody))
             }
         } catch (e: Exception) {
             android.util.Log.e("SIS_CONTROL_REPO", "Update exception", e)

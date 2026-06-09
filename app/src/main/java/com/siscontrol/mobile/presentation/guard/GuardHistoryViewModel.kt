@@ -56,7 +56,8 @@ class GuardHistoryViewModel(
 
     private fun calculateDateRange(filter: String): Pair<String?, String?> {
         val now = LocalDateTime.now()
-        val formatter = DateTimeFormatter.ISO_DATE_TIME
+        // Formato estricto yyyy-MM-dd'T'HH:mm:ss solicitado por el backend
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
         return when (filter) {
             "Hoy" -> {

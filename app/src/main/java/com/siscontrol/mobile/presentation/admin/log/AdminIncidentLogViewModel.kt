@@ -27,8 +27,10 @@ class AdminIncidentLogViewModel(
             _state.value = _state.value.copy(isLoading = true)
             incidentRepository.getAllIncidents()
                 .onSuccess { list ->
+                    // ORDENAR POR FECHA DESCENDENTE (Lo más nuevo arriba)
+                    val sortedList = list.sortedByDescending { it.createdAt }
                     _state.value = _state.value.copy(
-                        allIncidents = list,
+                        allIncidents = sortedList,
                         isLoading = false
                     )
                 }
@@ -37,6 +39,24 @@ class AdminIncidentLogViewModel(
                         isLoading = false,
                         error = e.message
                     )
+                }
+        }
+    }
+
+    /**
+     * Obtiene el reporte de jornada vinculado a una alerta de término de turno.
+     */
+    fun getShiftReportForAlert(shiftId: Long, onResult: (com.siscontrol.mobile.data.remote.dto.ShiftReportDto?) -> Unit) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isLoading = true)
+            com.siscontrol.mobile.di.AppModule.getShiftReportUseCase(shiftId)
+                .onSuccess { report ->
+                    _state.value = _state.value.copy(isLoading = false)
+                    onResult(report)
+                }
+                .onFailure { e ->
+                    _state.value = _state.value.copy(isLoading = false)
+                    onResult(null)
                 }
         }
     }

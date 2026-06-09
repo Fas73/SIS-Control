@@ -23,7 +23,8 @@ import com.siscontrol.mobile.presentation.theme.*
 fun SupervisorGuardsScreen(
     paddingValues: PaddingValues,
     viewModel: SupervisorGuardsViewModel,
-    onCreateGuard: () -> Unit
+    onCreateGuard: () -> Unit,
+    onEditGuard: (Long) -> Unit
 ) {
     val state by viewModel.state
     var searchQuery by remember { mutableStateOf("") }
@@ -105,7 +106,7 @@ fun SupervisorGuardsScreen(
                             user = guard,
                             onToggleStatus = { viewModel.toggleGuardStatus(userId) },
                             onRoleChange = { /* Supervisor no puede cambiar roles */ },
-                            onEditClick = { /* TODO: Navegar a editar */ }
+                            onEditClick = { onEditGuard(userId) }
                         )
                     }
                 }

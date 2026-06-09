@@ -20,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,10 +32,16 @@ import com.siscontrol.mobile.presentation.theme.*
 fun GuardStartRoundScreen(
     paddingValues: PaddingValues,
     viewModel: GuardInstallationsViewModel, 
-    onBack: () -> Unit, // Añadido
+    onBack: () -> Unit,
     onStartRound: (Long, Long, String) -> Unit
 ) {
     val state by viewModel.state
+    val context = LocalContext.current
+    val deviceLoc = viewModel.deviceLocation
+
+    LaunchedEffect(Unit) {
+        viewModel.updateLocation(context)
+    }
 
     Column(
         modifier = Modifier
@@ -59,7 +66,6 @@ fun GuardStartRoundScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                // GPS Alert (Simulando ubicación en el centro para cálculo)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -68,9 +74,14 @@ fun GuardStartRoundScreen(
                         .padding(16.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = DangerColor, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = if (deviceLoc != null) SuccessColor else DangerColor, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Ubicación GPS detectada correctamente", color = PrimaryColor, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        Text(
+                            text = if (deviceLoc != null) "Ubicación GPS detectada correctamente" else "Detectando ubicación GPS...",
+                            color = PrimaryColor, 
+                            fontSize = 14.sp, 
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
             }
@@ -96,93 +107,45 @@ fun GuardStartRoundScreen(
                 if (state.error != null) {
                     item {
                         Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                             colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
                             border = BorderStroke(1.dp, Color(0xFFFECACA)),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Default.Warning,
-                                        contentDescription = null,
-                                        tint = DangerColor,
-                                        modifier = Modifier.size(20.dp)
-                                    )
+                                    Icon(Icons.Default.Warning, contentDescription = null, tint = DangerColor, modifier = Modifier.size(20.dp))
                                     Spacer(Modifier.width(12.dp))
-                                    Text(
-                                        "Atención",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp,
-                                        color = Color(0xFF991B1B)
-                                    )
+                                    Text("Atención", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF991B1B))
                                 }
                                 Spacer(Modifier.height(8.dp))
-                                Text(
-                                    text = state.error!!,
-                                    color = Color(0xFFB91C1C),
-                                    fontSize = 14.sp,
-                                    lineHeight = 20.sp
-                                )
+                                Text(text = state.error!!, color = Color(0xFFB91C1C), fontSize = 14.sp, lineHeight = 20.sp)
                             }
                         }
                     }
                 }
 
-                if (state.installations.isEmpty() && state.error == null) {
-                    item {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF7ED)),
-                            border = BorderStroke(1.dp, Color(0xFFFED7AA)),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = Color(0xFFEA580C),
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Spacer(Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        "No hay instalaciones disponibles",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp,
-                                        color = Color(0xFF9A3412)
-                                    )
-                                    Text(
-                                        "Contacte a su administrador para que se le asigne una sede.",
-                                        fontSize = 13.sp,
-                                        color = Color(0xFFC2410C)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Carga dinámica de instalaciones reales (Solo activas para Guardias: status == 1)
                 val activeInstallations = state.installations.filter { (it.status ?: 1) == 1 }
                 
                 items(activeInstallations) { inst ->
                     val installationId = inst.id ?: 0L
-                    val installationName = inst.clientName ?: inst.name ?: "Sede" // Priorizar Nombre Cliente
+                    val installationName = inst.clientName ?: inst.name ?: "Sede"
                     
                     val isActiveSession = state.activeInstallationId == installationId
                     val hasAnotherActiveSession = state.activeInstallationId != 0L && !isActiveSession
 
-                    val isLocationSet = inst.latitude != null && inst.latitude != 0.0
-                    val distanceMeters = if (isLocationSet) 150 else 3500
-                    val distanceText = if (isLocationSet) "150m" else "3.5km"
+                    // CALCULO DE DISTANCIA (Si no hay GPS, asumimos que estás cerca para no bloquearte)
+                    var distanceMeters = 0 
+                    var distanceText = "Calculando..."
+                    
+                    if (deviceLoc != null && inst.latitude != null && inst.longitude != null && inst.latitude != 0.0) {
+                        val results = FloatArray(1)
+                        android.location.Location.distanceBetween(deviceLoc.latitude, deviceLoc.longitude, inst.latitude, inst.longitude, results)
+                        distanceMeters = results[0].toInt()
+                        distanceText = if (distanceMeters < 1000) "${distanceMeters}m" else String.format(java.util.Locale.getDefault(), "%.1fkm", distanceMeters / 1000.0)
+                    } else if (inst.latitude != null && inst.latitude != 0.0) {
+                        distanceText = "Cerca (GPS detectando...)"
+                    }
                     
                     val cpCount = viewModel.checkpointCounts[installationId]
                     val cpText = if (cpCount != null) "$cpCount puntos" else "Cargando..."
@@ -196,15 +159,13 @@ fun GuardStartRoundScreen(
                         hasAnotherActiveSession = hasAnotherActiveSession,
                         onStartRound = { 
                             if (isActiveSession) {
-                                // Si ya tiene jornada iniciada, ir a la ronda o volver al Home
                                 if (state.activeRoundId != 0L) {
                                     onStartRound(state.activeRoundId, installationId, installationName)
                                 } else {
                                     onBack()
                                 }
                             } else {
-                                // INICIAR JORNADA ÚNICAMENTE
-                                viewModel.startShiftOnly(installationId, installationName) {
+                                viewModel.startShiftOnly(context, installationId, installationName) {
                                     onBack()
                                 }
                             }
@@ -214,13 +175,8 @@ fun GuardStartRoundScreen(
             }
 
             item {
-                // Verification box
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFFEFCE8), RoundedCornerShape(8.dp))
-                        .border(1.dp, Color(0xFFFEF08A), RoundedCornerShape(8.dp))
-                        .padding(16.dp)
+                    modifier = Modifier.fillMaxWidth().background(Color(0xFFFEFCE8), RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFFEF08A), RoundedCornerShape(8.dp)).padding(16.dp)
                 ) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -251,20 +207,15 @@ fun InstallationCard(
     hasAnotherActiveSession: Boolean = false,
     onStartRound: () -> Unit
 ) {
-    // El límite de cercanía es de 500 metros
+    // Si la distancia es 0 (no hay GPS aún) o menor a 500m, dejamos entrar.
+    val canStart = (distanceMeters == 0 || distanceMeters <= 500) && !hasAnotherActiveSession
     val isTooFar = distanceMeters > 500
-    val canStart = !isTooFar && !hasAnotherActiveSession
 
     Card(
         modifier = Modifier.fillMaxWidth().clickable(enabled = isActiveSession || canStart) { onStartRound() },
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isActiveSession) Color(0xFFF0FDF4) else Color.White
-        ),
-        border = BorderStroke(
-            width = if (isActiveSession) 2.dp else 1.dp,
-            color = if (isActiveSession) SuccessColor else if (isTooFar) Color.LightGray else Color(0xFFE5E7EB)
-        ),
+        colors = CardDefaults.cardColors(containerColor = if (isActiveSession) Color(0xFFF0FDF4) else Color.White),
+        border = BorderStroke(width = if (isActiveSession) 2.dp else 1.dp, color = if (isActiveSession) SuccessColor else if (isTooFar) Color.LightGray else Color(0xFFE5E7EB)),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isActiveSession) 2.dp else 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -303,7 +254,7 @@ fun InstallationCard(
             val buttonText = when {
                 isActiveSession -> "Continuar Jornada / Ronda"
                 hasAnotherActiveSession -> "Tienes otra jornada activa"
-                isTooFar -> "Fuera de rango (Demasiado lejos)"
+                isTooFar -> "Fuera de rango (${distance})"
                 else -> "Iniciar Turno en Instalación"
             }
 
@@ -313,18 +264,11 @@ fun InstallationCard(
             Button(
                 onClick = onStartRound,
                 modifier = Modifier.fillMaxWidth().height(44.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = buttonColor,
-                    contentColor = contentColor
-                ),
+                colors = ButtonDefaults.buttonColors(containerColor = buttonColor, contentColor = contentColor),
                 enabled = isActiveSession || canStart,
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text(
-                    text = buttonText,
-                    fontSize = 14.sp, 
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = buttonText, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

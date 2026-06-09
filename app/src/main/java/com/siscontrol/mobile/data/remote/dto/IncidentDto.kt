@@ -17,7 +17,7 @@ data class IncidentDto(
     val description: String,
 
     @SerializedName("severity")
-    val severity: String, // "Alta", "Media", "Baja"
+    val severity: String,
 
     @SerializedName("type")
     val type: String,
@@ -25,11 +25,32 @@ data class IncidentDto(
     @SerializedName("imageUrl")
     val imageUrl: String? = null,
 
-    @SerializedName("createdAt")
-    val createdAt: String? = null,
+    @SerializedName("roundExecutionId")
+    val roundExecutionId: Long? = null,
+
+    @SerializedName("checklogId")
+    val checklogId: Long? = null,
+
+    @SerializedName("roundExecution")
+    val roundExecution: RoundResponseDto? = null,
+
+    @SerializedName("executionOrder")
+    val executionOrder: Int? = null,
+
+    @SerializedName("latitude")
+    val latitude: Double? = null,
+
+    @SerializedName("longitude")
+    val longitude: Double? = null,
+
+    @SerializedName("clientTimestamp")
+    val clientTimestamp: String? = null,
 
     @SerializedName("status")
     val status: Int? = 0,
+
+    @SerializedName("createdAt")
+    val createdAt: String? = null,
 
     @SerializedName("username")
     val username: String? = null,
@@ -41,17 +62,5 @@ data class IncidentDto(
     val checkpointName: String? = null,
 
     @SerializedName("checkpointOrder")
-    val checkpointOrder: Int? = null,
-
-    @SerializedName("executionOrder")
-    val executionOrder: Int? = null,
-
-    @SerializedName("roundExecutionId")
-    val roundExecutionId: Long? = null,
-
-    @SerializedName("checklogId")
-    val checklogId: Long? = null,
-
-    @SerializedName("roundExecution")
-    val roundExecution: RoundResponseDto? = null
+    val checkpointOrder: Int? = null
 )

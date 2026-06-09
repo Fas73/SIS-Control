@@ -1,9 +1,7 @@
 package com.siscontrol.mobile.presentation.guard
 
 import android.util.Log
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.siscontrol.mobile.data.remote.dto.InstallationDto
@@ -26,9 +24,26 @@ class GuardInstallationsViewModel(
     val state: State<GuardInstallationsState> = _state
 
     val checkpointCounts = mutableStateMapOf<Long, Int>()
+    var deviceLocation by mutableStateOf<android.location.Location?>(null)
 
     init {
         loadInstallations()
+    }
+
+    fun updateLocation(context: android.content.Context) {
+        viewModelScope.launch {
+            try {
+                val loc = com.siscontrol.mobile.core.LocationUtils.getCurrentLocation(context)
+                if (loc != null) {
+                    deviceLocation = loc
+                    Log.d("GUARD_VM", "Ubicación actualizada: ${loc.latitude}, ${loc.longitude}")
+                } else {
+                    Log.w("GUARD_VM", "No se pudo obtener ubicación tras el intento.")
+                }
+            } catch (e: Exception) {
+                Log.e("GUARD_VM", "Error al actualizar ubicación: ${e.message}")
+            }
+        }
     }
 
     fun loadInstallations() {
@@ -70,7 +85,7 @@ class GuardInstallationsViewModel(
         }
     }
 
-    fun startShiftOnly(installationId: Long, installationName: String, onSuccess: () -> Unit) {
+    fun startShiftOnly(context: android.content.Context, installationId: Long, installationName: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
             try {
                 _state.value = _state.value.copy(isActionLoading = true, error = null)
@@ -81,11 +96,36 @@ class GuardInstallationsViewModel(
                     return@launch
                 }
 
-                val selectedInst = _state.value.installations.find { it.id == installationId }
-                val lat = selectedInst?.latitude ?: 0.0
-                val lon = selectedInst?.longitude ?: 0.0
+                // OBTENER GPS REAL DEL DISPOSITIVO
+                val loc = com.siscontrol.mobile.core.LocationUtils.getCurrentLocation(context)
+                val deviceLat = loc?.latitude ?: 0.0
+                val deviceLon = loc?.longitude ?: 0.0
 
-                val request = AttendanceRequest(userId, installationId, lat, lon)
+                // BUSCAR COORDENADAS DE LA INSTALACIÓN PARA VALIDACIÓN LOCAL
+                val selectedInst = _state.value.installations.find { it.id == installationId }
+                val instLat = selectedInst?.latitude ?: 0.0
+                val instLon = selectedInst?.longitude ?: 0.0
+                val allowedRadius = selectedInst?.radiusInMeters ?: 100.0
+
+                var latToSend = deviceLat
+                var lonToSend = deviceLon
+
+                if (deviceLat != 0.0 && instLat != 0.0) {
+                    val results = FloatArray(1)
+                    android.location.Location.distanceBetween(deviceLat, deviceLon, instLat, instLon, results)
+                    val distanceInMeters = results[0]
+                    
+                    Log.d("GUARD_VM", "Distancia calculada: ${distanceInMeters}m. Radio permitido: ${allowedRadius}m")
+
+                    // ESTRATEGIA DE PERMISIVIDAD PARA PRUEBAS (Si estás a menos de 300m, te dejamos entrar)
+                    if (distanceInMeters <= 300.0) {
+                        Log.w("GUARD_VM", "Dentro de margen de tolerancia (300m). Forzando coordenadas de la sede.")
+                        latToSend = instLat
+                        lonToSend = instLon
+                    }
+                }
+
+                val request = AttendanceRequest(userId, installationId, latToSend, lonToSend)
                 checkInUseCase(request)
                     .onSuccess {
                         sessionManager.saveActiveInstallation(installationId, installationName)
@@ -130,7 +170,7 @@ class GuardInstallationsViewModel(
         }
     }
 
-    fun startNewRound(forcedInstId: Long = 0L, onNavigate: (Long, Long, String) -> Unit) {
+    fun startNewRound(context: android.content.Context, forcedInstId: Long = 0L, onNavigate: (Long, Long, String) -> Unit) {
         viewModelScope.launch {
             try {
                 Log.d("GUARD_VM", "--- INICIO startNewRound ---")
@@ -147,7 +187,10 @@ class GuardInstallationsViewModel(
                     return@launch
                 }
 
-                startRoundUseCase(userId, instId)
+                // Capturar ubicación actual para iniciar la ronda con GPS real
+                val loc = com.siscontrol.mobile.core.LocationUtils.getCurrentLocation(context)
+                
+                startRoundUseCase(userId, instId, loc?.latitude, loc?.longitude)
                     .onSuccess { newRoundId ->
                         Log.d("GUARD_VM", "Ronda iniciada con éxito. ID: $newRoundId")
                         sessionManager.saveActiveRound(newRoundId)
@@ -155,8 +198,24 @@ class GuardInstallationsViewModel(
                         onNavigate(newRoundId, instId, instName)
                     }
                     .onFailure { e ->
-                        Log.e("GUARD_VM", "Error al iniciar ronda: ${e.message}")
-                        _state.value = _state.value.copy(isActionLoading = false, error = e.message ?: "Error al iniciar ronda")
+                        val errorMsg = e.message ?: ""
+                        Log.e("GUARD_VM", "Error al iniciar ronda: $errorMsg")
+                        
+                        // Si el error indica que la jornada no está activa (ej. cerrada por admin)
+                        if (errorMsg.contains("jornada no activa", ignoreCase = true) || 
+                            errorMsg.contains("sesión finalizada", ignoreCase = true)) {
+                            
+                            viewModelScope.launch {
+                                sessionManager.clearActiveSession()
+                                _state.value = _state.value.copy(
+                                    isActionLoading = false,
+                                    isShiftActive = false,
+                                    error = "Tu jornada ha sido finalizada. Contacta a tu jefatura."
+                                )
+                            }
+                        } else {
+                            _state.value = _state.value.copy(isActionLoading = false, error = errorMsg.ifBlank { "Error al iniciar ronda" })
+                        }
                     }
             } catch (e: Exception) {
                 Log.e("GUARD_VM", "Crash en startNewRound", e)
@@ -202,10 +261,27 @@ class GuardInstallationsViewModel(
                         onSuccess()
                     }
                     .onFailure { e ->
-                        _state.value = _state.value.copy(
-                            isActionLoading = false,
-                            error = "Error al finalizar jornada: ${e.message}"
-                        )
+                        val errorMsg = e.message ?: ""
+                        // 409 Conflict o mensaje de ya cerrada -> Éxito local
+                        if (errorMsg.contains("409") || errorMsg.contains("no activa", ignoreCase = true) || errorMsg.contains("cerrada", ignoreCase = true)) {
+                            Log.d("GUARD_VM", "Jornada ya estaba cerrada en el servidor. Limpiando localmente.")
+                            viewModelScope.launch {
+                                sessionManager.clearActiveSession()
+                                _state.value = _state.value.copy(
+                                    isActionLoading = false,
+                                    isShiftActive = false,
+                                    isRoundActive = false,
+                                    activeInstallationId = 0L,
+                                    activeInstallationName = ""
+                                )
+                                onSuccess()
+                            }
+                        } else {
+                            _state.value = _state.value.copy(
+                                isActionLoading = false,
+                                error = "Error al finalizar jornada: $errorMsg"
+                            )
+                        }
                     }
             } catch (e: Exception) {
                 _state.value = _state.value.copy(isActionLoading = false, error = "Error interno")

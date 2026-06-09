@@ -15,7 +15,9 @@ interface RoundApiService {
     @POST("api/rondas/iniciar")
     suspend fun startRound(
         @Query("userId") userId: Long,
-        @Query("installationId") installationId: Long
+        @Query("installationId") installationId: Long,
+        @Query("latitude") latitude: Double? = null,
+        @Query("longitude") longitude: Double? = null
     ): Response<RoundStartResponseDto>
 
     @PUT("api/rondas/finalizar/{id}")

@@ -32,24 +32,63 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object AppModule {
 
-    // CAMBIA ESTA IP por la de tu Mac (puedes verla en Ajustes -> Red -> Wi-Fi)
+    // CAMBIA ESTA IP por la de tu Mac (Ver en Ajustes -> Red -> Wi-Fi)
     // Ejemplo: "http://192.168.1.15:8080/"
-    // private const val BASE_URL = "http://10.0.2.2:8080/"
-    //private const val BASE_URL = "http://192.168.100.185:8080/"
-     private const val BASE_URL = "http://10.148.98.46:8080/"
+
+    //private const val BASE_URL = "http://192.168.100.147:8080/"
+    private const val BASE_URL = "http://10.61.206.46:8080/"
+    // private const val BASE_URL = "PONER_AQUI_TU_URL_DE_NGROK/"
     private lateinit var sessionManager: SessionManager
     private lateinit var database: com.siscontrol.mobile.data.local.AppDatabase
+    private var syncManager: com.siscontrol.mobile.core.SyncManager? = null
+    private var emergencyManager: com.siscontrol.mobile.core.EmergencyManager? = null
 
     private val _unauthorizedEvent = MutableSharedFlow<Unit>()
     val unauthorizedEvent = _unauthorizedEvent.asSharedFlow()
 
+    // Usamos una referencia perezosa para el contexto de la aplicación
+    private var appContext: Context? = null
+
     fun init(context: Context) {
-        sessionManager = SessionManager(context)
-        database = com.siscontrol.mobile.data.local.AppDatabase.getDatabase(context)
+        try {
+            appContext = context.applicationContext
+            sessionManager = SessionManager(context)
+            database = com.siscontrol.mobile.data.local.AppDatabase.getDatabase(context)
+            
+            // Inicialización segura de servicios secundarios
+            emergencyManager = com.siscontrol.mobile.core.EmergencyManager(context)
+            
+            // Iniciar conexión Real-time con captura total de errores (Throwable)
+            com.siscontrol.mobile.core.StompService.connect(BASE_URL)
+            
+        } catch (t: Throwable) {
+            android.util.Log.e("APP_MODULE", "Error crítico en inicialización: ${t.message}")
+            t.printStackTrace()
+        }
     }
 
     fun getSessionManager() = sessionManager
     fun getDatabase() = database
+    
+    fun provideSyncManager(): com.siscontrol.mobile.core.SyncManager {
+        if (syncManager == null) {
+            val context = appContext ?: throw IllegalStateException("AppModule no inicializado")
+            syncManager = com.siscontrol.mobile.core.SyncManager(context, roundRepository, incidentRepository)
+        }
+        return syncManager!!
+    }
+
+    // Método corregido para obtener el syncManager de forma segura
+    fun getSyncManager(context: Context): com.siscontrol.mobile.core.SyncManager {
+        if (syncManager == null) {
+            syncManager = com.siscontrol.mobile.core.SyncManager(context.applicationContext, roundRepository, incidentRepository)
+        }
+        return syncManager!!
+    }
+
+    fun getEmergencyManager(): com.siscontrol.mobile.core.EmergencyManager {
+        return emergencyManager ?: throw IllegalStateException("AppModule no inicializado")
+    }
 
     // -------------------------------------------------------------------------
     // Network Stack
@@ -64,9 +103,12 @@ object AppModule {
                 val newRequest = if (!token.isNullOrBlank()) {
                     originalRequest.newBuilder()
                         .header("Authorization", "Bearer $token")
+                        // .header("ngrok-skip-browser-warning", "true") 
                         .build()
                 } else {
-                    originalRequest
+                    originalRequest.newBuilder()
+                        // .header("ngrok-skip-browser-warning", "true")
+                        .build()
                 }
 
                 val response: Response = chain.proceed(newRequest)
@@ -83,10 +125,14 @@ object AppModule {
     }
 
     private val retrofit: Retrofit by lazy {
+        val gson = com.google.gson.GsonBuilder()
+            .disableHtmlEscaping()
+            .create()
+
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 
@@ -113,8 +159,8 @@ object AppModule {
     private val attendanceRepository by lazy { AttendanceRepositoryImpl(attendanceApiService) }
     private val roundRepository by lazy { RoundRepositoryImpl(roundApiService, sessionManager) }
     private val reportRepository by lazy { ReportRepositoryImpl(reportApiService) }
-    private val profileRepository by lazy { ProfileRepositoryImpl(profileApiService) }
-    private val incidentRepository by lazy { IncidentRepositoryImpl(incidentApiService) }
+    val profileRepository by lazy { ProfileRepositoryImpl(profileApiService) }
+    val incidentRepository by lazy { IncidentRepositoryImpl(incidentApiService) }
 
     // -------------------------------------------------------------------------
     // Use Cases
@@ -144,6 +190,7 @@ object AppModule {
     val getAllRoundsUseCase by lazy { GetAllRoundsUseCase(roundRepository) }
     val checkInUseCase by lazy { CheckInUseCase(attendanceRepository) }
     val checkOutUseCase by lazy { CheckOutUseCase(attendanceRepository) }
+    val getShiftReportUseCase by lazy { GetShiftReportUseCase(attendanceRepository) }
     val startRoundUseCase by lazy { StartRoundUseCase(roundRepository) }
     val endRoundUseCase by lazy { EndRoundUseCase(roundRepository) }
     val getCurrentGuardStateUseCase by lazy { GetCurrentGuardStateUseCase(roundRepository) }
@@ -181,6 +228,7 @@ object AppModule {
             getAdminDashboardUseCase,
             cancelRoundUseCase,
             cancelShiftUseCase,
+            getShiftReportUseCase,
             incidentRepository,
             sessionManager
         )
@@ -251,7 +299,7 @@ object AppModule {
         )
 
     fun provideGuardHomeViewModel(): com.siscontrol.mobile.presentation.guard.GuardHomeViewModel =
-        com.siscontrol.mobile.presentation.guard.GuardHomeViewModel(getCurrentGuardStateUseCase, sessionManager)
+        com.siscontrol.mobile.presentation.guard.GuardHomeViewModel(getCurrentGuardStateUseCase, triggerPanicUseCase, sessionManager)
 
     fun provideGuardRoundViewModel(): GuardRoundViewModel =
         GuardRoundViewModel(

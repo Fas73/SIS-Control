@@ -96,6 +96,7 @@ class SessionManager(private val context: Context) {
     fun getActiveInstallationNameSync(): String? = runBlocking { getActiveInstallationName() }
     fun getUserIdSync(): Long? = runBlocking { getUserId() }
     fun getTokenSync(): String? = runBlocking { getToken() }
+    fun getFullNameSync(): String? = runBlocking { fullNameFlow.first() }
 
     /**
      * Guarda los datos de la sesión.
