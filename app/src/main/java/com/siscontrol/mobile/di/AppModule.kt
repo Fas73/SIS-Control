@@ -35,8 +35,8 @@ object AppModule {
     // CAMBIA ESTA IP por la de tu Mac (Ver en Ajustes -> Red -> Wi-Fi)
     // Ejemplo: "http://192.168.1.15:8080/"
 
-    private const val BASE_URL = "http://192.168.100.147:8080/"
-    // private const val BASE_URL = "http://10.148.98.46:8080/"
+    //private const val BASE_URL = "http://192.168.100.147:8080/"
+    private const val BASE_URL = "http://10.61.206.46:8080/"
     // private const val BASE_URL = "PONER_AQUI_TU_URL_DE_NGROK/"
     private lateinit var sessionManager: SessionManager
     private lateinit var database: com.siscontrol.mobile.data.local.AppDatabase
