@@ -11,7 +11,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class AdminAlertsViewModel(
-    private val incidentRepository: IncidentRepository
+    private val incidentRepository: IncidentRepository,
+    private val sessionManager: com.siscontrol.mobile.di.SessionManager
 ) : ViewModel() {
 
     private val _state = mutableStateOf(AdminAlertsState())
@@ -41,7 +42,11 @@ class AdminAlertsViewModel(
             _state.value = _state.value.copy(isLoading = true)
             val dismissedIds = db.dismissedAlertDao().getAllDismissedIds().toSet()
             
-            incidentRepository.getAllIncidents()
+            val userRole = sessionManager.getUserRoleSync() ?: "ADMIN"
+            val userId = sessionManager.getUserIdSync() ?: 0L
+            val supervisorId = if (userRole == "SUPERVISOR" && userId > 0L) userId else null
+
+            incidentRepository.getAllIncidents(supervisorId)
                 .onSuccess { list ->
                     // FUSIÓN DE ALERTAS REDUNDANTES (Misma Ronda + Mismo Punto + Misma Hora)
                     val alertsWithImage = list.filter { it.imageUrl != null }
@@ -86,7 +91,11 @@ class AdminAlertsViewModel(
         viewModelScope.launch {
             val dismissedIds = db.dismissedAlertDao().getAllDismissedIds().toSet()
             
-            incidentRepository.getAllIncidents()
+            val userRole = sessionManager.getUserRoleSync() ?: "ADMIN"
+            val userId = sessionManager.getUserIdSync() ?: 0L
+            val supervisorId = if (userRole == "SUPERVISOR" && userId > 0L) userId else null
+
+            incidentRepository.getAllIncidents(supervisorId)
                 .onSuccess { list ->
                     val alertsWithImage = list.filter { it.imageUrl != null }
                     val alertsWithoutImage = list.filter { it.imageUrl == null && it.title.contains("no escaneado", ignoreCase = true) }

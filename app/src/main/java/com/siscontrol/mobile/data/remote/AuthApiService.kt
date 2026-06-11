@@ -19,4 +19,9 @@ interface AuthApiService {
     suspend fun solicitarRecuperacion(
         @Body request: Map<String, String>
     ): Response<Map<String, String>>
+
+    @POST("api/auth/check-username")
+    suspend fun checkUsername(
+        @Body request: Map<String, String>
+    ): Response<Map<String, Boolean>>
 }

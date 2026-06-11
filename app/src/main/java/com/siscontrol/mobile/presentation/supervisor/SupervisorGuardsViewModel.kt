@@ -5,14 +5,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.siscontrol.mobile.data.remote.dto.UserResponseDto
-import com.siscontrol.mobile.domain.usecase.GetPersonnelUseCase
+import com.siscontrol.mobile.domain.usecase.GetSupervisorGuardsUseCase
 import com.siscontrol.mobile.domain.usecase.ToggleUserStatusUseCase
 import com.siscontrol.mobile.di.SessionManager
 import kotlinx.coroutines.launch
 
 class SupervisorGuardsViewModel(
-    private val getPersonnelUseCase: GetPersonnelUseCase,
+    private val getPersonnelUseCase: com.siscontrol.mobile.domain.usecase.GetPersonnelUseCase, // Mantener si lo necesita en otro lado o remover si no
     private val toggleUserStatusUseCase: ToggleUserStatusUseCase,
+    private val getSupervisorGuardsUseCase: GetSupervisorGuardsUseCase,
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
@@ -26,8 +27,15 @@ class SupervisorGuardsViewModel(
     fun loadGuards() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)
-            getPersonnelUseCase()
+            val supervisorId = getEditorId()
+            if (supervisorId == 0L) {
+                _state.value = _state.value.copy(isLoading = false, error = "Error de sesión: Supervisor ID no encontrado")
+                return@launch
+            }
+
+            getSupervisorGuardsUseCase(supervisorId)
                 .onSuccess { list ->
+                    // Filtramos doblemente por precaución
                     val onlyGuards = list.filter { it.role == "GUARD" || it.role == "GUARDIA" }
                     _state.value = _state.value.copy(
                         guards = onlyGuards,
@@ -59,11 +67,10 @@ class SupervisorGuardsViewModel(
         }
     }
 
-    private suspend fun getEditorId(): Long {
-        val sessionRoom = com.siscontrol.mobile.di.AppModule.getDatabase().userSessionDao().getSessionSync()
-        val roomUserId = sessionRoom?.id ?: 0L
-        val dsUserId = sessionManager.getUserIdSync() ?: 0L
-        return if (roomUserId > 0) roomUserId else dsUserId
+    private fun getEditorId(): Long {
+        // En lugar de mezclar con Room (que podría traer la sesión del Admin en un entorno de desarrollo/pruebas),
+        // Leemos con mayor certeza desde el Jetpack DataStore (SessionManager)
+        return sessionManager.getUserIdSync() ?: 0L
     }
 }
 

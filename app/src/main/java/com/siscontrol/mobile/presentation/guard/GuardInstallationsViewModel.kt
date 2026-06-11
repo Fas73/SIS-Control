@@ -224,7 +224,7 @@ class GuardInstallationsViewModel(
         }
     }
 
-    fun endShift(onSuccess: () -> Unit) {
+    fun endShift(latitude: Double, longitude: Double, onSuccess: () -> Unit) {
         viewModelScope.launch {
             try {
                 _state.value = _state.value.copy(isActionLoading = true, error = null)
@@ -236,16 +236,11 @@ class GuardInstallationsViewModel(
                     return@launch
                 }
 
-                // Buscamos la instalación para obtener sus coordenadas y que el servidor no de Error 500
-                val selectedInst = _state.value.installations.find { it.id == installationId }
-                val lat = selectedInst?.latitude ?: 0.0
-                val lon = selectedInst?.longitude ?: 0.0
-
                 val request = AttendanceRequest(
                     userId = userId,
                     installationId = installationId,
-                    latitude = lat,
-                    longitude = lon
+                    latitude = latitude,
+                    longitude = longitude
                 )
 
                 checkOutUseCase(request)

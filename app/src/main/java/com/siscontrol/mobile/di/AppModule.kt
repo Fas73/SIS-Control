@@ -35,8 +35,8 @@ object AppModule {
     // CAMBIA ESTA IP por la de tu Mac (Ver en Ajustes -> Red -> Wi-Fi)
     // Ejemplo: "http://192.168.1.15:8080/"
 
-    //private const val BASE_URL = "http://192.168.100.147:8080/"
-    private const val BASE_URL = "http://10.61.206.46:8080/"
+    private const val BASE_URL = "http://192.168.100.147:8080/"
+    //private const val BASE_URL = "http://10.61.206.46:8080/"
     // private const val BASE_URL = "PONER_AQUI_TU_URL_DE_NGROK/"
     private lateinit var sessionManager: SessionManager
     private lateinit var database: com.siscontrol.mobile.data.local.AppDatabase
@@ -114,9 +114,12 @@ object AppModule {
                 val response: Response = chain.proceed(newRequest)
 
                 if (response.code == 401) {
-                    runBlocking {
-                        sessionManager.clearSession()
-                        _unauthorizedEvent.emit(Unit)
+                    val isAuthRequest = originalRequest.url.encodedPath.contains("/auth/", ignoreCase = true)
+                    if (!isAuthRequest) {
+                        runBlocking {
+                            sessionManager.clearSession()
+                            _unauthorizedEvent.emit(Unit)
+                        }
                     }
                 }
                 response
@@ -148,6 +151,7 @@ object AppModule {
     val reportApiService: ReportApiService by lazy { retrofit.create(ReportApiService::class.java) }
     val profileApiService: ProfileApiService by lazy { retrofit.create(ProfileApiService::class.java) }
     val incidentApiService: IncidentApiService by lazy { retrofit.create(IncidentApiService::class.java) }
+    val supervisorGuardApiService: com.siscontrol.mobile.data.remote.SupervisorGuardApiService by lazy { retrofit.create(com.siscontrol.mobile.data.remote.SupervisorGuardApiService::class.java) }
 
     // -------------------------------------------------------------------------
     // Repositories
@@ -200,8 +204,9 @@ object AppModule {
     val cancelShiftUseCase by lazy { CancelShiftUseCase(roundRepository) }
 
     // Reports
-    val getAdminDashboardUseCase by lazy { GetAdminDashboardUseCase(reportRepository) }
-    val getGuardRoundsHistoryUseCase by lazy { GetGuardRoundsHistoryUseCase(reportRepository) }
+    private val getAdminDashboardUseCase by lazy { GetAdminDashboardUseCase(reportRepository) }
+    private val getSupervisorDashboardUseCase by lazy { GetSupervisorDashboardUseCase(reportRepository) }
+    private val getGuardRoundsHistoryUseCase by lazy { GetGuardRoundsHistoryUseCase(reportRepository) }
 
     // Profile
     val updateProfileDataUseCase by lazy { UpdateProfileDataUseCase(profileRepository) }
@@ -213,24 +218,30 @@ object AppModule {
     val reportIncidentUseCase by lazy { ReportIncidentUseCase(incidentRepository) }
     val triggerPanicUseCase by lazy { TriggerPanicUseCase(incidentRepository) }
 
+    // Supervisor-Guard Assignment
+    val getSupervisorGuardsUseCase by lazy { com.siscontrol.mobile.domain.usecase.GetSupervisorGuardsUseCase(supervisorGuardApiService) }
+    val assignGuardUseCase by lazy { com.siscontrol.mobile.domain.usecase.AssignGuardUseCase(supervisorGuardApiService) }
+    val unassignGuardUseCase by lazy { com.siscontrol.mobile.domain.usecase.UnassignGuardUseCase(supervisorGuardApiService) }
+
     // -------------------------------------------------------------------------
     // ViewModel Factories
     // -------------------------------------------------------------------------
 
     fun provideLoginViewModel(): LoginViewModel =
-        LoginViewModel(loginUseCase)
+        LoginViewModel(loginUseCase, authRepository, sessionManager)
 
     fun provideForgotPasswordViewModel(): ForgotPasswordViewModel =
         ForgotPasswordViewModel(recoverAccessUseCase)
 
     fun provideAdminHomeViewModel(): AdminHomeViewModel =
         AdminHomeViewModel(
-            getAdminDashboardUseCase,
-            cancelRoundUseCase,
-            cancelShiftUseCase,
-            getShiftReportUseCase,
-            incidentRepository,
-            sessionManager
+            getAdminDashboardUseCase = getAdminDashboardUseCase,
+            getSupervisorDashboardUseCase = getSupervisorDashboardUseCase,
+            cancelRoundUseCase = cancelRoundUseCase,
+            cancelShiftUseCase = cancelShiftUseCase,
+            getShiftReportUseCase = getShiftReportUseCase,
+            incidentRepository = incidentRepository,
+            sessionManager = sessionManager
         )
 
     fun provideCreatePersonnelViewModel(): CreatePersonnelViewModel =
@@ -255,6 +266,9 @@ object AppModule {
             getUserByIdUseCase = getUserByIdUseCase,
             updatePersonnelUseCase = updatePersonnelUseCase,
             toggleUserStatusUseCase = toggleUserStatusUseCase,
+            getSupervisorGuardsUseCase = getSupervisorGuardsUseCase,
+            assignGuardUseCase = assignGuardUseCase,
+            unassignGuardUseCase = unassignGuardUseCase,
             sessionManager = sessionManager
         )
 
@@ -262,6 +276,7 @@ object AppModule {
         SupervisorGuardsViewModel(
             getPersonnelUseCase,
             toggleUserStatusUseCase,
+            getSupervisorGuardsUseCase,
             sessionManager
         )
 
@@ -279,13 +294,17 @@ object AppModule {
         AdminCheckpointsViewModel(getCheckpointsUseCase, getInstallationsUseCase)
 
     fun provideAdminAlertsViewModel(): AdminAlertsViewModel =
-        AdminAlertsViewModel(incidentRepository)
+        AdminAlertsViewModel(incidentRepository, sessionManager)
 
     fun provideAdminIncidentLogViewModel(): AdminIncidentLogViewModel =
-        AdminIncidentLogViewModel(incidentRepository)
+        AdminIncidentLogViewModel(incidentRepository, sessionManager)
 
     fun provideAdminMapViewModel(): AdminMapViewModel =
-        AdminMapViewModel(getAdminDashboardUseCase)
+        AdminMapViewModel(
+            getAdminDashboardUseCase = getAdminDashboardUseCase,
+            getSupervisorDashboardUseCase = getSupervisorDashboardUseCase,
+            sessionManager = sessionManager
+        )
 
     fun provideGuardInstallationsViewModel(): GuardInstallationsViewModel =
         GuardInstallationsViewModel(

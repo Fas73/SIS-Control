@@ -19,4 +19,9 @@ interface AuthRepository {
      * Solicita la recuperación de acceso para el correo electrónico indicado.
      */
     suspend fun solicitarRecuperacion(email: String): Result<String>
+
+    /**
+     * Verifica si el usuario (username o email) existe en el sistema.
+     */
+    suspend fun checkUsername(username: String): Result<Boolean>
 }

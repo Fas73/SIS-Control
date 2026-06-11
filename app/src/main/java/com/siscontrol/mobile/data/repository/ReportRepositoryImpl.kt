@@ -17,6 +17,14 @@ class ReportRepositoryImpl(
         }
     }
 
+    override suspend fun getSupervisorDashboard(supervisorId: Long): Result<AdminDashboardResponse> {
+        return try {
+            Result.success(api.getSupervisorDashboard(supervisorId))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getGuardRoundsHistory(guardId: Long, inicio: String?, fin: String?): Result<GuardRoundHistoryResponse> {
         return try {
             Result.success(api.getGuardRoundsHistory(guardId, inicio, fin))

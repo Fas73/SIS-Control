@@ -155,7 +155,7 @@ class GuardRoundViewModel(
                 _state.value = _state.value.copy(aiAnalysis = aiReport)
 
                 // 4. Cargamos los nombres de los puntos de control para completar la vista
-                val instId = detail.ronda?.installation?.id
+                val instId = detail.ronda?.installation?.id ?: detail.ronda?.installationId
                 if (instId != null) {
                     getCheckpointsUseCase(instId).onSuccess { allCheckpoints ->
                         _state.value = _state.value.copy(

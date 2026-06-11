@@ -13,6 +13,9 @@ interface ReportApiService {
     @GET("api/reportes/dashboard-admin")
     suspend fun getAdminDashboard(): AdminDashboardResponse
 
+    @GET("api/reportes/dashboard-supervisor/{supervisorId}")
+    suspend fun getSupervisorDashboard(@Path("supervisorId") supervisorId: Long): AdminDashboardResponse
+
     @GET("api/reportes/mis-rondas/{guardId}")
     suspend fun getGuardRoundsHistory(
         @Path("guardId") guardId: Long,

@@ -25,9 +25,9 @@ class IncidentRepositoryImpl(
         }
     }
 
-    override suspend fun getAllIncidents(): Result<List<IncidentDto>> {
+    override suspend fun getAllIncidents(supervisorId: Long?): Result<List<IncidentDto>> {
         return try {
-            val response = apiService.getAllIncidents()
+            val response = apiService.getAllIncidents(supervisorId)
             Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)

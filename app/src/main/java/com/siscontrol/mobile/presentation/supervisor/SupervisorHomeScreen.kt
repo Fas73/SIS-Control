@@ -228,8 +228,14 @@ fun SupervisorHomeScreen(
             // Active Rounds
             item {
                 Text("Rondas en Curso", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Spacer(modifier = Modifier.height(12.dp))
                 if (state.activeRounds.isEmpty()) {
-                    Text("No hay rondas en curso actualmente.", color = TextSecondary, fontSize = 14.sp, modifier = Modifier.padding(vertical = 8.dp))
+                    com.siscontrol.mobile.presentation.components.EmptyStateView(
+                        title = "Sin rondas activas",
+                        subtitle = "No hay rondas en progreso en este momento.",
+                        icon = Icons.Default.CheckCircle,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
                 }
             }
 
@@ -248,8 +254,14 @@ fun SupervisorHomeScreen(
             // Active Shifts
             item {
                 Text("Jornadas en Curso", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Spacer(modifier = Modifier.height(12.dp))
                 if (state.activeShiftsList.isEmpty()) {
-                    Text("No hay guardias en jornada actualmente.", color = TextSecondary, fontSize = 14.sp, modifier = Modifier.padding(vertical = 8.dp))
+                    com.siscontrol.mobile.presentation.components.EmptyStateView(
+                        title = "Sin jornadas activas",
+                        subtitle = "Todos los guardias han finalizado su turno.",
+                        icon = Icons.Default.CheckCircle,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
                 }
             }
 

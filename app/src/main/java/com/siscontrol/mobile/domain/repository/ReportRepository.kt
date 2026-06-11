@@ -5,5 +5,6 @@ import com.siscontrol.mobile.data.remote.dto.GuardRoundHistoryResponse
 
 interface ReportRepository {
     suspend fun getAdminDashboard(): Result<AdminDashboardResponse>
+    suspend fun getSupervisorDashboard(supervisorId: Long): Result<AdminDashboardResponse>
     suspend fun getGuardRoundsHistory(guardId: Long, inicio: String?, fin: String?): Result<GuardRoundHistoryResponse>
 }

@@ -12,7 +12,8 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 class AdminIncidentLogViewModel(
-    private val incidentRepository: IncidentRepository
+    private val incidentRepository: IncidentRepository,
+    private val sessionManager: com.siscontrol.mobile.di.SessionManager
 ) : ViewModel() {
 
     private val _state = mutableStateOf(AdminIncidentLogState())
@@ -25,7 +26,12 @@ class AdminIncidentLogViewModel(
     fun loadIncidents() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true)
-            incidentRepository.getAllIncidents()
+            
+            val userRole = sessionManager.getUserRoleSync() ?: "ADMIN"
+            val userId = sessionManager.getUserIdSync() ?: 0L
+            val supervisorId = if (userRole == "SUPERVISOR" && userId > 0L) userId else null
+            
+            incidentRepository.getAllIncidents(supervisorId)
                 .onSuccess { list ->
                     // ORDENAR POR FECHA DESCENDENTE (Lo más nuevo arriba)
                     val sortedList = list.sortedByDescending { it.createdAt }
