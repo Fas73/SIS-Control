@@ -16,6 +16,9 @@ class AdminManagementViewModel(
     private val getUserByIdUseCase: GetUserByIdUseCase,
     private val updatePersonnelUseCase: UpdatePersonnelUseCase,
     private val toggleUserStatusUseCase: ToggleUserStatusUseCase,
+    private val getSupervisorGuardsUseCase: GetSupervisorGuardsUseCase,
+    private val assignGuardUseCase: AssignGuardUseCase,
+    private val unassignGuardUseCase: UnassignGuardUseCase,
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
@@ -139,6 +142,51 @@ class AdminManagementViewModel(
         }
     }
 
+    // --- Supervisor Guard Assignments ---
+
+    fun loadSupervisorGuards(supervisorId: Long) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isActionLoading = true, error = null)
+            getSupervisorGuardsUseCase(supervisorId)
+                .onSuccess { guards ->
+                    _state.value = _state.value.copy(
+                        isActionLoading = false,
+                        supervisorGuards = guards
+                    )
+                }
+                .onFailure { e ->
+                    _state.value = _state.value.copy(
+                        isActionLoading = false,
+                        error = com.siscontrol.mobile.core.ErrorUtils.parse(e)
+                    )
+                }
+        }
+    }
+
+    fun clearSupervisorGuards() {
+        _state.value = _state.value.copy(supervisorGuards = emptyList())
+    }
+
+    fun toggleGuardAssignment(supervisorId: Long, guardId: Long, isAssigned: Boolean) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isActionLoading = true, error = null)
+            val result = if (isAssigned) {
+                unassignGuardUseCase(supervisorId, guardId)
+            } else {
+                assignGuardUseCase(supervisorId, guardId)
+            }
+
+            result.onSuccess {
+                loadSupervisorGuards(supervisorId)
+            }.onFailure { e ->
+                _state.value = _state.value.copy(
+                    isActionLoading = false,
+                    error = com.siscontrol.mobile.core.ErrorUtils.parse(e)
+                )
+            }
+        }
+    }
+
     private suspend fun getEditorId(): Long {
         val sessionRoom = com.siscontrol.mobile.di.AppModule.getDatabase().userSessionDao().getSessionSync()
         val roomUserId = sessionRoom?.id ?: 0L
@@ -149,6 +197,7 @@ class AdminManagementViewModel(
 
 data class AdminManagementState(
     val users: List<UserResponseDto> = emptyList(),
+    val supervisorGuards: List<UserResponseDto> = emptyList(),
     val isLoading: Boolean = false,
     val isActionLoading: Boolean = false,
     val error: String? = null

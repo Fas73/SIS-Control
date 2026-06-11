@@ -24,6 +24,9 @@ class SessionManager(private val context: Context) {
         private val KEY_ACTIVE_INSTALLATION_ID = longPreferencesKey("active_installation_id")
         private val KEY_ACTIVE_ROUND_ID = longPreferencesKey("active_round_id")
         private val KEY_ACTIVE_INSTALLATION_NAME = stringPreferencesKey("active_installation_name")
+        
+        private val KEY_LAST_USERNAME = stringPreferencesKey("last_username")
+        private val KEY_LAST_FULL_NAME = stringPreferencesKey("last_full_name")
     }
 
     /**
@@ -97,16 +100,24 @@ class SessionManager(private val context: Context) {
     fun getUserIdSync(): Long? = runBlocking { getUserId() }
     fun getTokenSync(): String? = runBlocking { getToken() }
     fun getFullNameSync(): String? = runBlocking { fullNameFlow.first() }
+    fun getUserRoleSync(): String? = runBlocking { roleFlow.first() }
 
     /**
      * Guarda los datos de la sesión.
      */
-    suspend fun saveSession(token: String, role: String, userId: Long, fullName: String) {
+    /**
+     * Guarda los datos de la sesión y el último usuario exitoso.
+     */
+    suspend fun saveSession(token: String, role: String, userId: Long, fullName: String, username: String) {
         context.dataStore.edit { preferences ->
             preferences[KEY_TOKEN] = token
             preferences[KEY_ROLE] = role
             preferences[KEY_FULL_NAME] = fullName
             preferences[KEY_USER_ID] = userId
+            
+            // Recordar para el Quick Login
+            preferences[KEY_LAST_USERNAME] = username
+            preferences[KEY_LAST_FULL_NAME] = fullName
         }
     }
 
@@ -131,9 +142,34 @@ class SessionManager(private val context: Context) {
     val fullNameFlow: Flow<String?> = context.dataStore.data.map { it[KEY_FULL_NAME] }
 
     /**
-     * Limpia todos los datos de sesión (Logout).
+     * Recupera el último usuario logueado (Quick Login)
+     */
+    val lastUsernameFlow: Flow<String?> = context.dataStore.data.map { it[KEY_LAST_USERNAME] }
+    
+    val lastFullNameFlow: Flow<String?> = context.dataStore.data.map { it[KEY_LAST_FULL_NAME] }
+
+    /**
+     * Limpia la sesión (Logout), pero NO borra al último usuario guardado
      */
     suspend fun clearSession() {
-        context.dataStore.edit { it.clear() }
+        context.dataStore.edit { preferences ->
+            preferences.remove(KEY_TOKEN)
+            preferences.remove(KEY_ROLE)
+            preferences.remove(KEY_USER_ID)
+            preferences.remove(KEY_FULL_NAME)
+            preferences.remove(KEY_ACTIVE_INSTALLATION_ID)
+            preferences.remove(KEY_ACTIVE_ROUND_ID)
+            preferences.remove(KEY_ACTIVE_INSTALLATION_NAME)
+        }
+    }
+    
+    /**
+     * Elimina manualmente el último usuario si el usuario decide hacer login con otra cuenta.
+     */
+    suspend fun clearLastUser() {
+        context.dataStore.edit { preferences ->
+            preferences.remove(KEY_LAST_USERNAME)
+            preferences.remove(KEY_LAST_FULL_NAME)
+        }
     }
 }

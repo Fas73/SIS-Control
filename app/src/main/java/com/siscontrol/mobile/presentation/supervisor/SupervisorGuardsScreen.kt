@@ -42,19 +42,8 @@ fun SupervisorGuardsScreen(
         )
 
         Column(modifier = Modifier.padding(16.dp)) {
-            // Action Button
-            Button(
-                onClick = onCreateGuard,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Icon(Icons.Default.PersonAdd, null)
-                Spacer(Modifier.width(8.dp))
-                Text("REGISTRAR NUEVO GUARDIA", fontWeight = FontWeight.Bold)
-            }
-
-            Spacer(Modifier.height(16.dp))
+            // Action Button removed as Supervisors cannot create guards
+            Spacer(Modifier.height(8.dp))
 
             // Search Bar
             OutlinedTextField(
@@ -91,23 +80,62 @@ fun SupervisorGuardsScreen(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item {
-                        Text(
-                            "Guardias Asignados (${filteredGuards.size})",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextSecondary
-                        )
-                    }
+                    if (filteredGuards.isEmpty() && searchQuery.isEmpty() && state.error == null) {
+                        item {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 48.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.GroupOff,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = Color.LightGray
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "No tienes guardias asignados.",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextSecondary
+                                )
+                                Text(
+                                    text = "Solicita a un administrador que asigne guardias a tu cuadrilla.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.Gray,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp)
+                                )
+                            }
+                        }
+                    } else if (filteredGuards.isEmpty() && searchQuery.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "No se encontraron guardias para '$searchQuery'.",
+                                color = TextSecondary,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                    } else {
+                        item {
+                            Text(
+                                "Guardias Asignados (${filteredGuards.size})",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextSecondary
+                            )
+                        }
 
-                    items(filteredGuards) { guard ->
-                        val userId = guard.id ?: 0L
-                        UserCard(
-                            user = guard,
-                            onToggleStatus = { viewModel.toggleGuardStatus(userId) },
-                            onRoleChange = { /* Supervisor no puede cambiar roles */ },
-                            onEditClick = { onEditGuard(userId) }
-                        )
+                        items(filteredGuards) { guard ->
+                            UserCard(
+                                user = guard,
+                                onToggleStatus = null, // Supervisor no puede cambiar estado
+                                onRoleChange = null, // Supervisor no puede cambiar roles
+                                onEditClick = null // Supervisor no puede editar datos
+                            )
+                        }
                     }
                 }
             }

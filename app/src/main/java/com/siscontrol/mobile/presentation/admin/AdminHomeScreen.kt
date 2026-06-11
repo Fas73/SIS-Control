@@ -200,6 +200,25 @@ fun AdminHomeScreen(
                         iconBg = Color.Transparent
                     )
                 }
+
+                if (state.totalIncidents > 0) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E7EB))
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("Distribución por Gravedad", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                            SeverityPieChart(
+                                high = state.highSeverityCount,
+                                medium = state.mediumSeverityCount,
+                                low = state.lowSeverityCount
+                            )
+                        }
+                    }
+                }
             }
 
             item {
@@ -218,7 +237,12 @@ fun AdminHomeScreen(
             item {
                 Text("Rondas en Curso", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary, modifier = Modifier.padding(bottom = 12.dp))
                 if (state.activeRounds.isEmpty()) {
-                    Text("No hay rondas en curso actualmente.", color = TextSecondary, fontSize = 14.sp, modifier = Modifier.padding(vertical = 8.dp))
+                    com.siscontrol.mobile.presentation.components.EmptyStateView(
+                        title = "Sin rondas activas",
+                        subtitle = "No hay rondas en progreso en este momento.",
+                        icon = Icons.Default.CheckCircle,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
                 }
             }
 
@@ -229,7 +253,12 @@ fun AdminHomeScreen(
             item {
                 Text("Jornadas en Curso", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary, modifier = Modifier.padding(bottom = 12.dp, top = 8.dp))
                 if (state.activeShiftsList.isEmpty()) {
-                    Text("No hay guardias en jornada actualmente.", color = TextSecondary, fontSize = 14.sp, modifier = Modifier.padding(vertical = 8.dp))
+                    com.siscontrol.mobile.presentation.components.EmptyStateView(
+                        title = "Sin jornadas activas",
+                        subtitle = "Todos los guardias han finalizado su turno.",
+                        icon = Icons.Default.CheckCircle,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
                 }
             }
 
@@ -370,58 +399,102 @@ fun AdminHomeScreen(
 
 @Composable
 fun KpiCard(modifier: Modifier = Modifier, title: String, value: String, subtitle: String, subtitleColor: Color = TextSecondary, icon: ImageVector, iconColor: Color, iconBg: Color) {
-    Card(modifier = modifier, shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = Color.White), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E7EB))) {
+    Card(
+        modifier = modifier, 
+        shape = RoundedCornerShape(16.dp), 
+        colors = CardDefaults.cardColors(containerColor = Color.White), 
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, SubtleBorderColor)
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, null, tint = iconColor, modifier = Modifier.size(16.dp))
+                Box(
+                    modifier = Modifier.size(32.dp).background(iconColor.copy(alpha = 0.1f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, null, tint = iconColor, modifier = Modifier.size(16.dp))
+                }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(title, fontSize = 13.sp, color = TextSecondary)
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(value, fontSize = 24.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
-            Text(subtitle, fontSize = 11.sp, color = subtitleColor)
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(value, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(subtitle, fontSize = 12.sp, color = subtitleColor)
         }
     }
 }
 
 @Composable
 fun ActiveRoundCard(guardName: String, location: String, progress: Float, progressText: String, status: String, onCancel: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = Color.White), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E7EB))) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), 
+        shape = RoundedCornerShape(16.dp), 
+        colors = CardDefaults.cardColors(containerColor = Color.White), 
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, SubtleBorderColor)
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(guardName, fontWeight = FontWeight.Bold)
-                    Text(location, fontSize = 12.sp, color = TextSecondary)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(40.dp).background(PrimaryColor.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+                        Text(guardName.take(1).uppercase(), color = PrimaryColor, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(guardName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextPrimary)
+                        Text(location, fontSize = 13.sp, color = TextSecondary)
+                    }
                 }
-                IconButton(onClick = onCancel) { Icon(Icons.AutoMirrored.Filled.ExitToApp, null, tint = DangerColor) }
+                IconButton(onClick = onCancel) { Icon(Icons.AutoMirrored.Filled.ExitToApp, "Cancelar", tint = DangerColor) }
             }
-            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)), color = PrimaryColor)
-            Text(progressText, fontSize = 11.sp, color = TextSecondary, modifier = Modifier.padding(top = 4.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)), color = PrimaryVariant, trackColor = BackgroundColor)
+            Text(progressText, fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(top = 8.dp), fontWeight = FontWeight.Medium)
         }
     }
 }
 
 @Composable
 fun ActiveShiftCard(guardName: String, location: String, entryTime: String, onCancel: () -> Unit, onDownloadPdf: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = Color.White), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E7EB))) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), 
+        shape = RoundedCornerShape(16.dp), 
+        colors = CardDefaults.cardColors(containerColor = Color.White), 
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, SubtleBorderColor)
+    ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(guardName, fontWeight = FontWeight.Bold)
-                Text(location, fontSize = 12.sp, color = TextSecondary)
-                Text("Entrada: ${entryTime.formatDateToDisplay()}", fontSize = 11.sp, color = TextSecondary)
+            Box(modifier = Modifier.size(40.dp).background(SuccessColor.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+                Text(guardName.take(1).uppercase(), color = SuccessColor, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
-            IconButton(onClick = onDownloadPdf) { Icon(Icons.Default.PictureAsPdf, null, tint = PrimaryColor) }
-            IconButton(onClick = onCancel) { Icon(Icons.AutoMirrored.Filled.ExitToApp, null, tint = DangerColor) }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(guardName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextPrimary)
+                Text(location, fontSize = 13.sp, color = TextSecondary)
+                Text("Entrada: ${entryTime.formatDateToDisplay()}", fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
+            }
+            IconButton(onClick = onDownloadPdf) { Icon(Icons.Default.PictureAsPdf, "PDF", tint = PrimaryVariant) }
+            IconButton(onClick = onCancel) { Icon(Icons.AutoMirrored.Filled.ExitToApp, "Cancelar", tint = DangerColor) }
         }
     }
 }
 
 @Composable
 fun QuickAccessButton(title: String, icon: ImageVector, containerColor: Color, contentColor: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Card(modifier = modifier.height(80.dp), shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = containerColor), onClick = onClick) {
+    Card(
+        modifier = modifier.height(90.dp), 
+        shape = RoundedCornerShape(16.dp), 
+        colors = CardDefaults.cardColors(containerColor = containerColor), 
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        onClick = onClick
+    ) {
         Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Icon(icon, null, tint = contentColor)
-            Text(title, color = contentColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Box(modifier = Modifier.size(40.dp).background(Color.White.copy(alpha = 0.5f), CircleShape), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = contentColor, modifier = Modifier.size(20.dp))
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(title, color = contentColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
     }
 }

@@ -10,7 +10,9 @@ interface IncidentApiService {
     suspend fun createIncident(@Body incident: IncidentDto): Response<IncidentDto>
 
     @GET("api/incidents")
-    suspend fun getAllIncidents(): List<IncidentDto>
+    suspend fun getAllIncidents(
+        @Query("supervisorId") supervisorId: Long? = null
+    ): List<IncidentDto>
 
     // Sincronizado con IncidentController.java (Backend)
     @POST("api/incidents/panico")

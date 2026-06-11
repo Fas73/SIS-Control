@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.animation.animateContentSize
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -58,7 +59,11 @@ fun AdminManagementScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(PrimaryVariant)
+                .background(
+                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                        colors = listOf(PrimaryColor, PrimaryVariant)
+                    )
+                )
                 .padding(16.dp)
         ) {
             Column {
@@ -190,10 +195,34 @@ fun UsersTabContent(
             CircularProgressIndicator(color = PrimaryColor)
         }
     } else {
+        var showSquadDialogForSupervisor by remember { mutableStateOf<UserResponseDto?>(null) }
+    
         val filteredUsers = state.users.filter { 
-            (it.fullName ?: "").contains(searchQuery, ignoreCase = true) || (it.username ?: "").contains(searchQuery, ignoreCase = true)
+            (it.fullName?.contains(searchQuery, ignoreCase = true) == true) || 
+            (it.rut?.contains(searchQuery, ignoreCase = true) == true)
         }
-        
+
+        val administrators = filteredUsers.filter { it.role == "ADMIN" }
+        val supervisors = filteredUsers.filter { it.role == "SUPERVISOR" }
+        val guards = filteredUsers.filter { it.role == "GUARD" || it.role == "GUARDIA" }
+
+        if (showSquadDialogForSupervisor != null) {
+            val supervisor = showSquadDialogForSupervisor!!
+            AssignGuardsDialog(
+                supervisor = supervisor,
+                allGuards = guards,
+                assignedGuards = state.supervisorGuards,
+                isLoading = state.isActionLoading,
+                onDismiss = {
+                    showSquadDialogForSupervisor = null
+                    viewModel.clearSupervisorGuards()
+                },
+                onToggleAssignment = { guardId, isAssigned ->
+                    viewModel.toggleGuardAssignment(supervisor.id ?: 0L, guardId, isAssigned)
+                }
+            )
+        }
+
         if (state.error != null) {
             Text(
                 text = state.error,
@@ -201,10 +230,6 @@ fun UsersTabContent(
                 modifier = Modifier.padding(16.dp)
             )
         }
-
-        val administrators = filteredUsers.filter { it.role == "ADMIN" }
-        val supervisors = filteredUsers.filter { it.role == "SUPERVISOR" }
-        val guards = filteredUsers.filter { it.role == "GUARD" || it.role == "GUARDIA" }
 
         if (state.isActionLoading) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = PrimaryVariant)
@@ -257,7 +282,11 @@ fun UsersTabContent(
                             user = user,
                             onToggleStatus = { viewModel.toggleUserStatus(userId) },
                             onRoleChange = { newRole -> viewModel.updateUserRole(user, newRole) },
-                            onEditClick = { navController.navigate(Destinos.adminEditUserRoute(userId, token, role)) }
+                            onEditClick = { navController.navigate(Destinos.adminEditUserRoute(userId, token, role)) },
+                            onManageSquadClick = {
+                                viewModel.loadSupervisorGuards(userId)
+                                showSquadDialogForSupervisor = user
+                            }
                         )
                     }
                 }
@@ -389,9 +418,10 @@ fun RoleSummaryCard(
 @Composable
 fun UserCard(
     user: UserResponseDto,
-    onToggleStatus: () -> Unit,
-    onRoleChange: (String) -> Unit,
-    onEditClick: () -> Unit
+    onToggleStatus: (() -> Unit)? = null,
+    onRoleChange: ((String) -> Unit)? = null,
+    onEditClick: (() -> Unit)? = null,
+    onManageSquadClick: (() -> Unit)? = null
 ) {
     val isActive = user.status == 1
     var showRoleMenu by remember { mutableStateOf(false) }
@@ -402,26 +432,29 @@ fun UserCard(
             .fillMaxWidth()
             .clickable { isExpanded = !isExpanded }
     ) {
-        Column {
+        Column(modifier = Modifier.animateContentSize()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                    // Avatar icon
+                    // Avatar icon (Letter Avatar)
+                    val letter = user.fullName?.take(1)?.uppercase() ?: "U"
+                    val roleStr = user.role ?: "GUARD"
+                    val (avatarBg, avatarText) = when(roleStr.uppercase()) {
+                        "ADMIN" -> Pair(com.siscontrol.mobile.presentation.theme.PrimaryColor.copy(alpha = 0.1f), com.siscontrol.mobile.presentation.theme.PrimaryColor)
+                        "SUPERVISOR" -> Pair(com.siscontrol.mobile.presentation.theme.WarningColor.copy(alpha = 0.1f), com.siscontrol.mobile.presentation.theme.WarningColor)
+                        else -> Pair(com.siscontrol.mobile.presentation.theme.SuccessColor.copy(alpha = 0.1f), com.siscontrol.mobile.presentation.theme.SuccessColor)
+                    }
+
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .background(Color(0xFFF3F4F6), CircleShape),
+                            .background(avatarBg, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            tint = Color.Gray,
-                            modifier = Modifier.size(28.dp)
-                        )
+                        Text(letter, color = avatarText, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                     }
                     
                     Spacer(modifier = Modifier.width(12.dp))
@@ -448,36 +481,44 @@ fun UserCard(
                                 else -> roleStr
                             }
                             
+                            val (badgeBg, badgeText) = when(roleStr.uppercase()) {
+                                "ADMIN" -> Pair(com.siscontrol.mobile.presentation.theme.PrimaryColor.copy(alpha = 0.1f), com.siscontrol.mobile.presentation.theme.PrimaryColor)
+                                "SUPERVISOR" -> Pair(com.siscontrol.mobile.presentation.theme.WarningColor.copy(alpha = 0.1f), com.siscontrol.mobile.presentation.theme.WarningColor)
+                                else -> Pair(com.siscontrol.mobile.presentation.theme.SuccessColor.copy(alpha = 0.1f), com.siscontrol.mobile.presentation.theme.SuccessColor)
+                            }
+                            
                             Surface(
-                                color = if (roleStr.uppercase() == "ADMIN") Color(0xFFEDE9FE) else Color(0xFFD1FAE5),
+                                color = badgeBg,
                                 shape = RoundedCornerShape(16.dp),
-                                modifier = Modifier.clickable { showRoleMenu = true }
+                                modifier = Modifier.clickable(enabled = onRoleChange != null) { showRoleMenu = true }
                             ) {
                                 Text(
                                     text = displayRole,
-                                    color = if (roleStr.uppercase() == "ADMIN") PrimaryColor else SuccessColor,
+                                    color = badgeText,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
                             
-                            DropdownMenu(
-                                expanded = showRoleMenu,
-                                onDismissRequest = { showRoleMenu = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Administrador") },
-                                    onClick = { onRoleChange("ADMIN"); showRoleMenu = false }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Supervisor") },
-                                    onClick = { onRoleChange("SUPERVISOR"); showRoleMenu = false }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Guardia") },
-                                    onClick = { onRoleChange("GUARD"); showRoleMenu = false }
-                                )
+                            if (onRoleChange != null) {
+                                DropdownMenu(
+                                    expanded = showRoleMenu,
+                                    onDismissRequest = { showRoleMenu = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Administrador") },
+                                        onClick = { onRoleChange("ADMIN"); showRoleMenu = false }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Supervisor") },
+                                        onClick = { onRoleChange("SUPERVISOR"); showRoleMenu = false }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Guardia") },
+                                        onClick = { onRoleChange("GUARD"); showRoleMenu = false }
+                                    )
+                                }
                             }
                         }
                         Spacer(modifier = Modifier.height(2.dp))
@@ -501,24 +542,36 @@ fun UserCard(
                 }
 
                 // Switch and Status Text
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Switch(
-                        checked = isActive,
-                        onCheckedChange = { onToggleStatus() },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = SuccessColor,
-                            uncheckedThumbColor = Color.White,
-                            uncheckedTrackColor = Color.LightGray
-                        ),
-                        modifier = Modifier.scale(0.8f)
-                    )
-                    Text(
-                        text = if (isActive) "Activo" else "Inactivo",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isActive) SuccessColor else Color.Gray
-                    )
+                if (onToggleStatus != null) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Switch(
+                            checked = isActive,
+                            onCheckedChange = { onToggleStatus() },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = SuccessColor,
+                                uncheckedThumbColor = Color.White,
+                                uncheckedTrackColor = Color.LightGray
+                            ),
+                            modifier = Modifier.scale(0.8f)
+                        )
+                        Text(
+                            text = if (isActive) "Activo" else "Inactivo",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isActive) SuccessColor else Color.Gray
+                        )
+                    }
+                } else {
+                    // Solo mostrar el texto del estado si no puede cambiarlo
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = if (isActive) "Activo" else "Inactivo",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isActive) SuccessColor else Color.Gray
+                        )
+                    }
                 }
             }
 
@@ -536,15 +589,30 @@ fun UserCard(
                     
                     Spacer(modifier = Modifier.height(12.dp))
                     
-                    Button(
-                        onClick = onEditClick,
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text("EDITAR DATOS DEL USUARIO", style = MaterialTheme.typography.labelLarge)
+                    if (onEditClick != null) {
+                        Button(
+                            onClick = onEditClick,
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("EDITAR USUARIO", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    
+                    if (onManageSquadClick != null && user.role == "SUPERVISOR") {
+                        Button(
+                            onClick = onManageSquadClick,
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = WarningColor),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.Group, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text("GESTIONAR CUADRILLA", style = MaterialTheme.typography.labelLarge, color = Color.White)
+                        }
                     }
                 }
             }
@@ -657,6 +725,87 @@ fun InstallationSimpleCard(
                         fontWeight = FontWeight.Medium, 
                         color = PrimaryVariant
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AssignGuardsDialog(
+    supervisor: UserResponseDto,
+    allGuards: List<UserResponseDto>,
+    assignedGuards: List<UserResponseDto>,
+    isLoading: Boolean,
+    onDismiss: () -> Unit,
+    onToggleAssignment: (guardId: Long, isAssigned: Boolean) -> Unit
+) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        SISCard(modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Text(
+                    text = "Cuadrilla de ${(supervisor.fullName ?: "").toTitleCase()}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                if (isLoading) {
+                    Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = PrimaryColor)
+                    }
+                } else if (allGuards.isEmpty()) {
+                    Text("No hay guardias en el sistema para asignar.", color = TextSecondary)
+                } else {
+                    LazyColumn(modifier = Modifier.weight(1f, fill = false)) {
+                        items(allGuards) { guard ->
+                            val isAssigned = assignedGuards.any { it.id == guard.id }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = (guard.fullName ?: "Sin nombre").toTitleCase(),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = TextPrimary
+                                    )
+                                    Text(
+                                        text = guard.rut ?: "",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = TextSecondary
+                                    )
+                                }
+                                Switch(
+                                    checked = isAssigned,
+                                    onCheckedChange = { _ -> onToggleAssignment(guard.id ?: 0L, isAssigned) },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = SuccessColor,
+                                        uncheckedThumbColor = Color.White,
+                                        uncheckedTrackColor = Color.LightGray
+                                    ),
+                                    modifier = Modifier.scale(0.8f)
+                                )
+                            }
+                            HorizontalDivider(color = Color(0xFFF3F4F6))
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("CERRAR")
                 }
             }
         }

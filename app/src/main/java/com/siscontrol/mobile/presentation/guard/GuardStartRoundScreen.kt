@@ -125,23 +125,35 @@ fun GuardStartRoundScreen(
                     }
                 }
 
-                val activeInstallations = state.installations.filter { (it.status ?: 1) == 1 }
+                val activeInstallations = state.installations.filter { (it.status ?: 1) == 1 }.map { inst ->
+                    var distanceMeters = Int.MAX_VALUE
+                    if (deviceLoc != null && inst.latitude != null && inst.longitude != null && inst.latitude != 0.0) {
+                        val results = FloatArray(1)
+                        android.location.Location.distanceBetween(deviceLoc.latitude, deviceLoc.longitude, inst.latitude, inst.longitude, results)
+                        distanceMeters = results[0].toInt()
+                    } else if (inst.latitude != null && inst.latitude != 0.0) {
+                        distanceMeters = 0 // GPS detectando...
+                    } else {
+                        distanceMeters = 0 // Sin coordenadas, priorizamos
+                    }
+                    
+                    val isActiveSession = state.activeInstallationId == (inst.id ?: 0L)
+                    val sortPriority = if (isActiveSession) -1 else distanceMeters
+                    
+                    Triple(inst, distanceMeters, sortPriority)
+                }.sortedBy { it.third }
                 
-                items(activeInstallations) { inst ->
+                items(activeInstallations) { (inst, distanceMeters, _) ->
                     val installationId = inst.id ?: 0L
                     val installationName = inst.clientName ?: inst.name ?: "Sede"
                     
                     val isActiveSession = state.activeInstallationId == installationId
                     val hasAnotherActiveSession = state.activeInstallationId != 0L && !isActiveSession
 
-                    // CALCULO DE DISTANCIA (Si no hay GPS, asumimos que estás cerca para no bloquearte)
-                    var distanceMeters = 0 
+                    // CALCULO DE DISTANCIA (Texto)
                     var distanceText = "Calculando..."
                     
                     if (deviceLoc != null && inst.latitude != null && inst.longitude != null && inst.latitude != 0.0) {
-                        val results = FloatArray(1)
-                        android.location.Location.distanceBetween(deviceLoc.latitude, deviceLoc.longitude, inst.latitude, inst.longitude, results)
-                        distanceMeters = results[0].toInt()
                         distanceText = if (distanceMeters < 1000) "${distanceMeters}m" else String.format(java.util.Locale.getDefault(), "%.1fkm", distanceMeters / 1000.0)
                     } else if (inst.latitude != null && inst.latitude != 0.0) {
                         distanceText = "Cerca (GPS detectando...)"

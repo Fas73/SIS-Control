@@ -1,5 +1,7 @@
 package com.siscontrol.mobile.presentation.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -28,8 +30,10 @@ fun PrimaryButton(
     enabled: Boolean = true,
     fullWidth: Boolean = true
 ) {
+    val isPrimary = variant == ButtonVariant.PRIMARY
+
     val containerColor = when (variant) {
-        ButtonVariant.PRIMARY -> PrimaryColor
+        ButtonVariant.PRIMARY -> Color.Transparent // Usamos el Box con degradado en su lugar
         ButtonVariant.DANGER -> DangerColor
         ButtonVariant.WARNING -> WarningColor
         ButtonVariant.SUCCESS -> SuccessColor
@@ -48,6 +52,7 @@ fun PrimaryButton(
             .height(56.dp),
         enabled = enabled,
         shape = RoundedCornerShape(12.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp), // Importante para que el fondo llene el botón
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = contentColor,
@@ -55,10 +60,36 @@ fun PrimaryButton(
             disabledContentColor = Color(0xFF9CA3AF) // gray-400
         )
     ) {
-        Text(
-            text = text,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold
-        )
+        if (isPrimary && enabled) {
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                            colors = listOf(PrimaryColor, PrimaryVariant)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ),
+                contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+                Text(
+                    text = text,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+            }
+        } else {
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+                Text(
+                    text = text,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
     }
 }

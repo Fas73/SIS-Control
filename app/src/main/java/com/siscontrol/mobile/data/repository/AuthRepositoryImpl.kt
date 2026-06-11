@@ -87,4 +87,19 @@ class AuthRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    override suspend fun checkUsername(username: String): Result<Boolean> {
+        return try {
+            val bodyRequest = mapOf("username" to username)
+            val response = apiService.checkUsername(bodyRequest)
+            if (response.isSuccessful && response.body() != null) {
+                val exists = response.body()?.get("exists") ?: false
+                Result.success(exists)
+            } else {
+                Result.failure(Exception("Error de red al verificar usuario"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Error de red: ${e.message}"))
+        }
+    }
 }

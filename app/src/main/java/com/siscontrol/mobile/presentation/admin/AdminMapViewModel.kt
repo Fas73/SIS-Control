@@ -13,7 +13,9 @@ import com.siscontrol.mobile.domain.usecase.*
 import kotlinx.coroutines.launch
 
 class AdminMapViewModel(
-    private val getAdminDashboardUseCase: GetAdminDashboardUseCase
+    private val getAdminDashboardUseCase: GetAdminDashboardUseCase,
+    private val getSupervisorDashboardUseCase: GetSupervisorDashboardUseCase,
+    private val sessionManager: com.siscontrol.mobile.di.SessionManager
 ) : ViewModel() {
 
     private val _state = mutableStateOf(AdminMapState())
@@ -46,8 +48,16 @@ class AdminMapViewModel(
     }
 
     private suspend fun fetchData(context: Context?) {
-        getAdminDashboardUseCase()
-            .onSuccess { data ->
+        val userRole = sessionManager.getUserRoleSync() ?: "ADMIN"
+        val userId = sessionManager.getUserIdSync() ?: 0L
+
+        val result = if (userRole == "SUPERVISOR" && userId > 0L) {
+            getSupervisorDashboardUseCase(userId)
+        } else {
+            getAdminDashboardUseCase()
+        }
+
+        result.onSuccess { data ->
                 // Creamos un set de nombres de guardias que están en ronda activa para cruzar datos
                 val guardsInRoundNames = data.activeRoundsList.map { it.guardName }.toSet()
 

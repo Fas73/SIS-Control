@@ -280,7 +280,7 @@ fun AppNavigation() {
                 onLoginSuccess = { token, role, userId, fullName, username ->
                     scope.launch {
                         // Guardamos en DataStore
-                        sessionManager.saveSession(token, role, userId, fullName)
+                        sessionManager.saveSession(token, role, userId, fullName, username)
                         
                         // También guardamos en Room para asegurar que getEditorId() funcione correctamente
                         AppModule.getDatabase().userSessionDao().insertSession(

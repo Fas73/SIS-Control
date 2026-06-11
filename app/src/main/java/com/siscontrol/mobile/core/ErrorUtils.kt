@@ -57,7 +57,7 @@ object ErrorUtils {
     fun getLoginErrorMessage(error: Throwable): String {
         val msg = error.message ?: ""
         return if (msg.contains("401") || msg.contains("invalid", ignoreCase = true)) {
-            "El usuario/correo o la contraseña (o ambos) son incorrectos."
+            "La contraseña ingresada es incorrecta."
         } else if (msg.contains("403")) {
             "Su cuenta está inactiva. Contacte al administrador."
         } else {

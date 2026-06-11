@@ -12,6 +12,7 @@ import kotlinx.coroutines.delay
 
 class AdminHomeViewModel(
     private val getAdminDashboardUseCase: GetAdminDashboardUseCase,
+    private val getSupervisorDashboardUseCase: GetSupervisorDashboardUseCase,
     private val cancelRoundUseCase: CancelRoundUseCase,
     private val cancelShiftUseCase: CancelShiftUseCase,
     private val getShiftReportUseCase: GetShiftReportUseCase,
@@ -53,8 +54,17 @@ class AdminHomeViewModel(
     }
 
     private suspend fun updateAlertCountAndRounds() {
+        val role = sessionManager.getUserRoleSync()
+        val userId = sessionManager.getUserIdSync() ?: 0L
+
+        val result = if (role == "SUPERVISOR") {
+            getSupervisorDashboardUseCase(userId)
+        } else {
+            getAdminDashboardUseCase()
+        }
+
         // 1. Obtener datos generales del dashboard
-        getAdminDashboardUseCase().onSuccess { data ->
+        result.onSuccess { data ->
             _state.value = _state.value.copy(
                 totalGuards = data.totalGuards,
                 activeShifts = data.activeShiftsCount,
@@ -90,7 +100,9 @@ class AdminHomeViewModel(
 
         // 2. Calcular el contador REAL de alertas (Considerando Swipes locales y fusiones)
         val dismissedIds = db.dismissedAlertDao().getAllDismissedIds().toSet()
-        incidentRepository.getAllIncidents().onSuccess { list ->
+        val supervisorId = if (role == "SUPERVISOR" && userId > 0L) userId else null
+
+        incidentRepository.getAllIncidents(supervisorId).onSuccess { list ->
             // Aplicamos la misma lógica de fusión que en la pantalla de Alertas
             val alertsWithImage = list.filter { it.imageUrl != null }
             val alertsWithoutImage = list.filter { it.imageUrl == null && it.title.contains("no escaneado", ignoreCase = true) }

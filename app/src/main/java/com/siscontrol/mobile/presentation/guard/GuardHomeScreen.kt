@@ -11,6 +11,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,12 +42,19 @@ fun GuardHomeScreen(
     role: String,
     userName: String = "Guardia"
 ) {
+    var showCheckoutWarningDialog by remember { mutableStateOf(false) }
+    var distanceToInst by remember { mutableIntStateOf(0) }
+    var currentLat by remember { mutableDoubleStateOf(0.0) }
+    var currentLon by remember { mutableDoubleStateOf(0.0) }
+    
     val navState by viewModel.navState
     val instState by instViewModel.state
     val formattedName = userName.toTitleCase()
     
     val adminNotification by viewModel.adminNotification
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
     
     val estadoActual = (navState as? GuardNavigationState.Idle)?.estado
     val isShiftActive = estadoActual?.jornadaActiva == true
@@ -70,6 +81,9 @@ fun GuardHomeScreen(
         if (isShiftActive) {
             emergencyManager.startListening {
                 viewModel.triggerPanicAlert()
+                scope.launch {
+                    snackbarHostState.showSnackbar("¡Alerta de Pánico enviada a la central!")
+                }
             }
             android.util.Log.d("GUARD_HOME", "Iniciando detección de agitación (Shake)")
         } else {
@@ -108,7 +122,11 @@ fun GuardHomeScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(PrimaryColor)
+                    .background(
+                        brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                            colors = listOf(PrimaryColor, PrimaryVariant)
+                        )
+                    )
                     .padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 16.dp)
             ) {
                 Row(
@@ -117,14 +135,15 @@ fun GuardHomeScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        val letter = formattedName.take(1).uppercase()
                         Box(
                             modifier = Modifier
                                 .size(50.dp)
                                 .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.2f)),
+                                .background(SuccessColor.copy(alpha = 0.2f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(30.dp))
+                            Text(letter, color = SuccessColor, fontWeight = FontWeight.Bold, fontSize = 24.sp)
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
@@ -132,7 +151,6 @@ fun GuardHomeScreen(
                             Text("Perfil: Guardia", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
                         }
                     }
-                    SISBadge(if (isShiftActive) "En Turno" else "Fuera de Turno", containerColor = if (isShiftActive) SuccessColor else DangerColor, contentColor = Color.White)
                 }
             }
 
@@ -188,30 +206,36 @@ fun GuardHomeScreen(
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isShiftActive) SuccessColor else PrimaryColor
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                        border = BorderStroke(1.dp, Color(0xFFF3F4F6).copy(alpha = 0.05f))
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
-                            Icon(
-                                if(isShiftActive) Icons.Default.CheckCircle else Icons.Default.PlayArrow,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(40.dp)
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(if (isShiftActive) SuccessColor.copy(alpha = 0.1f) else PrimaryColor.copy(alpha = 0.1f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    if(isShiftActive) Icons.Default.CheckCircle else Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    tint = if (isShiftActive) SuccessColor else PrimaryColor,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
                                 text = if(isShiftActive) "Turno Activo" else "Iniciar Jornada", 
-                                color = Color.White, 
+                                color = TextPrimary, 
                                 fontSize = 22.sp, 
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = if (isShiftActive) "Puedes comenzar tu ronda ahora" 
                                        else "Registra tu asistencia para empezar", 
-                                color = Color.White.copy(alpha = 0.8f), 
+                                color = TextSecondary, 
                                 fontSize = 14.sp
                             )
                             
@@ -233,8 +257,8 @@ fun GuardHomeScreen(
                                 },
                                 modifier = Modifier.fillMaxWidth().height(52.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color.White,
-                                    contentColor = if (isShiftActive) SuccessColor else PrimaryColor
+                                    containerColor = if (isShiftActive) SuccessColor else PrimaryColor,
+                                    contentColor = Color.White
                                 ),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
@@ -251,8 +275,29 @@ fun GuardHomeScreen(
                                 OutlinedButton(
                                     onClick = { 
                                         viewModel.notifyLocalAction()
-                                        instViewModel.endShift {
-                                            viewModel.checkStatusAndRedirect(token, role, isLocal = true)
+                                        scope.launch {
+                                            val loc = com.siscontrol.mobile.core.LocationUtils.getCurrentLocation(context)
+                                            val activeInst = instState.installations.find { it.id == instState.activeInstallationId }
+                                            var distance = Int.MAX_VALUE
+                                            val instLat = activeInst?.latitude
+                                            val instLon = activeInst?.longitude
+                                            if (loc != null && instLat != null && instLon != null && instLat != 0.0) {
+                                                val results = FloatArray(1)
+                                                android.location.Location.distanceBetween(loc.latitude, loc.longitude, instLat, instLon, results)
+                                                distance = results[0].toInt()
+                                            }
+                                            
+                                            currentLat = loc?.latitude ?: 0.0
+                                            currentLon = loc?.longitude ?: 0.0
+                                            distanceToInst = distance
+
+                                            if (distance > 500) {
+                                                showCheckoutWarningDialog = true
+                                            } else {
+                                                instViewModel.endShift(currentLat, currentLon) {
+                                                    viewModel.checkStatusAndRedirect(token, role, isLocal = true)
+                                                }
+                                            }
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -279,20 +324,29 @@ fun GuardHomeScreen(
             }
         }
         
-        // FAB GLOBAL DE PÁNICO
+        // REEMPLAZO: BOTÓN DE PÁNICO DESLIZABLE
         if (isShiftActive) {
-            ExtendedFloatingActionButton(
-                onClick = { viewModel.triggerPanicAlert() },
+            Box(
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
+                    .align(Alignment.BottomCenter)
                     .padding(16.dp)
-                    .padding(bottom = 60.dp), // Separación para BottomBar
-                containerColor = DangerColor,
-                contentColor = Color.White,
-                icon = { Icon(Icons.Default.Warning, "Pánico") },
-                text = { Text("BOTÓN DE PÁNICO", fontWeight = FontWeight.Bold) }
-            )
+                    .padding(bottom = 60.dp) // Separación para BottomBar
+            ) {
+                SwipeToPanicButton(
+                    onPanicTriggered = {
+                        viewModel.triggerPanicAlert()
+                        scope.launch {
+                            snackbarHostState.showSnackbar("¡Alerta de Pánico enviada a la central!")
+                        }
+                    }
+                )
+            }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState, 
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 80.dp)
+        )
     }
 
     // DIÁLOGO DE NOTIFICACIÓN ADMINISTRATIVA EN TIEMPO REAL (DISEÑO HERMOSO)
@@ -347,6 +401,124 @@ fun GuardHomeScreen(
                         Text("ENTENDIDO", fontWeight = FontWeight.ExtraBold)
                     }
                 }
+            }
+        }
+    }
+
+    if (showCheckoutWarningDialog) {
+        AlertDialog(
+            onDismissRequest = { showCheckoutWarningDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Warning, contentDescription = null, tint = DangerColor, modifier = Modifier.size(24.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Cierre Irregular de Jornada", fontWeight = FontWeight.Bold, color = DangerColor)
+                }
+            },
+            text = {
+                val distanceText = if (distanceToInst == Int.MAX_VALUE) "una distancia desconocida" else if (distanceToInst > 1000) "${distanceToInst / 1000.0} km" else "$distanceToInst metros"
+                Text(
+                    text = "Detectamos que te encuentras a $distanceText de la instalación activa.\n\nTu cierre de jornada quedará registrado en el sistema con estas coordenadas.\n\n¿Estás seguro de que deseas finalizar tu jornada desde aquí?",
+                    fontSize = 14.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showCheckoutWarningDialog = false
+                        instViewModel.endShift(currentLat, currentLon) {
+                            viewModel.checkStatusAndRedirect(token, role, isLocal = true)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = DangerColor)
+                ) {
+                    Text("Sí, finalizar", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCheckoutWarningDialog = false }) {
+                    Text("Cancelar", color = TextSecondary)
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+}
+
+@Composable
+fun SwipeToPanicButton(onPanicTriggered: () -> Unit) {
+    var swipeOffset by remember { mutableStateOf(0f) }
+    var triggered by remember { mutableStateOf(false) }
+    // Asumimos un ancho general aproximado
+    val maxSwipe = LocalContext.current.resources.displayMetrics.density * 220f
+    val scope = rememberCoroutineScope()
+
+    val animatedOffset by androidx.compose.animation.core.animateFloatAsState(targetValue = swipeOffset)
+    val animatedColor by androidx.compose.animation.animateColorAsState(
+        targetValue = if (triggered) Color(0xFF7F1D1D) else DangerColor
+    )
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(64.dp),
+        shape = RoundedCornerShape(32.dp),
+        color = animatedColor,
+        shadowElevation = 4.dp
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            // Background text
+            Text(
+                text = if (triggered) "¡ALERTA ENVIADA!" else "DESLIZA PARA PÁNICO ➔",
+                color = Color.White.copy(alpha = 0.9f),
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 16.sp,
+                modifier = Modifier.align(Alignment.Center).padding(start = 24.dp)
+            )
+
+            // The draggable thumb
+            Box(
+                modifier = Modifier
+                    .offset { androidx.compose.ui.unit.IntOffset(animatedOffset.toInt(), 0) }
+                    .padding(4.dp)
+                    .size(56.dp)
+                    .background(Color.White, CircleShape)
+                    .pointerInput(triggered) {
+                        if (!triggered) {
+                            detectHorizontalDragGestures(
+                                onDragEnd = {
+                                    if (swipeOffset < maxSwipe * 0.7f) {
+                                        swipeOffset = 0f
+                                    } else {
+                                        swipeOffset = maxSwipe
+                                        triggered = true
+                                        onPanicTriggered()
+                                        // Reset after 3 seconds
+                                        scope.launch {
+                                            delay(3000)
+                                            triggered = false
+                                            swipeOffset = 0f
+                                        }
+                                    }
+                                }
+                            ) { change, dragAmount ->
+                                // no consume needed for local component
+                                swipeOffset = (swipeOffset + dragAmount).coerceIn(0f, maxSwipe)
+                            }
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = animatedColor,
+                    modifier = Modifier.size(28.dp)
+                )
             }
         }
     }
